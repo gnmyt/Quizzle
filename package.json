@@ -1,0 +1,20 @@
+{
+  "dependencies": {
+    "express": "^4.19.2",
+    "express-rate-limit": "^7.2.0",
+    "joi": "^17.12.3",
+    "pako": "^2.1.0",
+    "socket.io": "^4.7.5"
+  },
+  "name": "quizzle",
+  "description": "A free, open source and self hosted quiz platform for schools",
+  "version": "1.0.0",
+  "main": "index.js",
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Mathias Wagner <germannewsmaker@gmail.com>",
+  "license": "ISC",
+  "repository": "https://github.com/gnmyt/Quizzle.git"
+}

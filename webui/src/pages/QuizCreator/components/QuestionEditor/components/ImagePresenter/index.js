@@ -1,0 +1,1 @@
+export {ImagePresenter as default} from "./ImagePresenter.jsx";

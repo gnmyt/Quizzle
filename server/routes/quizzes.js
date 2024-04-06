@@ -10,13 +10,13 @@ const {quizzesFolder} = require("../utils/file");
 const uploadFile = async (content) => {
     let random = Math.random().toString(36).substring(7);
 
-    while (await checkIfExists(path.join(quizzesFolder, `${random}.quizzie`))) {
+    while (await checkIfExists(path.join(quizzesFolder, `${random}.quizzle`))) {
         random = Math.random().toString(36).substring(7);
     }
 
     const compressed = pako.deflate(JSON.stringify({__type: "QUIZZLE1", ...content}), { to: 'string' });
 
-    fs.writeFile(path.join(quizzesFolder, `${random}.quizzie`), compressed, (err) => {
+    fs.writeFile(path.join(quizzesFolder, `${random}.quizzle`), compressed, (err) => {
         if (err) {
             console.error(err);
         }
@@ -41,7 +41,7 @@ const limiter = rateLimit({
 app.get('/:quizId', (req, res) => {
     const escaped = req.params.quizId.replace(/[^a-z0-9]/gi, '');
 
-    fs.readFile(path.join(quizzesFolder, `${escaped}.quizzie`), (err, data) => {
+    fs.readFile(path.join(quizzesFolder, `${escaped}.quizzle`), (err, data) => {
         if (err) {
             res.status(404).json({message: "Quiz not found"});
             return;

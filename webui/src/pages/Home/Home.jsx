@@ -18,10 +18,10 @@ export const Home = () => {
 
     return (
         <div className="home-page">
-            <div className="legal-area">
+            <motion.div className="legal-area" initial={{opacity: 0, y: 50}} animate={{opacity: 1, y: 0}}>
                 <a href={imprint} target="_blank" rel="noreferrer">Impressum</a>
                 <a href={privacy} target="_blank" rel="noreferrer">Datenschutz</a>
-            </div>
+            </motion.div>
 
             <motion.img src={titleImg} alt="logo" initial={{opacity: 0, y: -50}} animate={{opacity: 1, y: 0}}/>
 

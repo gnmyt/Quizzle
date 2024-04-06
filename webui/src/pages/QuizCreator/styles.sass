@@ -2,7 +2,7 @@
 
 .quiz-creator
   margin: 3rem
-  overflow: hidden
+  background-color: $background
 
 .quiz-header-area
   display: flex
@@ -12,7 +12,7 @@
   img
     height: 3.5rem
 
-.quiz-title-area
+.quiz-action-area, .quiz-title-area
   display: flex
   gap: 1rem
   align-items: center
@@ -21,6 +21,9 @@
     color: $primary
     font-size: 2rem
     cursor: pointer
+
+  .import-icon
+    color: $green
 
 .question-area
   margin-top: 4rem
@@ -35,3 +38,34 @@
   display: flex
   flex-direction: column
   gap: 0.5rem
+
+
+@media screen and (max-width: 1300px)
+  .quiz-header-area img
+    display: none
+
+  .quiz-header-area
+    gap: 0
+
+@media screen and (max-width: 915px)
+  .quiz-title-area
+    flex-direction: column
+    align-items: flex-start
+
+  .quiz-action-area svg
+    width: 2rem
+    height: 2rem
+    background-color: $background
+    padding: 0.6rem
+    border-radius: 50%
+
+  .question-area
+    flex-direction: column
+    gap: 2rem
+  .question-list
+    height: 100%
+    overflow-x: hidden
+
+@media screen and (max-width: 560px)
+  .quiz-title-area
+    align-items: center

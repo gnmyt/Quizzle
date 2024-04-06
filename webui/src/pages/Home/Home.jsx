@@ -8,7 +8,7 @@ import {faQrcode, faShareFromSquare, faSwatchbook} from "@fortawesome/free-solid
 import {useNavigate, useOutletContext} from "react-router-dom";
 
 export const Home = () => {
-    const {titleImg} = useContext(BrandingContext);
+    const {titleImg, imprint, privacy} = useContext(BrandingContext);
     const {setCirclePosition} = useOutletContext();
     const navigate = useNavigate();
 
@@ -18,6 +18,11 @@ export const Home = () => {
 
     return (
         <div className="home-page">
+            <div className="legal-area">
+                <a href={imprint} target="_blank" rel="noreferrer">Impressum</a>
+                <a href={privacy} target="_blank" rel="noreferrer">Datenschutz</a>
+            </div>
+
             <motion.img src={titleImg} alt="logo" initial={{opacity: 0, y: -50}} animate={{opacity: 1, y: 0}}/>
 
             <motion.div initial={{opacity: 0, y: 50}} animate={{opacity: 1, y: 0}} transition={{delay: 0.5}}

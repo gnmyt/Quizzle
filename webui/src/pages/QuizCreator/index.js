@@ -1,0 +1,1 @@
+export {QuizCreator as default} from "./QuizCreator.jsx";

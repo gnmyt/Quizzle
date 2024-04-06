@@ -1,0 +1,60 @@
+@import "@/common/styles/colors"
+
+.quiz-answer
+  display: flex
+  width: 100%
+  border: 3px solid $border
+  border-radius: 1rem
+  padding: 1.3rem 1rem
+  box-sizing: border-box
+  align-items: center
+  justify-content: space-between
+
+  input
+    box-sizing: border-box
+    border: none
+    width: 100%
+    font-size: 28px
+    outline: none
+    height: 3rem
+
+  svg
+    margin-right: 1rem
+    font-size: 2rem
+    cursor: pointer
+
+  img
+    height: 3rem
+    cursor: not-allowed
+
+  .answer-actions
+    display: flex
+    align-items: center
+
+.quiz-answer-red
+  border-color: $red
+
+  .img-icon
+    color: $red
+
+.quiz-answer-green
+  border-color: $green
+
+  .img-icon
+    color: $green
+
+.quiz-answer-blue
+  border-color: $blue
+
+  .img-icon
+    color: $blue
+
+.quiz-answer-orange
+  border-color: $orange
+
+  .img-icon
+    color: $orange
+
+
+.quiz-answer-correct
+  color: $green

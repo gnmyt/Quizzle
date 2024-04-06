@@ -7,6 +7,12 @@
   height: 100%
   flex-direction: column
 
+  img
+    width: 25rem
+    background-color: $background
+    border-radius: 1rem
+    padding: 1rem
+
 .home-content
   margin-top: 3rem
   display: flex
@@ -38,9 +44,38 @@
       width: 4rem
       background-color: $border
 
-
-
 .action-area
   display: flex
   flex-direction: column
   gap: 1rem
+
+.legal-area
+  position: fixed
+  bottom: 1rem
+  left: 1rem
+  display: flex
+  gap: 1rem
+
+  a
+    color: $text
+    text-decoration: none
+
+    &:hover
+      text-decoration: underline
+
+@media screen and (max-width: 800px)
+  .home-content
+    flex-direction: column
+    gap: 3rem
+
+
+  .home-page img
+    width: 15rem
+
+  .join-area
+    gap: 2rem
+
+
+@media screen and (max-width: 600px)
+  .action-area button:nth-child(2)
+    display: none

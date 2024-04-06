@@ -1,0 +1,23 @@
+@import "@/common/styles/colors"
+
+.code-wrapper
+  display: flex
+  gap: 0.5rem
+
+  input:focus:nth-child(odd)
+    transform: rotate(-2deg) scale(1.22)
+
+  input:focus:nth-child(even)
+    transform: rotate(2deg) scale(1.22)
+
+  input
+    outline: none
+    border: 1px solid $border
+    border-radius: 0.6rem
+    text-align: center
+    font-size: 2rem
+    width: 3rem
+    height: 3rem
+
+  input::-webkit-outer-spin-button, input::-webkit-inner-spin-button
+    -webkit-appearance: none

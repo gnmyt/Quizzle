@@ -9,6 +9,8 @@ import {motion} from "framer-motion";
 export const QuestionEditor = ({question, onChange, deleteQuestion, duplicateQuestion}) => {
     const updateTitle = (title) => onChange({...question, title: title});
 
+    if (!question) return null;
+
     return (
         <motion.div className="question-editor" initial={{x: -300, opacity: 0}} animate={{x: 0, opacity: 1}}>
             <div className="question-action-area">

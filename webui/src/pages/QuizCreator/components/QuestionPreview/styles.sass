@@ -1,0 +1,24 @@
+@import "@/common/styles/colors"
+
+.question-preview
+  display: flex
+  width: 10rem
+  height: 6rem
+  background-color: $background
+  border: 2px solid $border
+  border-radius: 1rem
+  overflow: hidden
+  cursor: pointer
+  transition: border 0.2s
+
+  h3
+    margin: 0.7rem 1rem 0.3rem 1rem
+    font-size: 1rem
+    font-weight: 700
+    color: $gray
+    overflow: hidden
+    text-overflow: ellipsis
+    user-select: none
+
+.preview-active
+  border: 2px solid $primary

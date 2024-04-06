@@ -1,0 +1,32 @@
+@import "@/common/styles/colors"
+
+.btn
+  color: $background
+  border: none
+  font-weight: 700
+  font-size: 1.5rem
+  padding: 0.4rem 1rem
+  border-radius: 0.6rem
+  display: flex
+  align-items: center
+  gap: 0.5rem
+
+  transition: all 0.2s ease-in-out
+
+  &:hover
+    cursor: pointer
+    filter: brightness(1.1)
+    transform: scale(1.02) rotate(-2deg)
+
+  &:active
+    transform: scale(0.95) rotate(3deg)
+
+
+.btn-default
+  background-color: $primary
+
+.btn-green
+  background-color: $green
+
+.btn-red
+  background-color: $red

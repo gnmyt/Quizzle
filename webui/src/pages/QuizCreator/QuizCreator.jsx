@@ -5,7 +5,13 @@ import {AnimatePresence, motion, Reorder} from "framer-motion";
 import "./styles.sass";
 import Input from "@/common/components/Input";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
-import {faCloudUpload, faEraser, faExclamationTriangle, faFileDownload} from "@fortawesome/free-solid-svg-icons";
+import {
+    faCloudUpload,
+    faEraser,
+    faExclamationTriangle,
+    faFileDownload,
+    faFileImport
+} from "@fortawesome/free-solid-svg-icons";
 import QuestionPreview from "@/pages/QuizCreator/components/QuestionPreview";
 import QuestionEditor from "@/pages/QuizCreator/components/QuestionEditor";
 import AddQuestion from "@/pages/QuizCreator/components/AddQuestion";
@@ -42,6 +48,39 @@ export const QuizCreator = () => {
         if (questionIndex > 0) setActiveQuestion(newQuestions[questionIndex - 1].uuid);
 
         setQuestions(newQuestions);
+    }
+
+    const importQuiz = () => {
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = ".quizzle";
+        input.onchange = (e) => {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = pako.inflate(e.target.result, {to: "string"});
+                    const parsedData = JSON.parse(data);
+
+                    console.log(parsedData);
+
+                    if (parsedData.__type !== "QUIZZLE1") throw "Ungültiges Dateiformat.";
+
+                    const questions = parsedData.questions.map(q => {
+                        const newUuid = generateUuid();
+                        return {uuid: newUuid, ...q};
+                    });
+
+                    setTitle(parsedData.title);
+                    setQuestions(questions);
+                    setActiveQuestion(questions[0].uuid);
+                } catch (e) {
+                    toast.error("Ungültiges Dateiformat.");
+                }
+            }
+            reader.readAsArrayBuffer(file);
+        }
+        input.click();
     }
 
     const duplicateQuestion = (uuid) => {
@@ -177,8 +216,6 @@ export const QuizCreator = () => {
                 setErrorToastId(null);
             }
         } catch (e) {
-            //set permanent error toast
-
             if (!errorToastId) {
                 setErrorToastId(toast.error("Dein Quiz übersteigt die lokale Speicherkapazität. Bitte lade es hoch, um zu verhindern, dass es verloren geht wenn du die Seite verlässt.",
                     {duration: Infinity,
@@ -196,11 +233,14 @@ export const QuizCreator = () => {
                 </Link>
                 <motion.div initial={{opacity: 0, x: -50}} animate={{opacity: 1, x: 0}} className="quiz-title-area">
                     <Input placeholder="Quiz-Titel eingeben" value={title} onChange={(e) => setTitle(e.target.value)}/>
-                    <FontAwesomeIcon icon={faCloudUpload} onClick={uploadQuiz}/>
-                    <FontAwesomeIcon icon={faFileDownload} onClick={downloadQuiz}/>
-                    {(title !== "" || questions.some(q => q.title !== "") || questions.length > 1 ||
-                            questions.some(q => q.answers.length > 0)) &&
-                        <FontAwesomeIcon icon={faEraser} onClick={clearQuiz}/>}
+                    <div className="quiz-action-area">
+                        <FontAwesomeIcon icon={faFileImport} onClick={importQuiz} className="import-icon"/>
+                        <FontAwesomeIcon icon={faCloudUpload} onClick={uploadQuiz}/>
+                        <FontAwesomeIcon icon={faFileDownload} onClick={downloadQuiz}/>
+                        {(title !== "" || questions.some(q => q.title !== "") || questions.length > 1 ||
+                                questions.some(q => q.answers.length > 0)) &&
+                            <FontAwesomeIcon icon={faEraser} onClick={clearQuiz}/>}
+                    </div>
                 </motion.div>
             </div>
 

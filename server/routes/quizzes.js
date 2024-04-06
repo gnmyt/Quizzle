@@ -5,6 +5,7 @@ const pako = require("pako");
 const path = require("path");
 const fs = require("fs");
 const app = require('express').Router();
+const {quizzesFolder} = require("../utils/file");
 
 const uploadFile = async (content) => {
     let random = Math.random().toString(36).substring(7);
@@ -13,7 +14,7 @@ const uploadFile = async (content) => {
         random = Math.random().toString(36).substring(7);
     }
 
-    const compressed = pako.deflate(JSON.stringify(content), { to: 'string' });
+    const compressed = pako.deflate(JSON.stringify({__type: "QUIZZLE1", ...content}), { to: 'string' });
 
     fs.writeFile(path.join(quizzesFolder, `${random}.quizzie`), compressed, (err) => {
         if (err) {

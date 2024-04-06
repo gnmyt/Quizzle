@@ -25,3 +25,13 @@ export const postRequest = async (path, body = {}, headers = {}) => {
         throw e;
     }
 }
+
+// Run a PUT request and post some values
+export const putRequest = async (path, body = {}, headers = {}) => {
+    try {
+        const resp = await request(path, "PUT", body, headers);
+        return await resp.json();
+    } catch (e) {
+        throw e;
+    }
+}

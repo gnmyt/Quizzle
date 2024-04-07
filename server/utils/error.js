@@ -8,3 +8,13 @@ module.exports.validateSchema = (res, schema, object) => {
 
     return error;
 };
+
+module.exports.validateSchemaSocket = (callback, schema, object) => {
+    const { error } = schema.validate(object, { errors: { wrap: { label: "" } } });
+
+    if (error && callback) {
+        callback(false);
+    }
+
+    return error;
+}

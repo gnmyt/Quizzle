@@ -13,7 +13,7 @@ import UploadImage from "./assets/Upload.jsx";
 export const QuizLoader = () => {
     const {setCirclePosition} = useOutletContext();
     const {titleImg, name} = useContext(BrandingContext);
-    const {loadQuizById, loadQuizByContent} = useContext(QuizContext);
+    const {loadQuizById, loadQuizByContent, isLoaded} = useContext(QuizContext);
     const [dragActive, setDragActive] = useState(false);
     const query = new URLSearchParams(window.location.search);
 
@@ -75,6 +75,11 @@ export const QuizLoader = () => {
     useEffect(() => {
         setCirclePosition(["-35rem 0 0 55%", "-18rem 0 0 45%"]);
     }, []);
+
+    useEffect(() => {
+        if (isLoaded) navigate("/host/lobby");
+    }, [isLoaded]);
+
     return (
         <div className="loader-page" onDrop={onDrop} onDragOver={(e) => {e.preventDefault();
             setDragActive(true);}} onDragLeave={() => setDragActive(false)}>

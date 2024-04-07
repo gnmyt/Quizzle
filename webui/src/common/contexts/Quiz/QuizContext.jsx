@@ -31,7 +31,7 @@ export const QuizProvider = ({children}) => {
             return false;
         }
 
-        setQuiz(content);
+        setQuiz(parsedData);
         return true;
     }
 
@@ -41,12 +41,22 @@ export const QuizProvider = ({children}) => {
             return false;
         }
 
-        setQuiz(result);
+        const dataRaw = await result.blob();
+        const data = pako.inflate(new Uint8Array(await dataRaw.arrayBuffer()), {to: "string"});
+
+        const parsedData = JSON.parse(data);
+
+        if (!validateQuiz(parsedData)) {
+            return false;
+        }
+
+        setQuiz(parsedData);
+
         return true;
     }
 
     return (
-        <QuizContext.Provider value={{isLoaded, loadQuizById, loadQuizByContent}}>
+        <QuizContext.Provider value={{isLoaded, loadQuizById, loadQuizByContent, quizRaw: quiz}}>
             {children}
         </QuizContext.Provider>
     );

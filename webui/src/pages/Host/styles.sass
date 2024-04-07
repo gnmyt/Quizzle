@@ -60,6 +60,35 @@
   img
     width: 25rem
 
+  .player-list
+    width: 40rem
+    max-height: 25rem
+    overflow-y: auto
+    display: flex
+    flex-wrap: wrap
+    margin-top: 2rem
+    align-items: flex-start
+    align-content: flex-start
+    gap: 1rem
+
+  .player
+    display: flex
+    align-items: center
+    gap: 1rem
+    padding: 1rem 1.5rem
+    border-radius: 1rem
+    color: $background
+    background-color: $primary
+    user-select: none
+    cursor: pointer
+
+    h3
+      margin: 0
+
+    &:hover
+      h3
+        text-decoration: line-through
+
 
 .host-page .system-ui
   position: fixed

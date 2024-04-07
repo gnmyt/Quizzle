@@ -11,7 +11,12 @@ export default defineConfig({
     },
     server: {
         proxy: {
-            "/api": "http://localhost:6412/"
+            "/api": {
+                target: "http://localhost:6412",
+                ws: true,
+                changeOrigin: true,
+                secure: false
+            }
         }
     }
 });

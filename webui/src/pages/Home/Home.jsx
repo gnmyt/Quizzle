@@ -42,10 +42,14 @@ export const Home = () => {
                 <div className="action-area">
                     <Button text="Quiz erstellen" icon={faSwatchbook} padding={"0.8rem 2.5rem"}
                             onClick={() => {
-                                setCirclePosition("-25rem 0 0 -25rem");
+                                setCirclePosition("-30rem 0 0 -30rem");
                                 setTimeout(() => navigate("/create"), 500);
                             }}/>
-                    <Button text="Raum hosten" icon={faShareFromSquare} padding={"0.8rem 2.5rem"}/>
+                    <Button text="Raum hosten" icon={faShareFromSquare} padding={"0.8rem 2.5rem"}
+                            onClick={() => {
+                                setCirclePosition("-30rem 0 0 -30rem");
+                                setTimeout(() => navigate("/load"), 500);
+                            }}/>
                 </div>
             </motion.div>
         </div>

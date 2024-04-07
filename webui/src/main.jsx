@@ -1,7 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import {BrandingProvider} from "@/common/contexts/Branding";
-import {createBrowserRouter, RouterProvider} from "react-router-dom";
+import {createBrowserRouter, Navigate, RouterProvider} from "react-router-dom";
 import Root from "@/common/layouts/Root";
 import "@fontsource/inter";
 import "@fontsource/inter/500.css";
@@ -13,12 +13,13 @@ import Home from "@/pages/Home";
 import QuizCreator from "@/pages/QuizCreator";
 import Host from "@/pages/Host";
 import QuizLoader from "@/pages/QuizLoader";
-import {QuizProvider} from "@/common/contexts/Quiz/index.js";
+import {QuizProvider} from "@/common/contexts/Quiz";
 
 const router = createBrowserRouter([
     {
         path: '/',
         element: <Root/>,
+        errorElement: <Navigate to="/"/>,
         children: [
             {path: '/', element: <Home/>},
             {path: '/create', element: <QuizCreator />},

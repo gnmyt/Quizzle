@@ -62,8 +62,6 @@ export const QuizCreator = () => {
                     const data = pako.inflate(e.target.result, {to: "string"});
                     const parsedData = JSON.parse(data);
 
-                    console.log(parsedData);
-
                     if (parsedData.__type !== "QUIZZLE1") throw "Ungültiges Dateiformat.";
 
                     const questions = parsedData.questions.map(q => {
@@ -153,8 +151,9 @@ export const QuizCreator = () => {
             toast.success("Quiz erfolgreich hochgeladen.");
             toast.success("Quiz-ID: " + r.quizId, {duration: 10000});
 
-            navigator.clipboard.writeText(r.quizId);
+            navigator.clipboard?.writeText(r.quizId);
         }).catch((e) => {
+            console.log(e)
             toast.error(e?.ce ? e.ce : "Fehler beim Hochladen des Quiz.");
         });
     }

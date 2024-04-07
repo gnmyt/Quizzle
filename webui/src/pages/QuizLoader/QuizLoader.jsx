@@ -1,7 +1,6 @@
 import {useContext, useEffect, useState} from "react";
 import {Link, useNavigate, useOutletContext} from "react-router-dom";
 import {BrandingContext} from "@/common/contexts/Branding";
-import UploadImage from "@/common/assets/images/upload.svg";
 import "./styles.sass";
 import Input from "@/common/components/Input";
 import Button from "@/common/components/Button";
@@ -9,6 +8,7 @@ import {faFileImport, faFileUpload, faPlay} from "@fortawesome/free-solid-svg-ic
 import {QuizContext} from "@/common/contexts/Quiz";
 import toast from "react-hot-toast";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
+import UploadImage from "./assets/Upload.jsx";
 
 export const QuizLoader = () => {
     const {setCirclePosition} = useOutletContext();
@@ -101,7 +101,8 @@ export const QuizLoader = () => {
                 <Button icon={faFileUpload} text="Datei hochladen" padding="0.8rem 1.5rem"
                         onClick={importQuiz}/>
             </div>
-            <img src={UploadImage} alt="upload" className="upload-image"/>
+
+            <UploadImage className="upload-image"/>
         </div>
     );
 }

@@ -12,9 +12,12 @@
   "description": "A free, open source and self hosted quiz platform for schools",
   "version": "1.0.0",
   "main": "index.js",
-  "devDependencies": {},
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server/index.js",
+    "dev": "nodemon server/index.js"
   },
   "author": "Mathias Wagner <germannewsmaker@gmail.com>",
   "license": "ISC",

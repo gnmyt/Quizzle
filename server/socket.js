@@ -43,7 +43,7 @@ module.exports = (io, socket) => {
         if (!rooms[currentRoomCode].players[data.id]) return callback(false);
         if (rooms[currentRoomCode].state !== 'waiting') return callback(false);
 
-        io.to(rooms[currentRoomCode].host).emit('PLAYER_LEFT', {id: data.id});
+        io.to(rooms[currentRoomCode].host).emit('PLAYER_LEFT', {id: data.id, name: rooms[currentRoomCode].players[data.id].name});
         io.sockets.sockets.get(data.id)?.disconnect();
 
         delete rooms[currentRoomCode].players[data.id];
@@ -166,7 +166,7 @@ module.exports = (io, socket) => {
         }
 
         if (rooms[currentRoomCode]?.players[socket.id]) {
-            io.to(rooms[currentRoomCode].host).emit('PLAYER_LEFT', {id: socket.id});
+            io.to(rooms[currentRoomCode].host).emit('PLAYER_LEFT', {id: socket.id, name: rooms[currentRoomCode].players[socket.id].name});
             delete rooms[currentRoomCode].players[socket.id];
         }
     });

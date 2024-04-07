@@ -8,10 +8,10 @@ const app = require('express').Router();
 const {quizzesFolder} = require("../utils/file");
 
 const uploadFile = async (content) => {
-    let random = Math.random().toString(36).substring(7);
+    let random = Math.random().toString(36).substring(7).toUpperCase();
 
     while (await checkIfExists(path.join(quizzesFolder, `${random}.quizzle`))) {
-        random = Math.random().toString(36).substring(7);
+        random = Math.random().toString(36).substring(7).toUpperCase();
     }
 
     const compressed = pako.deflate(JSON.stringify({__type: "QUIZZLE1", ...content}), { to: 'string' });

@@ -17,13 +17,7 @@ app.use(express.json({limit: '50kb'}));
 app.use("/api/branding", require("./routes/branding"));
 app.use("/api/quizzes", require("./routes/quizzes"));
 
-io.of('/api/ws').on('connection', (socket) => {
-    console.log('A client connected via Socket.IO');
-
-    socket.on('disconnect', () => {
-        console.log('Client disconnected');
-    });
-});
+io.of('/api/ws').on('connection', (socket) => require("./socket")(io.of('/api/ws'), socket));
 
 if (process.env.NODE_ENV === 'production') {
     app.use(express.static(path.join(__dirname, '../dist')));

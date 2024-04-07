@@ -14,6 +14,7 @@ import QuizCreator from "@/pages/QuizCreator";
 import Host from "@/pages/Host";
 import QuizLoader from "@/pages/QuizLoader";
 import {QuizProvider} from "@/common/contexts/Quiz";
+import InGameHost from "@/pages/InGameHost";
 
 const router = createBrowserRouter([
     {
@@ -24,7 +25,8 @@ const router = createBrowserRouter([
             {path: '/', element: <Home/>},
             {path: '/create', element: <QuizCreator />},
             {path: '/load', element: <QuizLoader />},
-            {path: '/host/lobby', element: <Host />}
+            {path: '/host/lobby', element: <Host />},
+            {path: '/host/ingame', element: <InGameHost />},
         ]
     },
 ]);

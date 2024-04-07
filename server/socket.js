@@ -16,7 +16,6 @@ const calculatePoints = (correctAnswers, room) => {
 
 module.exports = (io, socket) => {
     let currentRoomCode;
-    console.log('A client connected via Socket.IO');
 
     socket.on('CREATE_ROOM', (data, callback) => {
         if (!callback) return;
@@ -35,6 +34,20 @@ module.exports = (io, socket) => {
         currentRoomCode = roomCode;
 
         callback(roomCode);
+    });
+
+    socket.on('KICK_PLAYER', (data, callback) => {
+        if (!callback) return;
+        if (!data?.id) return callback(false);
+        if (rooms[currentRoomCode].host !== socket.id) return callback(false);
+        if (!rooms[currentRoomCode].players[data.id]) return callback(false);
+        if (rooms[currentRoomCode].state !== 'waiting') return callback(false);
+
+        io.to(rooms[currentRoomCode].host).emit('PLAYER_LEFT', {id: data.id});
+        io.sockets.sockets.get(data.id)?.disconnect();
+
+        delete rooms[currentRoomCode].players[data.id];
+        callback(true);
     });
 
     socket.on('CHECK_ROOM', (data, callback) => {
@@ -135,7 +148,7 @@ module.exports = (io, socket) => {
 
         for (const player of Object.keys(rooms[currentRoomCode].players)) {
             io.to(player).emit("GAME_ENDED", rooms[currentRoomCode].playerAnswers.filter(answer => answer[player]));
-            io.sockets.get(player)?.disconnect();
+            io.sockets.sockets.get(player)?.disconnect();
         }
 
         delete rooms[currentRoomCode];
@@ -145,7 +158,7 @@ module.exports = (io, socket) => {
         if (rooms[currentRoomCode]?.host === socket.id) {
             for (const player of Object.keys(rooms[currentRoomCode].players)) {
                 io.to(player).emit("GAME_ENDED", rooms[currentRoomCode].playerAnswers.filter(answer => answer[player]));
-                io.sockets.get(player)?.disconnect();
+                io.sockets.sockets.get(player)?.disconnect();
             }
             delete rooms[currentRoomCode];
 
@@ -153,8 +166,8 @@ module.exports = (io, socket) => {
         }
 
         if (rooms[currentRoomCode]?.players[socket.id]) {
+            io.to(rooms[currentRoomCode].host).emit('PLAYER_LEFT', {id: socket.id});
             delete rooms[currentRoomCode].players[socket.id];
-            io.to(currentRoomCode).emit('PLAYER_LEFT', {id: socket.id});
         }
     });
 };

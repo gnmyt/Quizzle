@@ -6,7 +6,7 @@ const {firstStart} = require("./utils/file");
 
 const app = express();
 const server = http.createServer(app);
-const io = socketIo(server, {cors: {origin: '*',}, connectionStateRecovery: {maxDisconnectionDuration: 2 * 60 * 1000}});
+const io = socketIo(server, {path: '/api/ws', cors: {origin: '*'}, connectionStateRecovery: {maxDisconnectionDuration: 2 * 60 * 1000}});
 
 const PORT = process.env.PORT || 6412;
 
@@ -17,7 +17,7 @@ app.use(express.json({limit: '50kb'}));
 app.use("/api/branding", require("./routes/branding"));
 app.use("/api/quizzes", require("./routes/quizzes"));
 
-io.of('/api/ws').on('connection', (socket) => require("./socket")(io.of('/api/ws'), socket));
+io.on('connection', (socket) => require("./socket")(io, socket));
 
 if (process.env.NODE_ENV === 'production') {
     app.use(express.static(path.join(__dirname, '../dist')));

@@ -30,7 +30,7 @@ export const QuizLoader = () => {
 
                 toast.success("Quiz erfolgreich geladen!");
                 setCirclePosition(["-18rem 0 0 45%", "-35rem 0 0 55%"]);
-                setTimeout(() => navigate("/host"), 500);
+                setTimeout(() => navigate("/host/lobby"), 500);
             } catch (e) {
                 toast.error("Ungültiges Dateiformat.");
             }
@@ -58,7 +58,7 @@ export const QuizLoader = () => {
 
         toast.success("Quiz erfolgreich geladen!");
         setCirclePosition(["-18rem 0 0 45%", "-35rem 0 0 55%"]);
-        setTimeout(() => navigate("/host"), 500);
+        setTimeout(() => navigate("/host/lobby"), 500);
     }
 
     const onDrop = (e) => {

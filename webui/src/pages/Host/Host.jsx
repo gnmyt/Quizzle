@@ -1,4 +1,4 @@
-import {useContext, useEffect} from "react";
+import {useContext, useEffect, useState} from "react";
 import {QuizContext} from "@/common/contexts/Quiz";
 import {useNavigate, useOutletContext} from "react-router-dom";
 import "./styles.sass";
@@ -6,7 +6,7 @@ import QRCode from "qrcode.react";
 import Triangle from "@/pages/Host/assets/Triangle.jsx";
 import {BrandingContext} from "@/common/contexts/Branding";
 import {motion} from "framer-motion";
-import Button from "@/common/components/Button/index.js";
+import Button from "@/common/components/Button";
 import {faGamepad, faUser, faVolumeMute} from "@fortawesome/free-solid-svg-icons";
 
 export const Host = () => {
@@ -14,6 +14,7 @@ export const Host = () => {
     const {setCirclePosition} = useOutletContext();
     const {isLoaded, quizRaw} = useContext(QuizContext);
     const {titleImg} = useContext(BrandingContext);
+    const [qrShown, setQrShown] = useState(false);
 
     useEffect(() => {
         if (!isLoaded) {
@@ -31,12 +32,18 @@ export const Host = () => {
 
     return (
         <div className="host-page">
+            {qrShown && <div className="qr-dialog" onClick={() => setQrShown(!qrShown)}>
+                <motion.div initial={{scale: 0}} animate={{scale: 1}}>
+                    <QRCode value={window.location.href} className="qr-big" renderAs="svg"/>
+                </motion.div>
+            </div>}
 
             <div className="quiz-info-container">
                 <motion.div className="quiz-information" initial={{opacity: 0, y: -100}} animate={{opacity: 1, y: 0}}>
                     <div className="info-header">
                         <h1>“{quizRaw.title}”</h1>
-                        <QRCode value={window.location.href} size={100} renderAs="svg" className="qr"/>
+                        <QRCode value={window.location.href} size={100} renderAs="svg" className="qr"
+                                onClick={() => setQrShown(!qrShown)}/>
                     </div>
 
                     <p>Verbinden über die Webseite <span>www.bs2ab.quiz</span> mit Code:</p>

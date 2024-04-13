@@ -39,7 +39,7 @@ module.exports = (io, socket) => {
     socket.on('KICK_PLAYER', (data, callback) => {
         if (!callback) return;
         if (!data?.id) return callback(false);
-        if (rooms[currentRoomCode].host !== socket.id) return callback(false);
+        if (rooms[currentRoomCode]?.host !== socket.id) return callback(false);
         if (!rooms[currentRoomCode].players[data.id]) return callback(false);
         if (rooms[currentRoomCode].state !== 'waiting') return callback(false);
 
@@ -74,8 +74,8 @@ module.exports = (io, socket) => {
 
     socket.on('SHOW_QUESTION', (data, callback) => {
         if (!callback) return;
+        if (!rooms[currentRoomCode]) return callback(false);
         if (rooms[currentRoomCode].host !== socket.id) return callback(false);
-        if (rooms[currentRoomCode].players.length < 2) return callback(false);
 
         if (validateSchemaSocket(callback, questionValidation, data)) return;
 
@@ -131,17 +131,20 @@ module.exports = (io, socket) => {
 
     socket.on('SKIP_QUESTION', (data, callback) => {
         if (!callback) return;
-        if (rooms[currentRoomCode].host !== socket.id) return callback(false);
+        if (rooms[currentRoomCode]?.host !== socket.id) return callback(false);
         if (rooms[currentRoomCode].state !== 'ingame') return callback(false);
+
+        const playerAnswers = rooms[currentRoomCode].playerAnswers;
 
         io.to(currentRoomCode.toString()).emit('ANSWER_RECEIVED', {answers: rooms[currentRoomCode].currentQuestion.
             answers.map(answer => answer.is_correct)});
-        callback(true);
+        callback( {answers: playerAnswers[playerAnswers.length - 1],
+            scoreboard: rooms[currentRoomCode].players});
     });
 
     socket.on('END_GAME', (data, callback) => {
         if (!callback) return;
-        if (rooms[currentRoomCode].host !== socket.id) return callback(false);
+        if (rooms[currentRoomCode]?.host !== socket.id) return callback(false);
         if (rooms[currentRoomCode].state !== 'ingame') return callback(false);
 
         callback({playerAnswers: rooms[currentRoomCode].playerAnswers, players: rooms[currentRoomCode].players});

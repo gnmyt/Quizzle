@@ -6,6 +6,34 @@ export const QuizContext = createContext({});
 
 export const QuizProvider = ({children}) => {
     const [quiz, setQuiz] = useState(null);
+    const [questions, setQuestions] = useState([]);
+
+    const pullNextQuestion = async () => {
+        return new Promise((resolve, reject) => {
+            setQuestions(prevQuestions => {
+                if (prevQuestions.length > 0) {
+                    const updatedQuestions = [...prevQuestions];
+                    const currentQuestion = updatedQuestions.shift();
+                    resolve(currentQuestion);
+
+                    return updatedQuestions;
+                } else {
+                    reject();
+                    return [];
+                }
+            });
+        });
+    }
+
+    const randomizeArray = (array) => {
+        const newArray = [...array];
+        for (let i = newArray.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+        }
+
+        return newArray;
+    }
 
     const isLoaded = useMemo(() => quiz !== null, [quiz]);
 
@@ -27,11 +55,12 @@ export const QuizProvider = ({children}) => {
         const data = pako.inflate(new Uint8Array(content), {to: "string"});
         const parsedData = JSON.parse(data);
 
-        if (!validateQuiz(parsedData)) {
-            return false;
-        }
+        if (!validateQuiz(parsedData)) return false;
 
-        setQuiz(parsedData);
+        const questions = randomizeArray(parsedData.questions);
+
+        setQuiz({title: parsedData.title, questions});
+        setQuestions(questions);
         return true;
     }
 
@@ -50,13 +79,16 @@ export const QuizProvider = ({children}) => {
             return false;
         }
 
-        setQuiz(parsedData);
+        const questions = randomizeArray(parsedData.questions);
+
+        setQuiz({title: parsedData.title, questions});
+        setQuestions(questions);
 
         return true;
     }
 
     return (
-        <QuizContext.Provider value={{isLoaded, loadQuizById, loadQuizByContent, quizRaw: quiz}}>
+        <QuizContext.Provider value={{isLoaded, loadQuizById, loadQuizByContent, quizRaw: quiz, pullNextQuestion}}>
             {children}
         </QuizContext.Provider>
     );

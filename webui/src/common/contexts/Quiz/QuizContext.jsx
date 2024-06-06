@@ -1,12 +1,15 @@
-import {createContext, useMemo, useState} from "react";
+import {createContext, useEffect, useMemo, useState} from "react";
 import {request} from "@/common/utils/RequestUtil.js";
 import pako from "pako";
+import {socket} from "@/common/utils/SocketUtil.js";
 
 export const QuizContext = createContext({});
 
 export const QuizProvider = ({children}) => {
     const [quiz, setQuiz] = useState(null);
     const [questions, setQuestions] = useState([]);
+    const [scoreboard, setScoreboard] = useState({});
+    const [roomCode, setRoomCode] = useState(null);
 
     const pullNextQuestion = async () => {
         return new Promise((resolve, reject) => {
@@ -87,8 +90,17 @@ export const QuizProvider = ({children}) => {
         return true;
     }
 
+    useEffect(() => {
+        socket.on("GAME_ENDED", (data) => setScoreboard(data));
+
+        return () => {
+            socket.off("GAME_ENDED");
+        }
+    }, []);
+
     return (
-        <QuizContext.Provider value={{isLoaded, loadQuizById, loadQuizByContent, quizRaw: quiz, pullNextQuestion}}>
+        <QuizContext.Provider value={{isLoaded, loadQuizById, loadQuizByContent, quizRaw: quiz, pullNextQuestion,
+            scoreboard, roomCode, setRoomCode}}>
             {children}
         </QuizContext.Provider>
     );

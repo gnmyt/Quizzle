@@ -1,0 +1,1 @@
+export {InGameClient as default} from "./InGameClient.jsx";

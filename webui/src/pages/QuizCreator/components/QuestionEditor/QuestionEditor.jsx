@@ -1,6 +1,6 @@
 import "./styles.sass";
-import Input from "@/common/components/Input/index.js";
-import Button from "@/common/components/Button/index.js";
+import Input from "@/common/components/Input";
+import Button from "@/common/components/Button";
 import {faClone, faTrash} from "@fortawesome/free-solid-svg-icons";
 import ImagePresenter from "@/pages/QuizCreator/components/QuestionEditor/components/ImagePresenter";
 import AnswerContainer from "@/pages/QuizCreator/components/QuestionEditor/components/AnswerContainer";

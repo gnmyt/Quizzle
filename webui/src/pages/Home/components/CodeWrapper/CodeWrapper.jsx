@@ -1,7 +1,7 @@
 import "./styles.sass";
 import {useEffect, useRef} from "react";
 
-export const CodeWrapper = ({onChange, resetCode}) => {
+export const CodeWrapper = ({onChange, resetCode, errorClass}) => {
 
     const blockInvalidChar = e => ['e', 'E', '+', '-', ".", ","].includes(e.key) && e.preventDefault();
 
@@ -38,7 +38,7 @@ export const CodeWrapper = ({onChange, resetCode}) => {
     }
 
     return (
-        <div className="code-wrapper" ref={codeWrapper}>
+        <div className={"code-wrapper" + (errorClass ? " " + errorClass : "") } ref={codeWrapper}>
             {[...Array(4)].map((_, index) => <input key={index} type="number" placeholder="0"
                                                     onKeyDown={blockInvalidChar}
                                                     onChange={handleChange}/>)}

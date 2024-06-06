@@ -1,15 +1,43 @@
 import {BrandingContext} from "@/common/contexts/Branding";
-import {useContext, useEffect} from "react";
+import {useContext, useEffect, useState} from "react";
 import "./styles.sass";
 import {motion} from "framer-motion";
-import CodeWrapper from "@/pages/Home/components/CodeWrapper";
-import Button from "@/common/components/Button/index.js";
-import {faQrcode, faShareFromSquare, faSwatchbook} from "@fortawesome/free-solid-svg-icons";
+import Button from "@/common/components/Button";
+import {faShareFromSquare, faSwatchbook} from "@fortawesome/free-solid-svg-icons";
 import {useNavigate, useOutletContext} from "react-router-dom";
+import {socket} from "@/common/utils/SocketUtil.js";
+import CodeInput from "@/pages/Home/components/CodeInput";
+import CharacterSelection from "@/pages/Home/components/CharacterSelection";
+import {QuizContext} from "@/common/contexts/Quiz";
 
 export const Home = () => {
     const {titleImg, imprint, privacy} = useContext(BrandingContext);
+    const {setRoomCode} = useContext(QuizContext);
     const {setCirclePosition} = useOutletContext();
+    const [code, setCode] = useState(-1);
+    const [errorClass, setErrorClass] = useState("");
+
+    const checkRoom = (code) => {
+        socket.emit("CHECK_ROOM", {code}, (success) => {
+            if (success) setCode(code);
+
+            if (!success) {
+                setErrorClass("room-error");
+                setTimeout(() => setErrorClass(""), 300);
+            }
+        });
+    }
+
+    const joinGame = (name) => {
+        socket.emit("JOIN_ROOM", {code: parseInt(code), name, character: "X"}, (success) => {
+            if (success) {
+                setCirclePosition("-30rem 0 0 -30rem");
+                setRoomCode(code);
+                setTimeout(() => navigate("/client"), 500);
+            }
+        });
+    }
+
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -28,16 +56,8 @@ export const Home = () => {
             <motion.div initial={{opacity: 0, y: 50}} animate={{opacity: 1, y: 0}} transition={{delay: 0.5}}
                         className="home-content">
                 <div className="join-area">
-                    <h2>Code eingeben</h2>
-                    <CodeWrapper/>
-
-                    <div className="alternative">
-                        <hr/>
-                        <h2>oder</h2>
-                        <hr/>
-                    </div>
-
-                    <Button text="Code Scannen" icon={faQrcode} padding={"0.7rem 1.5rem"}/>
+                    {code === -1 ? <CodeInput joinGame={checkRoom} errorClass={errorClass} />
+                        : <CharacterSelection code={code} submit={joinGame}/>}
                 </div>
                 <div className="action-area">
                     <Button text="Quiz erstellen" icon={faSwatchbook} padding={"0.8rem 2.5rem"}

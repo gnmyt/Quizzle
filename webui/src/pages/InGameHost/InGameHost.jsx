@@ -6,9 +6,9 @@ import {useNavigate} from "react-router-dom";
 import Answer from "@/pages/InGameHost/components/Answer";
 import "./styles.sass";
 import {Question} from "@/pages/InGameHost/components/Question/Question.jsx";
-import Button from "@/common/components/Button/index.js";
-import {faForward, faQuestionCircle} from "@fortawesome/free-solid-svg-icons";
-import Scoreboard from "@/pages/InGameHost/components/Scoreboard/index.js";
+import Button from "@/common/components/Button";
+import {faForward} from "@fortawesome/free-solid-svg-icons";
+import Scoreboard from "@/pages/InGameHost/components/Scoreboard";
 
 export const InGameHost = () => {
     const {isLoaded, pullNextQuestion} = useContext(QuizContext);

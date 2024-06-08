@@ -21,6 +21,11 @@ export const Host = () => {
     const [roomCode, setRoomCode] = useState("0000");
     const [players, setPlayers] = useState([]);
 
+    const getJoinUrl = () => {
+        return window.location.href.split("/host")[0]
+            + "/?code=" + roomCode;
+    }
+
     useEffect(() => {
         if (!isLoaded) {
             navigate("/load");
@@ -66,7 +71,7 @@ export const Host = () => {
         <div className="host-page">
             {qrShown && <div className="qr-dialog" onClick={() => setQrShown(!qrShown)}>
                 <motion.div initial={{scale: 0}} animate={{scale: 1}}>
-                    <QRCode value={window.location.href} className="qr-big" renderAs="svg"/>
+                    <QRCode value={getJoinUrl()} className="qr-big" renderAs="svg"/>
                 </motion.div>
             </div>}
 
@@ -74,7 +79,7 @@ export const Host = () => {
                 <motion.div className="quiz-information" initial={{opacity: 0, y: -100}} animate={{opacity: 1, y: 0}}>
                     <div className="info-header">
                         <h1>“{quizRaw.title}”</h1>
-                        <QRCode value={window.location.href} size={100} renderAs="svg" className="qr"
+                        <QRCode value={getJoinUrl()} size={100} renderAs="svg" className="qr"
                                 onClick={() => setQrShown(!qrShown)}/>
                     </div>
 
@@ -101,7 +106,6 @@ export const Host = () => {
                     ))}
                 </div>
             </motion.div>
-
 
             <motion.div className="system-ui" initial={{opacity: 0, y: 100}} animate={{opacity: 1, y: 0}}>
                 <Button icon={faUser} text={players.length} padding="0.5rem 0.8rem"/>

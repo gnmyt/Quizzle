@@ -14,7 +14,7 @@ export const Home = () => {
     const {titleImg, imprint, privacy} = useContext(BrandingContext);
     const {setRoomCode} = useContext(QuizContext);
     const {setCirclePosition} = useOutletContext();
-    const [code, setCode] = useState(-1);
+    const [code, setCode] = useState(window.location.search.includes("code=") ? parseInt(window.location.search.split("=")[1]) : -1);
     const [errorClass, setErrorClass] = useState("");
 
     const checkRoom = (code) => {
@@ -22,6 +22,7 @@ export const Home = () => {
             if (success) setCode(code);
 
             if (!success) {
+                setCode(-1);
                 setErrorClass("room-error");
                 setTimeout(() => setErrorClass(""), 300);
             }
@@ -42,6 +43,10 @@ export const Home = () => {
 
     useEffect(() => {
         setCirclePosition(["-25rem 0 0 -25rem", "-8rem 0 0 -8rem"]);
+
+        if (code !== -1) {
+            checkRoom(code);
+        }
     }, []);
 
     return (

@@ -12,7 +12,7 @@ import {QuizContext} from "@/common/contexts/Quiz";
 
 export const Home = () => {
     const {titleImg, imprint, privacy} = useContext(BrandingContext);
-    const {setRoomCode} = useContext(QuizContext);
+    const {setRoomCode, setUsername} = useContext(QuizContext);
     const {setCirclePosition} = useOutletContext();
     const [code, setCode] = useState(window.location.search.includes("code=") ? parseInt(window.location.search.split("=")[1]) : -1);
     const [errorClass, setErrorClass] = useState("");
@@ -33,6 +33,7 @@ export const Home = () => {
         socket.emit("JOIN_ROOM", {code: parseInt(code), name, character: "X"}, (success) => {
             if (success) {
                 setCirclePosition("-30rem 0 0 -30rem");
+                setUsername(name);
                 setRoomCode(code);
                 setTimeout(() => navigate("/client"), 500);
             }

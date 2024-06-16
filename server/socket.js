@@ -138,6 +138,11 @@ module.exports = (io, socket) => {
 
         io.to(currentRoomCode.toString()).emit('ANSWER_RECEIVED', {answers: rooms[currentRoomCode].currentQuestion.
             answers.map(answer => answer.is_correct)});
+
+        for (const player of Object.keys(rooms[currentRoomCode].players)) {
+            io.to(player).emit("POINTS_RECEIVED", rooms[currentRoomCode].players[player].points);
+        }
+
         callback( {answers: playerAnswers[playerAnswers.length - 1],
             scoreboard: rooms[currentRoomCode].players});
     });

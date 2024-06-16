@@ -83,7 +83,7 @@ export const Host = () => {
                                 onClick={() => setQrShown(!qrShown)}/>
                     </div>
 
-                    <p>Verbinden über die Webseite <span>www.bs2ab.quiz</span> mit Code:</p>
+                    <p>Verbinden über die Webseite <span>{location.host.split(":")[0]}</span> mit Code:</p>
                     <h2>{roomCode}</h2>
 
                     <Triangle/>

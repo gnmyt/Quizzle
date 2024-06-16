@@ -10,6 +10,7 @@ export const QuizProvider = ({children}) => {
     const [questions, setQuestions] = useState([]);
     const [scoreboard, setScoreboard] = useState({});
     const [roomCode, setRoomCode] = useState(null);
+    const [username, setUsername] = useState("");
 
     const pullNextQuestion = async () => {
         return new Promise((resolve, reject) => {
@@ -100,7 +101,7 @@ export const QuizProvider = ({children}) => {
 
     return (
         <QuizContext.Provider value={{isLoaded, loadQuizById, loadQuizByContent, quizRaw: quiz, pullNextQuestion,
-            scoreboard, roomCode, setRoomCode}}>
+            scoreboard, roomCode, setRoomCode, username, setUsername}}>
             {children}
         </QuizContext.Provider>
     );

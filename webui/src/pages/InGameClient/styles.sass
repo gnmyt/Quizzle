@@ -1,0 +1,167 @@
+@import "@/common/styles/colors"
+
+.ingame-client
+  display: flex
+  flex-direction: column
+  height: 100dvh
+
+  .loading-container
+    display: flex
+    justify-content: center
+    align-items: center
+    height: 100%
+
+.ingame-header
+  text-align: center
+  padding: 1rem
+  border-bottom: 1px solid $border
+  h2
+    margin: 0
+
+.ingame-content
+  display: grid
+  grid-template-columns: 1fr 1fr
+  grid-template-rows: 1fr 1fr
+  height: 100%
+  padding: 1rem
+  gap: 2rem
+  h2
+    margin: 0
+
+  .ingame-answer
+    display: flex
+    justify-content: center
+    align-items: center
+    border-radius: 0.5rem
+    font-size: 1.5rem
+    color: $background
+    cursor: pointer
+
+    .ingame-icon
+      transition: font-size 0.2s
+      font-size: 3rem
+    .ingame-icon-selected
+      color: $dark-gray
+      font-size: 4rem
+
+  .submit-container
+    position: absolute
+    justify-content: center
+    bottom: 0
+    left: calc(50% - 4.5rem)
+    overflow: hidden
+
+  .submit-answers
+    padding: 1.5rem
+    margin: 2rem 2rem 6rem 2rem
+    display: flex
+    background-color: $primary
+    border: none
+    border-radius: 5rem
+    color: $background
+    font-size: 2rem
+    justify-content: center
+    align-items: center
+    cursor: pointer
+    transform: translateY(240%)
+    filter: drop-shadow(0 0 1rem $primary)
+    transition: transform 0.2s
+  .submit-shown
+    display: flex
+    z-index: 10
+    transform: translateY(0)
+
+  .ingame-answer:nth-child(1)
+    background-color: $orange
+
+  .ingame-answer:nth-child(2)
+    background-color: $blue
+
+  .ingame-answer:nth-child(3)
+    background-color: $green
+
+  .ingame-answer:nth-child(4)
+    background-color: $red
+
+.ingame-footer
+  display: flex
+  margin: 1rem
+  justify-content: space-between
+  align-items: center
+
+  h2
+    margin: 0
+
+  .footer-points
+    padding: 0.5rem 1rem
+    border-radius: 0.5rem
+    background-color: $dark-gray
+    color: $border
+
+    h2
+      margin: 0
+
+.ingame-answers
+  display: flex
+  flex-direction: column
+  align-items: center
+  justify-content: center
+  height: 100%
+
+.ingame-answers svg
+  display: flex
+  justify-content: center
+  align-items: center
+  width: 3rem
+  height: 3rem
+  padding: 2rem
+  border-radius: 50rem
+  color: $background
+
+.ingame-answer
+  display: flex
+  justify-content: center
+  align-items: center
+
+.ingame-icon-correct
+  background-color: $green
+
+.ingame-icon-partial
+  background-color: $orange
+
+.ingame-icon-wrong
+  background-color: $red
+
+.lds-hourglass
+  color: $primary
+  box-sizing: border-box
+
+  &:after
+    box-sizing: border-box
+    content: " "
+    display: block
+    border-radius: 50%
+    width: 0
+    height: 0
+    margin: 8px
+    filter: drop-shadow(0 0 1rem $primary)
+    border: 32px solid currentColor
+    border-color: currentColor transparent currentColor transparent
+    animation: lds-hourglass 1.5s infinite
+
+  display: inline-block
+  position: relative
+  width: 80px
+  height: 80px
+
+@keyframes lds-hourglass
+  0%
+    transform: rotate(0)
+    animation-timing-function: cubic-bezier(0.55, 0.055, 0.675, 0.19)
+
+  50%
+    transform: rotate(900deg)
+    animation-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1)
+
+  100%
+    transform: rotate(1800deg)

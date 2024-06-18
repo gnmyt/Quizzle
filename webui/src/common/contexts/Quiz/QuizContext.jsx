@@ -8,9 +8,10 @@ export const QuizContext = createContext({});
 export const QuizProvider = ({children}) => {
     const [quiz, setQuiz] = useState(null);
     const [questions, setQuestions] = useState([]);
-    const [scoreboard, setScoreboard] = useState({});
+    const [scoreboard, setScoreboard] = useState([]);
     const [roomCode, setRoomCode] = useState(null);
     const [username, setUsername] = useState("");
+    const [soundEnabled, setSoundEnabled] = useState(true);
 
     const pullNextQuestion = async () => {
         return new Promise((resolve, reject) => {
@@ -101,7 +102,7 @@ export const QuizProvider = ({children}) => {
 
     return (
         <QuizContext.Provider value={{isLoaded, loadQuizById, loadQuizByContent, quizRaw: quiz, pullNextQuestion,
-            scoreboard, roomCode, setRoomCode, username, setUsername}}>
+            scoreboard, setScoreboard, roomCode, setRoomCode, username, setUsername}}>
             {children}
         </QuizContext.Provider>
     );

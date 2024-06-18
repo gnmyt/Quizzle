@@ -9,20 +9,21 @@ import {Question} from "@/pages/InGameHost/components/Question/Question.jsx";
 import Button from "@/common/components/Button";
 import {faForward} from "@fortawesome/free-solid-svg-icons";
 import Scoreboard from "@/pages/InGameHost/components/Scoreboard";
+import Sound from "react-sound";
+import InGameMusic from "./assets/music/ingame.wav";
 
 export const InGameHost = () => {
-    const {isLoaded, pullNextQuestion} = useContext(QuizContext);
+    const {isLoaded, pullNextQuestion, scoreboard, setScoreboard} = useContext(QuizContext);
     const navigate = useNavigate();
 
     const [currentQuestion, setCurrentQuestion] = useState({});
     const [scoreboardState, setScoreboardState] = useState(false);
-    const [currentScoreboard, setCurrentScoreboard] = useState([]);
 
     const skipQuestion = async () => {
         try {
             socket.emit("SKIP_QUESTION", null, (data) => {
                 if (!data) toast.error("Fehler beim Überspringen der Frage");
-                setCurrentScoreboard(data);
+                setScoreboard(data);
             });
             setScoreboardState(true);
         } catch (e) {
@@ -35,7 +36,13 @@ export const InGameHost = () => {
             const newQuestion = await pullNextQuestion();
             setCurrentQuestion(newQuestion);
             setScoreboardState(false);
-            socket.emit("SHOW_QUESTION", newQuestion, (success) => {
+            const newQuestionCopy = {...newQuestion, b64_image: undefined};
+
+            for (let i = 0; i < newQuestion.answers.length; i++) {
+                delete newQuestion.answers[i].b64_image;
+            }
+
+            socket.emit("SHOW_QUESTION", newQuestionCopy, (success) => {
                 if (!success) toast.error("Fehler beim Anzeigen der Frage");
             });
         } catch (e) {
@@ -69,7 +76,8 @@ export const InGameHost = () => {
 
     return (
         <div>
-            {scoreboardState && <Scoreboard nextQuestion={nextQuestion} scoreboard={Object.values(currentScoreboard?.scoreboard || {})} />}
+            <Sound url={InGameMusic} playStatus={Sound.status.PLAYING} loop={true} volume={100} />
+            {scoreboardState && <Scoreboard nextQuestion={nextQuestion} scoreboard={Object.values(scoreboard?.scoreboard || {})} />}
             {!scoreboardState && <div>
                 {Object.keys(currentQuestion).length !== 0 && <div style={{
                     display: "flex", alignItems: "center",

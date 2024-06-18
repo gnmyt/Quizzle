@@ -35,14 +35,22 @@ export const InGameClient = () => {
             setAnswers(answer?.answers);
         }
 
+        const gameEnded = () => {
+            navigate("/");
+        }
+
         socket.on("QUESTION_RECEIVED", onQuestion);
         socket.on("POINTS_RECEIVED", onPoints);
         socket.on("ANSWER_RECEIVED", onAnswer);
+        socket.on("GAME_ENDED", gameEnded);
+        socket.on("disconnect", gameEnded);
 
         return () => {
             socket.off("QUESTION_RECEIVED", onQuestion);
             socket.off("POINTS_RECEIVED", onPoints);
             socket.off("ANSWER_RECEIVED", onAnswer);
+            socket.off("GAME_ENDED", gameEnded);
+            socket.off("disconnect", gameEnded);
         }
     }, [roomCode]);
 

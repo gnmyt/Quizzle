@@ -1,5 +1,5 @@
 import {BrandingContext} from "@/common/contexts/Branding";
-import {useContext, useEffect, useState} from "react";
+import {useContext, useEffect, useRef, useState} from "react";
 import "./styles.sass";
 import {motion} from "framer-motion";
 import Button from "@/common/components/Button";
@@ -9,12 +9,54 @@ import {socket} from "@/common/utils/SocketUtil.js";
 import CodeInput from "@/pages/Home/components/CodeInput";
 import CharacterSelection from "@/pages/Home/components/CharacterSelection";
 import {QuizContext} from "@/common/contexts/Quiz";
+import QrScanner from "qr-scanner";
 
 export const Home = () => {
     const {titleImg, imprint, privacy} = useContext(BrandingContext);
     const {setRoomCode, setUsername} = useContext(QuizContext);
     const {setCirclePosition} = useOutletContext();
     const [code, setCode] = useState(window.location.search.includes("code=") ? parseInt(window.location.search.split("=")[1]) : -1);
+    const [scannerShown, setScannerShown] = useState(false);
+
+    const scanner = useRef();
+    const videoEl = useRef(null);
+    const qrBoxEl = useRef(null);
+
+    const handleScan = ({data}) => {
+        if (data) {
+            stopScan();
+            const code = data.split("/?code=")[1];
+            if (code) {
+                setCode(parseInt(code));
+            }
+        }
+    }
+
+    const scanQr = () => {
+        if (videoEl?.current && !scanner.current) {
+            scanner.current = new QrScanner(videoEl?.current, handleScan, {
+                preferredCamera: "environment",
+                highlightScanRegion: true,
+                highlightCodeOutline: true,
+                overlay: qrBoxEl?.current || undefined,
+            });
+
+            scanner?.current?.start()
+                .then(() => setScannerShown(true))
+                .catch((err) => {
+                    if (err) setScannerShown(false);
+                });
+        }
+    }
+
+    const stopScan = () => {
+        if (scanner.current) {
+            scanner.current?.stop();
+            scanner.current = null;
+        }
+
+        setScannerShown(false);
+    }
     const [errorClass, setErrorClass] = useState("");
 
     const checkRoom = (code) => {
@@ -57,12 +99,18 @@ export const Home = () => {
                 <a href={privacy} target="_blank" rel="noreferrer">Datenschutz</a>
             </motion.div>
 
+            <div className={"scan-dialog" + (scannerShown ? " scanner-shown" : "")} onClick={() => stopScan()}>
+                <div className="qr-reader">
+                    <video ref={videoEl}></video>
+                </div>
+            </div>
+
             <motion.img src={titleImg} alt="logo" initial={{opacity: 0, y: -50}} animate={{opacity: 1, y: 0}}/>
 
             <motion.div initial={{opacity: 0, y: 50}} animate={{opacity: 1, y: 0}} transition={{delay: 0.5}}
                         className="home-content">
                 <div className="join-area">
-                    {code === -1 ? <CodeInput joinGame={checkRoom} errorClass={errorClass} />
+                    {code === -1 ? <CodeInput joinGame={checkRoom} errorClass={errorClass} scanQr={scanQr}/>
                         : <CharacterSelection code={code} submit={joinGame}/>}
                 </div>
                 <div className="action-area">

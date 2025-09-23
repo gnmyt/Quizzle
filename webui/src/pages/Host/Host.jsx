@@ -9,7 +9,7 @@ import {motion} from "framer-motion";
 import Button from "@/common/components/Button";
 import {faGamepad, faUser, faVolumeMute} from "@fortawesome/free-solid-svg-icons";
 import {socket} from "@/common/utils/SocketUtil.js";
-import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
+import {getCharacterEmoji} from "@/common/data/characters";
 
 export const Host = () => {
     const navigate = useNavigate();
@@ -88,7 +88,8 @@ export const Host = () => {
 
                     <Triangle/>
                 </motion.div>
-                <Button text="Starten" icon={faGamepad} padding="0.5rem 1rem" onClick={startGame} disabled={players.length === 0}/>
+                <Button text="Starten" icon={faGamepad} padding="0.5rem 1rem" onClick={startGame}
+                        disabled={players.length === 0}/>
             </div>
 
 
@@ -99,8 +100,8 @@ export const Host = () => {
                 <div className="player-list">
                     {players.map(player => (
                         <motion.div key={player.id} className="player" initial={{scale: 0}} animate={{scale: 1}}
-                            onClick={() => kickPlayer(player.id)}>
-                            <FontAwesomeIcon icon={faUser} />
+                                    onClick={() => kickPlayer(player.id)}>
+                            <div className="player-character">{getCharacterEmoji(player.character)}</div>
                             <h3>{player.name}</h3>
                         </motion.div>
                     ))}

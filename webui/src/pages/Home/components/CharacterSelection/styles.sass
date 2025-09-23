@@ -1,19 +1,152 @@
 @import "@/common/styles/colors"
 
 .character-selection
-  width: 15rem
+  width: 16rem
   display: flex
   flex-direction: column
   align-items: center
   gap: 1rem
 
-  .character-icon
-    border: 2px solid $primary
+  .character-display
     width: 8rem
     height: 8rem
+    border: 2px solid $border
     border-radius: 1rem
+    display: flex
+    flex-direction: column
+    align-items: center
+    justify-content: center
+    gap: 0.5rem
+    cursor: pointer
+    transition: all 0.3s ease
+    background: $background
 
-    img
-      width: 100%
-      box-sizing: border-box
-      padding: 0
+    &:hover
+      border-color: $primary
+      transform: translateY(-2px)
+      box-shadow: 0 4px 16px $hover-shadow
+
+    .character-emoji
+      font-size: 2.5rem
+
+    span
+      font-size: 0.8rem
+      color: $gray
+      text-align: center
+
+  .character-modal-overlay
+    position: fixed
+    top: 0
+    left: 0
+    right: 0
+    bottom: 0
+    background: $modal-overlay
+    display: flex
+    align-items: center
+    justify-content: center
+    z-index: 99999 !important
+    backdrop-filter: blur(4px)
+
+  .character-modal
+    background: $background
+    border-radius: 1.5rem
+    padding: 2rem
+    max-width: 90vw
+    max-height: 90vh
+    box-shadow: 0 20px 40px $modal-shadow
+    border: 2px solid $border
+
+    .modal-header
+      display: flex
+      align-items: center
+      justify-content: space-between
+      margin-bottom: 1.5rem
+
+      h3
+        margin: 0
+        color: $text
+        font-size: 1.5rem
+
+      .close-button
+        width: 2rem
+        height: 2rem
+        border: none
+        border-radius: 50%
+        background: $hover-bg
+        color: $gray
+        cursor: pointer
+        display: flex
+        align-items: center
+        justify-content: center
+        transition: all 0.3s ease
+
+        &:hover
+          background: $red
+          color: $background
+
+    .character-grid
+      display: grid
+      grid-template-columns: repeat(4, 1fr)
+      gap: 1rem
+      
+      .character-option
+        aspect-ratio: 1
+        display: flex
+        flex-direction: column
+        align-items: center
+        justify-content: center
+        gap: 0.5rem
+        border: 2px solid $border
+        border-radius: 1rem
+        cursor: pointer
+        transition: all 0.3s ease
+        background: $background
+        padding: 1rem
+
+        &:hover
+          border-color: $primary
+          transform: translateY(-3px)
+          box-shadow: 0 6px 20px $hover-shadow
+
+        &.selected
+          border-color: $primary
+          background: $selected-bg
+
+        .character-emoji
+          font-size: 2.5rem
+
+        .character-name
+          font-size: 0.8rem
+          font-weight: 600
+          color: $text
+          text-align: center
+
+  @media (max-width: 768px)
+    .character-modal
+      padding: 1.5rem
+      
+      .character-grid
+        grid-template-columns: repeat(4, 1fr)
+        gap: 0.8rem
+
+        .character-option
+          padding: 0.8rem
+
+          .character-emoji
+            font-size: 2rem
+
+  @media (max-width: 480px)
+    .character-modal
+      padding: 1rem
+
+      .character-grid
+        gap: 0.6rem
+
+        .character-option
+          padding: 0.6rem
+
+          .character-emoji
+            font-size: 1.8rem
+
+          .character-name
+            font-size: 0.7rem

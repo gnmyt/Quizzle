@@ -4,6 +4,7 @@ import {faForward, faHouse, faUser} from "@fortawesome/free-solid-svg-icons";
 import Button from "@/common/components/Button";
 import {useNavigate} from "react-router-dom";
 import {socket} from "@/common/utils/SocketUtil.js";
+import {getCharacterEmoji} from "@/common/data/characters";
 
 export const Scoreboard = ({scoreboard, nextQuestion, isEnd}) => {
     const goHome = () => {
@@ -23,7 +24,9 @@ export const Scoreboard = ({scoreboard, nextQuestion, isEnd}) => {
                 {scoreboard.sort((a, b) => b.points - a.points).map((player, index) => (
                     <div key={index} className="scoreboard-player">
                         <div className="player-info">
-                            <FontAwesomeIcon icon={faUser}/>
+                            <div className="player-character">
+                                {getCharacterEmoji(player.character)}
+                            </div>
                             <h2>{player.name}</h2>
                         </div>
                         <h2>{player.points}</h2>

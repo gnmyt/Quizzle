@@ -21,8 +21,21 @@
     transform: scale(1.02) rotate(-2deg)
 
   &:disabled
-    background-color: $gray
+    background: linear-gradient(135deg, $disabled-bg-light, $disabled-bg-dark)
+    color: $disabled-text
     cursor: not-allowed
+    box-shadow: inset 0 2px 4px $disabled-shadow
+    border: 1px solid $disabled-border
+    transform: none !important
+    filter: none !important
+    
+    &:hover
+      transform: none !important
+      filter: none !important
+      cursor: not-allowed
+      
+    &:active
+      transform: none !important
 
   &:active
     transform: scale(0.95) rotate(3deg)

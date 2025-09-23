@@ -43,53 +43,133 @@ export const QuizProvider = ({children}) => {
     const isLoaded = useMemo(() => quiz !== null, [quiz]);
 
     const validateQuiz = (json) => {
-        if (json.__type !== "QUIZZLE1") return false;
+        if (json.__type !== "QUIZZLE1") {
+            return false;
+        }
 
         const {title, questions} = json;
-        if (questions.some(q => q.title === "")) return false;
-        if (questions.some(q => q.answers.length < 2)) return false;
-        if (questions.some(q => q.answers.filter(a => a.is_correct).length === 0)) return false;
-        if (title.length > 100) return false;
-        if (questions.some(q => q.title.length > 100)) return false;
-        if (questions.some(q => q.answers.some(a => a.title?.length > 100))) return false;
 
+        if (!title || title.length > 100) {
+            return false;
+        }
+        
+        if (!questions || questions.length === 0) {
+            return false;
+        }
+        
+        if (questions.some(q => !q.title || q.title === "")) {
+            return false;
+        }
+        
+        if (questions.some(q => q.title.length > 200)) {
+            return false;
+        }
+
+        for (let i = 0; i < questions.length; i++) {
+            const question = questions[i];
+            
+            if (!question.type) {
+                return false;
+            }
+            
+            const questionType = question.type;
+            
+            if (questionType === 'text') {
+                if (!question.answers || question.answers.length === 0) {
+                    return false;
+                }
+                if (question.answers.length > 10) {
+                    return false;
+                }
+                if (question.answers.some(a => !a.content || a.content.trim() === "")) {
+                    return false;
+                }
+                if (question.answers.some(a => a.content.length > 150)) {
+                    return false;
+                }
+            } else if (questionType === 'true-false') {
+                if (!question.answers || question.answers.length !== 2) {
+                    return false;
+                }
+                if (question.answers.some(a => typeof a.is_correct !== 'boolean')) {
+                    return false;
+                }
+                if (!question.answers.some(a => a.is_correct)) {
+                    return false;
+                }
+                if (question.answers.filter(a => a.is_correct).length !== 1) {
+                    return false;
+                }
+            } else if (questionType === 'multiple-choice') {
+                if (!question.answers || question.answers.length < 2) {
+                    return false;
+                }
+                if (question.answers.length > 6) {
+                    return false;
+                }
+                
+                if (question.answers.some(a => typeof a.is_correct !== 'boolean')) {
+                    return false;
+                }
+                if (question.answers.filter(a => a.is_correct).length === 0) {
+                    return false;
+                }
+                if (question.answers.some(a => !a.content || a.content.trim() === "")) {
+                    return false;
+                }
+                if (question.answers.some(a => a.content.length > 150)) {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        }
         return true;
     }
 
     const loadQuizByContent = (content) => {
-        const data = pako.inflate(new Uint8Array(content), {to: "string"});
-        const parsedData = JSON.parse(data);
+        try {
+            const data = pako.inflate(new Uint8Array(content), {to: "string"});
+            const parsedData = JSON.parse(data);
 
-        if (!validateQuiz(parsedData)) return false;
+            if (!validateQuiz(parsedData)) {
+                return false;
+            }
 
-        const questions = randomizeArray(parsedData.questions);
+            const questions = randomizeArray(parsedData.questions);
 
-        setQuiz({title: parsedData.title, questions});
-        setQuestions(questions);
-        return true;
+            setQuiz({title: parsedData.title, questions});
+            setQuestions(questions);
+            return true;
+        } catch (error) {
+            return false;
+        }
     }
 
     const loadQuizById = async (id) => {
-        const result = await request(`/quizzes/${id}`);
-        if (!result.ok) {
+        try {
+            const result = await request(`/quizzes/${id}`);
+            if (!result.ok) {
+                return false;
+            }
+
+            const dataRaw = await result.blob();
+            const data = pako.inflate(new Uint8Array(await dataRaw.arrayBuffer()), {to: "string"});
+            const parsedData = JSON.parse(data);
+
+            if (!validateQuiz(parsedData)) {
+                return false;
+            }
+
+            const questions = randomizeArray(parsedData.questions);
+
+            setQuiz({title: parsedData.title, questions});
+            setQuestions(questions);
+
+            return true;
+        } catch (error) {
             return false;
         }
-
-        const dataRaw = await result.blob();
-        const data = pako.inflate(new Uint8Array(await dataRaw.arrayBuffer()), {to: "string"});
-
-        const parsedData = JSON.parse(data);
-
-        if (!validateQuiz(parsedData)) {
-            return false;
-        }
-
-        const questions = randomizeArray(parsedData.questions);
-
-        setQuiz({title: parsedData.title, questions});
-        setQuestions(questions);
-
-        return true;
     }
 
     useEffect(() => {

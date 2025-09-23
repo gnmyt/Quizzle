@@ -17,7 +17,7 @@ export const Answer = ({color, answer, onChange, index, removeAnswer}) => {
             const reader = new FileReader();
             reader.onload = (e) => {
                 setImageContent(e.target.result);
-                onChange({...answer, content: e.target.result, type: "image", is_correct: isCorrect});
+                onChange({...answer, content: e.target.result, type: "image", is_correct: isCorrect || false});
             }
             reader.readAsDataURL(file);
         }
@@ -37,7 +37,7 @@ export const Answer = ({color, answer, onChange, index, removeAnswer}) => {
             return;
         }
 
-        onChange({...answer, content, type: "text", is_correct: isCorrect});
+        onChange({...answer, content, type: "text", is_correct: isCorrect || false});
     }
 
     const updateCorrect = () => {
@@ -52,7 +52,7 @@ export const Answer = ({color, answer, onChange, index, removeAnswer}) => {
 
     useEffect(() => {
         if (answer) {
-            setIsCorrect(answer.is_correct);
+            setIsCorrect(answer.is_correct || false);
             if (answer.type === "text") {
                 setAnswerContent(answer.content);
             } else {

@@ -1,0 +1,45 @@
+@import "@/common/styles/colors"
+
+.true-false-client
+  display: grid
+  grid-template-columns: 1fr 1fr
+  gap: 2rem
+  width: 100%
+  height: 100%
+
+  .true-false-option
+    display: flex
+    justify-content: center
+    align-items: center
+    border-radius: 0.5rem
+    font-size: 1.5rem
+    color: $background
+    cursor: pointer
+    transition: all 0.3s ease
+    position: relative
+    overflow: hidden
+    
+    &:hover
+      transform: scale(1.05)
+      filter: drop-shadow(0 0 1rem rgba(0, 0, 0, 0.3))
+      
+    &.true-option
+      background-color: $green
+      
+    &.false-option
+      background-color: $red
+
+    span
+      font-size: 2rem
+      font-weight: bold
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3)
+
+@media screen and (max-width: 768px)
+  .true-false-client
+    grid-template-columns: 1fr
+    grid-template-rows: 1fr 1fr
+    gap: 1rem
+    
+    .true-false-option
+      span
+        font-size: 1.5rem

@@ -19,14 +19,30 @@
     margin: 0
 
 .ingame-content
-  display: grid
-  grid-template-columns: 1fr 1fr
-  grid-template-rows: 1fr 1fr
-  height: 100%
+  flex: 1
   padding: 1rem
   gap: 2rem
+  position: relative
   h2
     margin: 0
+
+  &.grid-layout
+    display: grid
+    grid-template-columns: 1fr 1fr
+    grid-template-rows: 1fr 1fr
+    height: 100%
+
+  &.true-false-layout
+    display: flex
+    align-items: center
+    justify-content: center
+    padding: 2rem
+
+  &.text-layout
+    display: flex
+    align-items: center
+    justify-content: center
+    padding: 2rem
 
   .ingame-answer
     display: flex

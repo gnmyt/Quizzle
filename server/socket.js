@@ -11,7 +11,7 @@ const calculatePoints = (correctAnswers, room) => {
     const timeTaken = Math.min(maxTime, Date.now() - room.startTime);
     const timeFactor = 1 - timeTaken / maxTime;
 
-    return correctAnswers >= 1 ? Math.round(basePoints * timeFactor + ( correctAnswers * basePoints)) : 0;
+    return correctAnswers > 0 ? Math.round(basePoints * timeFactor + ( correctAnswers * basePoints)) : 0;
 }
 
 module.exports = (io, socket) => {
@@ -103,7 +103,9 @@ module.exports = (io, socket) => {
         rooms[currentRoomCode].state = 'ingame';
 
         rooms[currentRoomCode].currentQuestion = {
-            title: data.title, answers: data.answers.map(answer => {
+            title: data.title, 
+            type: data.type,
+            answers: data.type === 'text' ? data.answers : data.answers.map(answer => {
                 const {content, ...rest} = answer;
                 return rest;
             })
@@ -111,13 +113,24 @@ module.exports = (io, socket) => {
 
         rooms[currentRoomCode].playerAnswers.push({});
 
-        const isMultipleChoice = data.answers.filter(answer => answer.is_correct).length > 1;
+        let questionType = data.type;
+        if (data.type === 'multiple-choice') {
+            const isMultipleChoice = data.answers.filter(answer => answer.is_correct).length > 1;
+            questionType = isMultipleChoice ? 'multiple' : 'single';
+        }
 
-        io.to(currentRoomCode.toString()).emit('QUESTION_RECEIVED', {
-            type: isMultipleChoice ? 'multiple' : 'single',
-            answers: data.answers.length,
+        const questionData = {
+            type: questionType,
             title: data.title
-        });
+        };
+
+        if (data.type === 'text') {
+            questionData.maxLength = 200;
+        } else {
+            questionData.answers = data.answers.length;
+        }
+
+        io.to(currentRoomCode.toString()).emit('QUESTION_RECEIVED', questionData);
         rooms[currentRoomCode].startTime = Date.now();
         callback({ success: true });
     });
@@ -138,11 +151,30 @@ module.exports = (io, socket) => {
         playerAnswers[playerAnswers.length - 1][socket.id] = data.answers;
 
         let correctAnswers = 0;
-        for (const answer of data.answers) {
-            correctAnswers += rooms[currentRoomCode].currentQuestion.answers[answer].is_correct ? 1 : -1;
-        }
+        const currentQuestion = rooms[currentRoomCode].currentQuestion;
 
-        if (correctAnswers < 0) correctAnswers = 0;
+        if (currentQuestion.type === 'text') {
+            const userAnswer = data.answers.toLowerCase().trim();
+            const correctTextAnswers = currentQuestion.answers.map(a => a.content.toLowerCase().trim());
+            correctAnswers = correctTextAnswers.includes(userAnswer) ? 1 : 0;
+        } else {
+            let correctSelected = 0;
+            let incorrectSelected = 0;
+            
+            for (const answer of data.answers) {
+                if (currentQuestion.answers[answer].is_correct) {
+                    correctSelected++;
+                } else {
+                    incorrectSelected++;
+                }
+            }
+            
+            if (correctSelected > 0) {
+                correctAnswers = Math.max(0.1, correctSelected - (incorrectSelected * 0.5));
+            } else {
+                correctAnswers = 0;
+            }
+        }
 
         const points = calculatePoints(correctAnswers, rooms[currentRoomCode]);
         rooms[currentRoomCode].players[socket.id].points += points;
@@ -161,9 +193,16 @@ module.exports = (io, socket) => {
         if (rooms[currentRoomCode].state !== 'ingame') return callback(false);
 
         const playerAnswers = rooms[currentRoomCode].playerAnswers;
+        const currentQuestion = rooms[currentRoomCode].currentQuestion;
 
-        io.to(currentRoomCode.toString()).emit('ANSWER_RECEIVED', {answers: rooms[currentRoomCode].currentQuestion.
-            answers.map(answer => answer.is_correct)});
+        let answerData;
+        if (currentQuestion.type === 'text') {
+            answerData = { answers: currentQuestion.answers.map(a => a.content) };
+        } else {
+            answerData = { answers: currentQuestion.answers.map(answer => answer.is_correct) };
+        }
+
+        io.to(currentRoomCode.toString()).emit('ANSWER_RECEIVED', answerData);
 
         for (const player of Object.keys(rooms[currentRoomCode].players)) {
             io.to(player).emit("POINTS_RECEIVED", rooms[currentRoomCode].players[player].points);

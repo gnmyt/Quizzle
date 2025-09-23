@@ -89,10 +89,25 @@ export const InGameHost = () => {
                     </div>
                     <Question title={currentQuestion.title} image={currentQuestion.b64_image}/>
 
-                    <div className="answer-list">
-                        {currentQuestion.answers.map((answer, index) => <Answer key={index} answer={answer}
-                                                                                index={index}/>)}
-                    </div>
+                    {currentQuestion.type !== 'text' && (
+                        <div className="answer-list">
+                            {currentQuestion.answers.map((answer, index) => <Answer key={index} answer={answer}
+                                                                                    index={index}/>)}
+                        </div>
+                    )}
+
+                    {currentQuestion.type === 'text' && (
+                        <div className="text-question-indicator">
+                            <h2>Spieler geben ihre Antworten ein...</h2>
+                            <div className="text-input-animation">
+                                <div className="typing-dots">
+                                    <span></span>
+                                    <span></span>
+                                    <span></span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>}
             </div>}
         </div>

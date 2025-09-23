@@ -1,11 +1,21 @@
-.answer-container
-  margin-top: 3rem
-  display: grid
-  grid-template-columns: 1fr 1fr
-  grid-gap: 1rem
+@import "@/common/styles/colors"
 
+.answer-container
+  margin-top: 2rem
+  width: 100%
+
+  &.grid-layout
+    display: grid
+    grid-template-columns: 1fr 1fr
+    grid-gap: 1rem
+
+  &.full-layout
+    display: flex
+    flex-direction: column
+    gap: 1rem
 
 @media screen and (max-width: 620px)
   .answer-container
-    grid-template-columns: 1fr
-    grid-gap: 1rem
+    &.grid-layout
+      grid-template-columns: 1fr
+      grid-gap: 1rem

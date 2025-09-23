@@ -1,5 +1,7 @@
 import "./styles.sass";
 import Answer from "./components/Answer";
+import {TrueFalseAnswers} from "./components/TrueFalseAnswers";
+import {TextAnswers} from "./components/TextAnswers";
 
 export const AnswerContainer = ({onChange, question}) => {
 
@@ -14,12 +16,34 @@ export const AnswerContainer = ({onChange, question}) => {
         onChange({...question, answers: newAnswers});
     }
 
+    const updateAnswers = (newAnswers) => {
+        onChange({...question, answers: newAnswers});
+    }
+
+    const questionType = question.type || 'multiple-choice';
+
+    if (questionType === 'true-false') {
+        return (
+            <div className="answer-container full-layout">
+                <TrueFalseAnswers answers={question.answers || []} onChange={updateAnswers}/>
+            </div>
+        );
+    }
+
+    if (questionType === 'text') {
+        return (
+            <div className="answer-container full-layout">
+                <TextAnswers answers={question.answers || []} onChange={updateAnswers}/>
+            </div>
+        );
+    }
+
     return (
-        <div className="answer-container">
+        <div className="answer-container grid-layout">
             {["orange", "blue", "green", "red"].map((color, index) => (
                 <Answer key={index} color={color} answer={question.answers[index]}
                         onChange={(answer) => updateAnswer(answer, index)} index={index}
-                        removeAnswer={() => removeAnswer(index)} />
+                        removeAnswer={() => removeAnswer(index)}/>
             ))}
         </div>
     )

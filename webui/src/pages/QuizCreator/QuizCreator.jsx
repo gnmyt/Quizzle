@@ -33,8 +33,21 @@ export const QuizCreator = () => {
     }
 
     const [errorToastId, setErrorToastId] = useState(null);
-    const [questions, setQuestions] = useState(localStorage.getItem("qq_questions") ? JSON.parse(localStorage.getItem("qq_questions")) :
-        [{uuid: generateUuid(), title: "", answers: []}]);
+    const [questions, setQuestions] = useState(() => {
+        const stored = localStorage.getItem("qq_questions");
+        if (stored) {
+            try {
+                const parsed = JSON.parse(stored);
+                return parsed.map(q => ({
+                    ...q,
+                    type: q.type || 'single-choice'
+                }));
+            } catch (e) {
+                console.error("Error parsing stored questions:", e);
+            }
+        }
+        return [{uuid: generateUuid(), title: "", type: "multiple-choice", answers: []}];
+    });
     const [activeQuestion, setActiveQuestion] = useState(questions[0].uuid);
 
     const deleteQuestion = (uuid) => {
@@ -67,7 +80,11 @@ export const QuizCreator = () => {
 
                     const questions = parsedData.questions.map(q => {
                         const newUuid = generateUuid();
-                        return {uuid: newUuid, ...q};
+                        return {
+                            uuid: newUuid,
+                            ...q,
+                            type: q.type || 'multiple-choice'
+                        };
                     });
 
                     titleValidation.setValue(parsedData.title);
@@ -111,19 +128,53 @@ export const QuizCreator = () => {
             return false;
         }
 
-        if (questions.some(q => q.answers.length < 2)) {
-            toast.error("Fragen müssen mindestens zwei Antworten haben.");
-            return false;
-        }
+        for (const question of questions) {
+            const questionType = question.type || 'multiple-choice';
 
-        if (questions.some(q => q.answers.length > 6)) {
-            toast.error("Fragen dürfen maximal sechs Antworten haben.");
-            return false;
-        }
-
-        if (questions.some(q => q.answers.filter(a => a.is_correct).length === 0)) {
-            toast.error("Jede Frage muss mindestens eine richtige Antwort haben.");
-            return false;
+            if (questionType === 'text') {
+                if (!question.answers || question.answers.length === 0) {
+                    toast.error("Text-Fragen müssen mindestens eine akzeptierte Antwort haben.");
+                    return false;
+                }
+                if (question.answers.some(a => !a.content || a.content.trim() === "")) {
+                    toast.error("Text-Antworten dürfen nicht leer sein.");
+                    return false;
+                }
+                if (question.answers.length > 10) {
+                    toast.error("Text-Fragen dürfen maximal 10 akzeptierte Antworten haben.");
+                    return false;
+                }
+            } else if (questionType === 'true-false') {
+                if (!question.answers || question.answers.length !== 2) {
+                    toast.error("Wahr/Falsch-Fragen müssen genau zwei Antworten haben.");
+                    return false;
+                }
+                if (!question.answers.some(a => a.is_correct)) {
+                    toast.error("Wahr/Falsch-Fragen müssen mindestens eine richtige Antwort haben.");
+                    return false;
+                }
+            } else {
+                if (!question.answers || question.answers.length < 2) {
+                    toast.error("Multiple-Choice-Fragen müssen mindestens zwei Antworten haben.");
+                    return false;
+                }
+                if (question.answers.length > 6) {
+                    toast.error("Multiple-Choice-Fragen dürfen maximal sechs Antworten haben.");
+                    return false;
+                }
+                if (question.answers.filter(a => a.is_correct).length === 0) {
+                    toast.error("Jede Multiple-Choice-Frage muss mindestens eine richtige Antwort haben.");
+                    return false;
+                }
+                if (question.answers.some(a => !a.content || a.content.trim() === "")) {
+                    toast.error("Multiple-Choice-Antworten dürfen nicht leer sein.");
+                    return false;
+                }
+                if (question.answers.some(a => a.content?.trim().length > 150)) {
+                    toast.error("Multiple-Choice-Antworten dürfen maximal 150 Zeichen lang sein.");
+                    return false;
+                }
+            }
         }
 
         if (!titleValidation.validate()) {
@@ -133,16 +184,6 @@ export const QuizCreator = () => {
 
         if (questions.some(q => q.title.trim().length > 200)) {
             toast.error("Fragen dürfen maximal 200 Zeichen lang sein.");
-            return false;
-        }
-
-        if (questions.some(q => q.answers.some(a => a.content?.trim().length > 150))) {
-            toast.error("Antworten dürfen maximal 150 Zeichen lang sein.");
-            return false;
-        }
-
-        if (questions.some(q => q.answers.some(a => !a.content || a.content.trim() === ""))) {
-            toast.error("Antworten dürfen nicht leer sein.");
             return false;
         }
 
@@ -157,17 +198,30 @@ export const QuizCreator = () => {
 
         if (!validateQuestions()) return;
 
-        const quizData = {title: titleValidation.value.trim(), questions: questions.map(q => {
-            const {uuid, ...rest} = q;
-            return {
-                ...rest,
-                title: rest.title.trim(),
-                answers: rest.answers.map(a => ({
-                    ...a,
-                    content: a.content.trim()
-                }))
-            };
-        })};
+        const quizData = {
+            title: titleValidation.value.trim(), questions: questions.map(q => {
+                const {uuid, ...rest} = q;
+                const cleanQuestion = {
+                    ...rest,
+                    title: rest.title.trim(),
+                    type: rest.type || 'single-choice'
+                };
+
+                if (cleanQuestion.type === 'text') {
+                    cleanQuestion.answers = rest.answers.map(a => ({
+                        content: a.content.trim()
+                    }));
+                } else {
+                    cleanQuestion.answers = rest.answers.map(a => ({
+                        ...a,
+                        content: a.content.trim(),
+                        is_correct: a.is_correct || false
+                    }));
+                }
+
+                return cleanQuestion;
+            })
+        };
 
         putRequest("/quizzes", quizData).then((r) => {
             if (r.quizId === undefined) throw {ce: "Dein Quiz übersteigt die Speicherkapazität des Servers. Bitte lade es lokal herunter."};
@@ -189,17 +243,30 @@ export const QuizCreator = () => {
 
         if (!validateQuestions()) return;
 
-        const quizData = JSON.stringify({__type: "QUIZZLE1", title: titleValidation.value.trim(), questions: questions.map(q => {
-            const {uuid, ...rest} = q;
-            return {
-                ...rest,
-                title: rest.title.trim(),
-                answers: rest.answers.map(a => ({
-                    ...a,
-                    content: a.content.trim()
-                }))
-            };
-        })});
+        const quizData = JSON.stringify({
+            __type: "QUIZZLE1", title: titleValidation.value.trim(), questions: questions.map(q => {
+                const {uuid, ...rest} = q;
+                const cleanQuestion = {
+                    ...rest,
+                    title: rest.title.trim(),
+                    type: rest.type || 'single-choice'
+                };
+
+                if (cleanQuestion.type === 'text') {
+                    cleanQuestion.answers = rest.answers.map(a => ({
+                        content: a.content.trim()
+                    }));
+                } else {
+                    cleanQuestion.answers = rest.answers.map(a => ({
+                        ...a,
+                        content: a.content.trim(),
+                        is_correct: a.is_correct || false
+                    }));
+                }
+
+                return cleanQuestion;
+            })
+        });
 
         const compressedData = pako.deflate(quizData, {to: "string"});
         const blob = new Blob([compressedData], {type: "application/octet-stream"});
@@ -213,7 +280,7 @@ export const QuizCreator = () => {
 
     const addQuestion = () => {
         const uuid = generateUuid();
-        setQuestions([...questions, {uuid: uuid, title: "", answers: []}]);
+        setQuestions([...questions, {uuid: uuid, title: "", type: "multiple-choice", answers: []}]);
         setActiveQuestion(uuid);
     }
 
@@ -224,7 +291,7 @@ export const QuizCreator = () => {
     const clearQuiz = () => {
         const newUuid = generateUuid();
         titleValidation.reset();
-        setQuestions([{uuid: newUuid, title: "", answers: []}]);
+        setQuestions([{uuid: newUuid, title: "", type: "multiple-choice", answers: []}]);
         setActiveQuestion(newUuid);
 
         localStorage.removeItem("qq_title");
@@ -247,8 +314,10 @@ export const QuizCreator = () => {
         } catch (e) {
             if (!errorToastId) {
                 setErrorToastId(toast.error("Dein Quiz übersteigt die lokale Speicherkapazität. Bitte lade es hoch, um zu verhindern, dass es verloren geht wenn du die Seite verlässt.",
-                    {duration: Infinity,
-                    icon: <FontAwesomeIcon color={"#FFA500"} icon={faExclamationTriangle} size="lg" />}));
+                    {
+                        duration: Infinity,
+                        icon: <FontAwesomeIcon color={"#FFA500"} icon={faExclamationTriangle} size="lg"/>
+                    }));
             }
         }
 
@@ -261,9 +330,9 @@ export const QuizCreator = () => {
                     <motion.img src={titleImg} alt="logo" initial={{opacity: 0, y: -50}} animate={{opacity: 1, y: 0}}/>
                 </Link>
                 <motion.div initial={{opacity: 0, x: -50}} animate={{opacity: 1, x: 0}} className="quiz-title-area">
-                    <Input 
-                        placeholder="Quiz-Titel eingeben" 
-                        value={titleValidation.value} 
+                    <Input
+                        placeholder="Quiz-Titel eingeben"
+                        value={titleValidation.value}
                         onChange={(e) => titleValidation.setValue(e.target.value)}
                         onBlur={titleValidation.onBlur}
                         error={titleValidation.error}

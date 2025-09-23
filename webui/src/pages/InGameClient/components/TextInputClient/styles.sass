@@ -1,0 +1,95 @@
+@import "@/common/styles/colors"
+
+.text-input-client
+  display: flex
+  flex-direction: column
+  align-items: center
+  justify-content: center
+  gap: 2rem
+  width: 100%
+  height: 100%
+  max-width: 600px
+  margin: 0 auto
+
+  .text-input-container
+    width: 100%
+    position: relative
+
+    .text-answer-input
+      width: 100%
+      min-height: 150px
+      padding: 2rem
+      border: 3px solid $border
+      border-radius: 1rem
+      background-color: $background
+      color: $text
+      font-size: 1.4rem
+      resize: none
+      box-sizing: border-box
+      transition: all 0.3s ease
+
+      &:focus
+        outline: none
+        border-color: $primary
+        box-shadow: 0 0 0 4px rgba(101, 71, 238, 0.1)
+        transform: scale(1.02)
+
+      &::placeholder
+        color: $gray
+        font-size: 1.2rem
+
+    .character-count
+      position: absolute
+      bottom: 15px
+      right: 20px
+      font-size: 1rem
+      color: $gray
+      background-color: rgba(255, 255, 255, 0.9)
+      padding: 0.25rem 0.5rem
+      border-radius: 0.25rem
+
+  .submit-text-answer
+    padding: 1.5rem 3rem
+    border: none
+    border-radius: 5rem
+    background-color: $primary
+    color: white
+    font-size: 1.4rem
+    cursor: pointer
+    transition: all 0.3s ease
+    opacity: 0
+    transform: scale(0.8)
+    filter: drop-shadow(0 0 1rem $primary)
+
+    &.submit-shown
+      opacity: 1
+      transform: scale(1)
+
+    &:hover:not(:disabled)
+      filter: brightness(0.9)
+      transform: scale(1.05)
+
+    &:disabled
+      opacity: 0.3
+      cursor: not-allowed
+      transform: scale(0.8)
+
+@media screen and (max-width: 768px)
+  .text-input-client
+    gap: 1.5rem
+
+    .text-input-container
+      .text-answer-input
+        min-height: 120px
+        padding: 1.5rem
+        font-size: 1.2rem
+
+        &::placeholder
+          font-size: 1rem
+
+      .character-count
+        font-size: 0.9rem
+
+    .submit-text-answer
+      padding: 1.2rem 2rem
+      font-size: 1.2rem

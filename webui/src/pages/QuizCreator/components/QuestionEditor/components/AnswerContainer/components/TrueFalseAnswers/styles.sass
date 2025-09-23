@@ -1,0 +1,89 @@
+@import "@/common/styles/colors"
+
+.true-false-container
+  display: flex
+  gap: 1rem
+  width: 100%
+
+  .true-false-answer
+    flex: 1
+    padding: 2rem 1.5rem
+    border: 3px solid $border
+    border-radius: 1rem
+    display: flex
+    justify-content: space-between
+    align-items: center
+    cursor: pointer
+    transition: all 0.3s ease
+    background-color: $background
+    position: relative
+    overflow: hidden
+
+    &::before
+      content: ''
+      position: absolute
+      top: 0
+      left: 0
+      right: 0
+      bottom: 0
+      opacity: 0
+      transition: opacity 0.3s ease
+      z-index: 1
+
+    &:hover
+      border-color: transparent
+      transform: translateY(-2px)
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1)
+
+    &.true-false-true
+      &::before
+        background: linear-gradient(135deg, #4CAF50, #45a049)
+
+      &:hover::before, &.selected::before
+        opacity: 1
+
+      &:hover, &.selected
+        color: white
+        border-color: #4CAF50
+
+    &.true-false-false
+      &::before
+        background: linear-gradient(135deg, #f44336, #d32f2f)
+
+      &:hover::before, &.selected::before
+        opacity: 1
+
+      &:hover, &.selected
+        color: white
+        border-color: #f44336
+
+    span
+      font-size: 1.4rem
+      font-weight: bold
+      position: relative
+      z-index: 2
+
+    .check-icon
+      font-size: 1.4rem
+      opacity: 0.3
+      transition: all 0.3s ease
+      position: relative
+      z-index: 2
+
+      &.correct
+        opacity: 1
+        transform: scale(1.1)
+
+@media screen and (max-width: 768px)
+  .true-false-container
+    flex-direction: column
+    gap: 1rem
+
+    .true-false-answer
+      padding: 1.5rem
+      
+      span
+        font-size: 1.2rem
+        
+      .check-icon
+        font-size: 1.2rem

@@ -13,23 +13,68 @@ module.exports.questionValidation = Joi.object({
             'string.min': 'Fragetitel darf nicht leer sein',
             'string.max': 'Fragetitel darf maximal 200 Zeichen lang sein'
         }),
+    type: Joi.string().valid('multiple-choice', 'true-false', 'text').required(),
     b64_image: Joi.string().max(5000000),
-    answers: Joi.array().items(Joi.object({
-        type: Joi.string().valid('text', 'image').required(),
-        content: Joi.string().required().min(1).max(150)
-            .custom((value, helpers) => {
-                const trimmed = value.trim();
-                if (trimmed.length === 0) {
-                    return helpers.error('string.min');
+    answers: Joi.when('type', {
+        is: 'text',
+        then: Joi.array().items(Joi.object({
+            content: Joi.string().required().min(1).max(150)
+                .custom((value, helpers) => {
+                    const trimmed = value.trim();
+                    if (trimmed.length === 0) {
+                        return helpers.error('string.min');
+                    }
+                    return trimmed;
+                })
+                .messages({
+                    'string.min': 'Antwort darf nicht leer sein',
+                    'string.max': 'Antwort darf maximal 150 Zeichen lang sein'
+                })
+        })).min(1).max(10),
+        otherwise: Joi.when('type', {
+            is: 'true-false',
+            then: Joi.array().items(Joi.object({
+                type: Joi.string().valid('text', 'image').required(),
+                content: Joi.string().required().min(1).max(150)
+                    .custom((value, helpers) => {
+                        const trimmed = value.trim();
+                        if (trimmed.length === 0) {
+                            return helpers.error('string.min');
+                        }
+                        return trimmed;
+                    })
+                    .messages({
+                        'string.min': 'Antwort darf nicht leer sein',
+                        'string.max': 'Antwort darf maximal 150 Zeichen lang sein'
+                    }),
+                is_correct: Joi.boolean().required()
+            })).length(2).custom((answers, helpers) => {
+                const correctCount = answers.filter(a => a.is_correct).length;
+                if (correctCount !== 1) {
+                    return helpers.error('array.correctCount');
                 }
-                return trimmed;
-            })
-            .messages({
-                'string.min': 'Antwort darf nicht leer sein',
-                'string.max': 'Antwort darf maximal 150 Zeichen lang sein'
+                return answers;
+            }).messages({
+                'array.correctCount': 'Wahr/Falsch-Fragen müssen genau eine richtige Antwort haben'
             }),
-        is_correct: Joi.boolean().required()
-    })).min(2).max(6).required()
+            otherwise: Joi.array().items(Joi.object({
+                type: Joi.string().valid('text', 'image').required(),
+                content: Joi.string().required().min(1).max(150)
+                    .custom((value, helpers) => {
+                        const trimmed = value.trim();
+                        if (trimmed.length === 0) {
+                            return helpers.error('string.min');
+                        }
+                        return trimmed;
+                    })
+                    .messages({
+                        'string.min': 'Antwort darf nicht leer sein',
+                        'string.max': 'Antwort darf maximal 150 Zeichen lang sein'
+                    }),
+                is_correct: Joi.boolean().required()
+            })).min(2).max(6)
+        })
+    })
 });
 
 module.exports.quizUpload = Joi.object({

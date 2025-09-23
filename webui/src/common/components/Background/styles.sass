@@ -1,5 +1,44 @@
 @import "@/common/styles/colors"
 
+.background-container
+  position: fixed
+  top: 0
+  left: 0
+  width: 100vw
+  height: 100vh
+  overflow: hidden
+  z-index: -1
+  pointer-events: none
+
+.particles-container
+  position: absolute
+  top: 0
+  left: 0
+  width: 100%
+  height: 100%
+
+.particle
+  position: absolute
+  width: 6px
+  height: 6px
+  border-radius: 50%
+  
+.particle-0
+  background: rgba(101, 71, 238, 0.6)
+  box-shadow: 0 0 12px rgba(101, 71, 238, 0.8)
+  
+.particle-1
+  background: rgba(28, 148, 90, 0.6)
+  box-shadow: 0 0 12px rgba(28, 148, 90, 0.8)
+  
+.particle-2
+  background: rgba(255, 165, 0, 0.6)
+  box-shadow: 0 0 12px rgba(255, 165, 0, 0.8)
+  
+.particle-3
+  background: rgba(236, 85, 85, 0.6)
+  box-shadow: 0 0 12px rgba(236, 85, 85, 0.8)
+
 .circle-tl
   position: fixed
   top: -25rem
@@ -9,6 +48,8 @@
   background-color: $primary
   border-radius: 100%
   transform: rotate(55deg)
+  box-shadow: 0 0 60px rgba(101, 71, 238, 0.3)
+  filter: blur(1px)
 
 .rect-br
   position: fixed
@@ -19,3 +60,54 @@
   background-color: $primary
   border-radius: 1rem
   transform: rotate(55deg)
+  box-shadow: 0 0 40px rgba(101, 71, 238, 0.2)
+  filter: blur(1px)
+
+.accent-circle-1
+  position: fixed
+  top: 20%
+  right: 15%
+  width: 8rem
+  height: 8rem
+  background: radial-gradient(circle, rgba(28, 148, 90, 0.4) 0%, rgba(28, 148, 90, 0.2) 50%, transparent 100%)
+  border-radius: 100%
+  filter: blur(20px)
+
+.accent-circle-2
+  position: fixed
+  bottom: 25%
+  left: 10%
+  width: 12rem
+  height: 12rem
+  background: radial-gradient(circle, rgba(255, 165, 0, 0.3) 0%, rgba(255, 165, 0, 0.1) 50%, transparent 100%)
+  border-radius: 100%
+  filter: blur(30px)
+
+@media (max-width: 768px)
+  .circle-tl
+    width: 20rem
+    height: 20rem
+    top: -15rem
+    left: -15rem
+
+  .rect-br
+    width: 18rem
+    height: 18rem
+    bottom: -15rem
+    right: -15rem
+
+  .accent-circle-1
+    width: 6rem
+    height: 6rem
+
+  .accent-circle-2
+    width: 8rem
+    height: 8rem
+
+  .pulsing-orb
+    width: 60px
+    height: 60px
+
+@media (max-width: 480px)
+  .particles-container, .orbs-container
+    display: none

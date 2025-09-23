@@ -1,5 +1,9 @@
 @import "@/common/styles/colors"
 
+.input-wrapper
+  width: 100%
+  position: relative
+
 .custom-input
   border: 1px solid $border
   border-radius: 0.8rem
@@ -13,3 +17,37 @@
 
   &:focus
     border-color: $primary
+
+  &.error
+    border-color: #e74c3c
+    box-shadow: 0 0 0 2px rgba(231, 76, 60, 0.2)
+
+  &.warning
+    border-color: #f39c12
+    box-shadow: 0 0 0 2px rgba(243, 156, 18, 0.2)
+
+  &.disabled
+    background-color: #f8f9fa
+    color: #6c757d
+    cursor: not-allowed
+
+.character-count
+  position: absolute
+  right: 0.8rem
+  bottom: 0.2rem
+  font-size: 12px
+  color: #6c757d
+  background: white
+  padding: 0 0.3rem
+
+.input-error
+  color: #e74c3c
+  font-size: 14px
+  margin-top: 0.3rem
+  font-weight: 500
+
+.input-warning
+  color: #f39c12
+  font-size: 14px
+  margin-top: 0.3rem
+  font-weight: 500

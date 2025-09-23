@@ -58,13 +58,16 @@ export const Home = () => {
         setScannerShown(false);
     }
     const [errorClass, setErrorClass] = useState("");
+    const [errorMessage, setErrorMessage] = useState("");
 
     const checkRoom = (code) => {
-        socket.emit("CHECK_ROOM", {code}, (success) => {
-            if (success) setCode(code);
-
-            if (!success) {
+        socket.emit("CHECK_ROOM", {code}, (response) => {
+            if (response?.success && response?.exists) {
+                setCode(code);
+                setErrorMessage("");
+            } else {
                 setCode(-1);
+                setErrorMessage(response?.error || "Raum nicht gefunden");
                 setErrorClass("room-error");
                 setTimeout(() => setErrorClass(""), 300);
             }
@@ -72,13 +75,19 @@ export const Home = () => {
     }
 
     const joinGame = (name, character) => {
-        socket.emit("JOIN_ROOM", {code: parseInt(code), name, character}, (success) => {
-            if (success) {
-                setCirclePosition("-30rem 0 0 -30rem");
-                setUsername(name);
-                setRoomCode(code);
-                setTimeout(() => navigate("/client"), 500);
-            }
+        return new Promise((resolve, reject) => {
+            socket.emit("JOIN_ROOM", {code: parseInt(code), name, character}, (response) => {
+                if (response?.success) {
+                    setCirclePosition("-30rem 0 0 -30rem");
+                    setUsername(name);
+                    setRoomCode(code);
+                    setTimeout(() => navigate("/client"), 500);
+                    resolve();
+                } else {
+                    setErrorMessage(response?.error || "Fehler beim Beitreten");
+                    reject(new Error(response?.error || "Fehler beim Beitreten"));
+                }
+            });
         });
     }
 
@@ -112,6 +121,16 @@ export const Home = () => {
                 <div className="join-area">
                     {code === -1 ? <CodeInput joinGame={checkRoom} errorClass={errorClass} scanQr={scanQr}/>
                         : <CharacterSelection code={code} submit={joinGame}/>}
+                    {errorMessage && (
+                        <motion.div 
+                            className="error-message"
+                            initial={{opacity: 0, y: -10}}
+                            animate={{opacity: 1, y: 0}}
+                            exit={{opacity: 0, y: -10}}
+                        >
+                            {errorMessage}
+                        </motion.div>
+                    )}
                 </div>
                 <div className={`action-area ${code !== -1 ? 'disabled' : ''}`}>
                     <Button text="Quiz erstellen" icon={faSwatchbook} padding={"0.8rem 2.5rem"}

@@ -52,32 +52,53 @@ module.exports = (io, socket) => {
 
     socket.on('CHECK_ROOM', (data, callback) => {
         if (!callback) return;
-        if (validateSchemaSocket(callback, checkRoom, data)) return;
-        callback(!!rooms[data.code]);
+        const validationResult = validateSchemaSocket(null, checkRoom, data);
+        if (validationResult) {
+            callback({ success: false, error: validationResult.details[0].message });
+            return;
+        }
+        callback({ success: true, exists: !!rooms[data.code] });
     });
 
     socket.on('JOIN_ROOM', (data, callback) => {
         if (!callback) return;
-        if (validateSchemaSocket(callback, joinRoom, data)) return;
+        const validationResult = validateSchemaSocket(null, joinRoom, data);
+        if (validationResult) {
+            callback({ success: false, error: validationResult.details[0].message });
+            return;
+        }
 
         const room = rooms[data.code];
         if (room && room.state === 'waiting' && !room.players[socket.id]) {
+            const { value } = joinRoom.validate(data);
+            const sanitizedName = value.name;
+            
+            const existingNames = Object.values(room.players).map(p => p.name.toLowerCase());
+            if (existingNames.includes(sanitizedName.toLowerCase())) {
+                callback({ success: false, error: 'Dieser Name ist bereits vergeben' });
+                return;
+            }
+            
             socket.join(data.code.toString());
-            room.players[socket.id] = {name: data.name, character: data.character, points: 0};
-            io.to(room.host).emit('PLAYER_JOINED', {id: socket.id, name: data.name, character: data.character});
+            room.players[socket.id] = {name: sanitizedName, character: data.character, points: 0};
+            io.to(room.host).emit('PLAYER_JOINED', {id: socket.id, name: sanitizedName, character: data.character});
             currentRoomCode = data.code;
-            callback(true);
+            callback({ success: true });
         } else {
-            callback(false);
+            callback({ success: false, error: 'Raum existiert nicht oder Spiel hat bereits begonnen' });
         }
     });
 
     socket.on('SHOW_QUESTION', (data, callback) => {
         if (!callback) return;
-        if (!rooms[currentRoomCode]) return callback(false);
-        if (rooms[currentRoomCode].host !== socket.id) return callback(false);
+        if (!rooms[currentRoomCode]) return callback({ success: false, error: 'Raum nicht gefunden' });
+        if (rooms[currentRoomCode].host !== socket.id) return callback({ success: false, error: 'Nicht autorisiert' });
 
-        if (validateSchemaSocket(callback, questionValidation, data)) return;
+        const validationResult = validateSchemaSocket(null, questionValidation, data);
+        if (validationResult) {
+            callback({ success: false, error: validationResult.details[0].message });
+            return;
+        }
 
         rooms[currentRoomCode].state = 'ingame';
 
@@ -98,16 +119,21 @@ module.exports = (io, socket) => {
             title: data.title
         });
         rooms[currentRoomCode].startTime = Date.now();
-        callback(true);
+        callback({ success: true });
     });
 
     socket.on('SUBMIT_ANSWER', (data, callback) => {
         if (!callback) return;
-        if (!rooms[currentRoomCode]?.players[socket.id]) return callback(false);
+        if (!rooms[currentRoomCode]?.players[socket.id]) return callback({ success: false, error: 'Spieler nicht im Raum' });
 
         const playerAnswers = rooms[currentRoomCode].playerAnswers;
-        if (playerAnswers[playerAnswers.length - 1][socket.id]) return callback(false);
-        if (validateSchemaSocket(callback, answerQuestion, data)) return;
+        if (playerAnswers[playerAnswers.length - 1][socket.id]) return callback({ success: false, error: 'Antwort bereits abgegeben' });
+        
+        const validationResult = validateSchemaSocket(null, answerQuestion, data);
+        if (validationResult) {
+            callback({ success: false, error: validationResult.details[0].message });
+            return;
+        }
 
         playerAnswers[playerAnswers.length - 1][socket.id] = data.answers;
 
@@ -126,7 +152,7 @@ module.exports = (io, socket) => {
                 scoreboard: rooms[currentRoomCode].players});
         }
 
-        callback(true);
+        callback({ success: true });
     });
 
     socket.on('SKIP_QUESTION', (data, callback) => {

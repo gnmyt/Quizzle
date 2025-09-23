@@ -18,10 +18,12 @@ import AddQuestion from "@/pages/QuizCreator/components/AddQuestion";
 import pako from "pako";
 import toast from "react-hot-toast";
 import {putRequest} from "@/common/utils/RequestUtil.js";
+import {useInputValidation, validationRules} from "@/common/hooks/useInputValidation";
 
 export const QuizCreator = () => {
     const {setCirclePosition} = useOutletContext();
     const {titleImg} = useContext(BrandingContext);
+    const titleValidation = useInputValidation(localStorage.getItem("qq_title") || "", validationRules.quizTitle);
 
     const generateUuid = () => {
         return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
@@ -31,7 +33,6 @@ export const QuizCreator = () => {
     }
 
     const [errorToastId, setErrorToastId] = useState(null);
-    const [title, setTitle] = useState(localStorage.getItem("qq_title") || "");
     const [questions, setQuestions] = useState(localStorage.getItem("qq_questions") ? JSON.parse(localStorage.getItem("qq_questions")) :
         [{uuid: generateUuid(), title: "", answers: []}]);
     const [activeQuestion, setActiveQuestion] = useState(questions[0].uuid);
@@ -69,7 +70,7 @@ export const QuizCreator = () => {
                         return {uuid: newUuid, ...q};
                     });
 
-                    setTitle(parsedData.title);
+                    titleValidation.setValue(parsedData.title);
                     setQuestions(questions);
                     setActiveQuestion(questions[0].uuid);
                 } catch (e) {
@@ -100,7 +101,12 @@ export const QuizCreator = () => {
             return false;
         }
 
-        if (questions.some(q => q.title === "")) {
+        if (questions.length > 50) {
+            toast.error("Quiz darf maximal 50 Fragen enthalten.");
+            return false;
+        }
+
+        if (questions.some(q => !q.title || q.title.trim() === "")) {
             toast.error("Fragen dürfen nicht leer sein.");
             return false;
         }
@@ -110,23 +116,33 @@ export const QuizCreator = () => {
             return false;
         }
 
+        if (questions.some(q => q.answers.length > 6)) {
+            toast.error("Fragen dürfen maximal sechs Antworten haben.");
+            return false;
+        }
+
         if (questions.some(q => q.answers.filter(a => a.is_correct).length === 0)) {
             toast.error("Jede Frage muss mindestens eine richtige Antwort haben.");
             return false;
         }
 
-        if (title.length > 100) {
-            toast.error("Quiz-Titel darf maximal 100 Zeichen lang sein.");
+        if (!titleValidation.validate()) {
+            toast.error("Quiz-Titel ist ungültig.");
             return false;
         }
 
-        if (questions.some(q => q.title.length > 100)) {
-            toast.error("Fragen dürfen maximal 100 Zeichen lang sein.");
+        if (questions.some(q => q.title.trim().length > 200)) {
+            toast.error("Fragen dürfen maximal 200 Zeichen lang sein.");
             return false;
         }
 
-        if (questions.some(q => q.answers.some(a => a.title?.length > 100))) {
-            toast.error("Antworten dürfen maximal 100 Zeichen lang sein.");
+        if (questions.some(q => q.answers.some(a => a.content?.trim().length > 150))) {
+            toast.error("Antworten dürfen maximal 150 Zeichen lang sein.");
+            return false;
+        }
+
+        if (questions.some(q => q.answers.some(a => !a.content || a.content.trim() === ""))) {
+            toast.error("Antworten dürfen nicht leer sein.");
             return false;
         }
 
@@ -134,16 +150,23 @@ export const QuizCreator = () => {
     }
 
     const uploadQuiz = () => {
-        if (!title) {
+        if (!titleValidation.validate()) {
             toast.error("Quiz-Titel darf nicht leer sein.");
             return;
         }
 
         if (!validateQuestions()) return;
 
-        const quizData = {title, questions: questions.map(q => {
+        const quizData = {title: titleValidation.value.trim(), questions: questions.map(q => {
             const {uuid, ...rest} = q;
-            return rest;
+            return {
+                ...rest,
+                title: rest.title.trim(),
+                answers: rest.answers.map(a => ({
+                    ...a,
+                    content: a.content.trim()
+                }))
+            };
         })};
 
         putRequest("/quizzes", quizData).then((r) => {
@@ -159,16 +182,23 @@ export const QuizCreator = () => {
     }
 
     const downloadQuiz = () => {
-        if (!title) {
+        if (!titleValidation.validate()) {
             toast.error("Quiz-Titel darf nicht leer sein.");
             return;
         }
 
         if (!validateQuestions()) return;
 
-        const quizData = JSON.stringify({__type: "QUIZZLE1", title, questions: questions.map(q => {
+        const quizData = JSON.stringify({__type: "QUIZZLE1", title: titleValidation.value.trim(), questions: questions.map(q => {
             const {uuid, ...rest} = q;
-            return rest;
+            return {
+                ...rest,
+                title: rest.title.trim(),
+                answers: rest.answers.map(a => ({
+                    ...a,
+                    content: a.content.trim()
+                }))
+            };
         })});
 
         const compressedData = pako.deflate(quizData, {to: "string"});
@@ -176,7 +206,7 @@ export const QuizCreator = () => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = title + ".quizzle";
+        a.download = titleValidation.value.trim() + ".quizzle";
         a.click();
         URL.revokeObjectURL(url);
     }
@@ -193,7 +223,7 @@ export const QuizCreator = () => {
 
     const clearQuiz = () => {
         const newUuid = generateUuid();
-        setTitle("");
+        titleValidation.reset();
         setQuestions([{uuid: newUuid, title: "", answers: []}]);
         setActiveQuestion(newUuid);
 
@@ -207,7 +237,7 @@ export const QuizCreator = () => {
 
     useEffect(() => {
         try {
-            localStorage.setItem("qq_title", title);
+            localStorage.setItem("qq_title", titleValidation.value);
             localStorage.setItem("qq_questions", JSON.stringify(questions));
 
             if (errorToastId) {
@@ -222,7 +252,7 @@ export const QuizCreator = () => {
             }
         }
 
-    }, [title, questions]);
+    }, [titleValidation.value, questions]);
 
     return (
         <div className="quiz-creator">
@@ -231,12 +261,20 @@ export const QuizCreator = () => {
                     <motion.img src={titleImg} alt="logo" initial={{opacity: 0, y: -50}} animate={{opacity: 1, y: 0}}/>
                 </Link>
                 <motion.div initial={{opacity: 0, x: -50}} animate={{opacity: 1, x: 0}} className="quiz-title-area">
-                    <Input placeholder="Quiz-Titel eingeben" value={title} onChange={(e) => setTitle(e.target.value)}/>
+                    <Input 
+                        placeholder="Quiz-Titel eingeben" 
+                        value={titleValidation.value} 
+                        onChange={(e) => titleValidation.setValue(e.target.value)}
+                        onBlur={titleValidation.onBlur}
+                        error={titleValidation.error}
+                        warning={titleValidation.warning}
+                        maxLength={validationRules.quizTitle.maxLength}
+                    />
                     <div className="quiz-action-area">
                         <FontAwesomeIcon icon={faFileImport} onClick={importQuiz} className="import-icon"/>
                         <FontAwesomeIcon icon={faCloudUpload} onClick={uploadQuiz}/>
                         <FontAwesomeIcon icon={faFileDownload} onClick={downloadQuiz}/>
-                        {(title !== "" || questions.some(q => q.title !== "") || questions.length > 1 ||
+                        {(titleValidation.value !== "" || questions.some(q => q.title !== "") || questions.length > 1 ||
                                 questions.some(q => q.answers.length > 0)) &&
                             <FontAwesomeIcon icon={faEraser} onClick={clearQuiz}/>}
                     </div>

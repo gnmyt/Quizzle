@@ -6,22 +6,30 @@ import {CHARACTERS} from "@/common/data/characters";
 import {motion, AnimatePresence} from "framer-motion";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import {faTimes} from "@fortawesome/free-solid-svg-icons";
+import {useInputValidation, validationRules} from "@/common/hooks/useInputValidation";
 
 export const CharacterSelection = ({submit}) => {
-    const [name, setName] = useState("");
+    const nameValidation = useInputValidation('', validationRules.playerName);
     const [selectedCharacter, setSelectedCharacter] = useState(() => {
         const randomIndex = Math.floor(Math.random() * CHARACTERS.length);
         return CHARACTERS[randomIndex];
     });
     const [showModal, setShowModal] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const submitSelection = () => {
-        if (name.length < 3) {
-            alert("Name muss mindestens 3 Zeichen lang sein");
+    const submitSelection = async () => {
+        if (!nameValidation.validate()) {
             return;
         }
 
-        submit(name, selectedCharacter.id);
+        setIsSubmitting(true);
+        try {
+            await submit(nameValidation.value.trim(), selectedCharacter.id);
+        } catch (error) {
+            console.error('Submission error:', error);
+        } finally {
+            setIsSubmitting(false);
+        }
     }
 
     const selectCharacter = (character) => {
@@ -41,15 +49,20 @@ export const CharacterSelection = ({submit}) => {
 
             <Input
                 placeholder="Dein Name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
+                value={nameValidation.value}
+                onChange={(e) => nameValidation.setValue(e.target.value)}
+                onBlur={nameValidation.onBlur}
+                error={nameValidation.error}
+                warning={nameValidation.warning}
+                maxLength={validationRules.playerName.maxLength}
+                disabled={isSubmitting}
             />
 
             <Button
-                text="Beitreten"
+                text={isSubmitting ? "Beitreten..." : "Beitreten"}
                 padding={"0.7rem 1.5rem"}
                 onClick={submitSelection}
-                disabled={name.length < 3}
+                disabled={!nameValidation.value.trim() || !!nameValidation.error || isSubmitting}
             />
 
             <AnimatePresence>

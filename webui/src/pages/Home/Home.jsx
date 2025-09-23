@@ -71,8 +71,8 @@ export const Home = () => {
         });
     }
 
-    const joinGame = (name) => {
-        socket.emit("JOIN_ROOM", {code: parseInt(code), name, character: "X"}, (success) => {
+    const joinGame = (name, character) => {
+        socket.emit("JOIN_ROOM", {code: parseInt(code), name, character}, (success) => {
             if (success) {
                 setCirclePosition("-30rem 0 0 -30rem");
                 setUsername(name);
@@ -113,13 +113,15 @@ export const Home = () => {
                     {code === -1 ? <CodeInput joinGame={checkRoom} errorClass={errorClass} scanQr={scanQr}/>
                         : <CharacterSelection code={code} submit={joinGame}/>}
                 </div>
-                <div className="action-area">
+                <div className={`action-area ${code !== -1 ? 'disabled' : ''}`}>
                     <Button text="Quiz erstellen" icon={faSwatchbook} padding={"0.8rem 2.5rem"}
+                            disabled={code !== -1}
                             onClick={() => {
                                 setCirclePosition("-30rem 0 0 -30rem");
                                 setTimeout(() => navigate("/create"), 500);
                             }}/>
                     <Button text="Raum hosten" icon={faShareFromSquare} padding={"0.8rem 2.5rem"}
+                            disabled={code !== -1}
                             onClick={() => {
                                 setCirclePosition("-30rem 0 0 -30rem");
                                 setTimeout(() => navigate("/load"), 500);

@@ -12,36 +12,107 @@ export const CodeWrapper = ({onChange, resetCode, errorClass}) => {
         codeWrapper.current.childNodes[0].focus();
     }, [resetCode]);
 
-    useEffect(() => {
-        codeWrapper.current.addEventListener("keydown", (e) => {
-            if (e.key !== "Backspace") return;
+    const handleKeyDown = (e) => {
+        const inputs = Array.from(codeWrapper.current.childNodes);
+        const currentIndex = inputs.indexOf(e.target);
 
-            codeWrapper.current.childNodes.forEach((input, index) => {
-                if (e.target === input && index !== 0) codeWrapper.current.childNodes[index - 1].focus();
-            });
-        });
-    }, []);
+        if (e.key === "Backspace") {
+            e.preventDefault();
 
-    const handleChange = (e) => {
-        blockInvalidChar(e);
-        codeWrapper.current.childNodes.forEach((input, index) => {
-            if (e.target === input && e.target.value.length === 1 && index !== 3) {
-                codeWrapper.current.childNodes[index + 1].focus();
-            } else if (e.target === input && index === 3) {
-                let code = "";
-                codeWrapper.current.childNodes.forEach(input => code += input.value);
-                onChange(code);
+            if (e.target.value !== "") {
+                e.target.value = "";
+            } else if (currentIndex > 0) {
+                const prevInput = inputs[currentIndex - 1];
+                prevInput.focus();
+                prevInput.value = "";
             }
 
-            if (e.target.value.length > 1) e.target.value = e.target.value.slice(1);
-        });
-    }
+            const code = inputs.map(input => input.value).join("");
+            if (code.length === 4) {
+                onChange(code);
+            }
+        } else if (e.key === "ArrowLeft" && currentIndex > 0) {
+            e.preventDefault();
+            inputs[currentIndex - 1].focus();
+        } else if (e.key === "ArrowRight" && currentIndex < inputs.length - 1) {
+            e.preventDefault();
+            inputs[currentIndex + 1].focus();
+        }
+    };
+
+    const handlePaste = (e) => {
+        e.preventDefault();
+        const pastedData = e.clipboardData.getData('text');
+        const digits = pastedData.replace(/\D/g, '').slice(0, 4);
+
+        if (digits.length > 0) {
+            const inputs = Array.from(codeWrapper.current.childNodes);
+
+            for (let i = 0; i < 4; i++) {
+                inputs[i].value = digits[i] || "";
+            }
+
+            const nextEmptyIndex = digits.length < 4 ? digits.length : 3;
+            inputs[nextEmptyIndex].focus();
+
+            if (digits.length === 4) {
+                onChange(digits);
+            }
+        }
+    };
+
+    const handleInput = (e) => {
+        const inputs = Array.from(codeWrapper.current.childNodes);
+        const currentIndex = inputs.indexOf(e.target);
+
+        if (e.target.value.length > 1) {
+            const digits = e.target.value.replace(/\D/g, '').slice(0, 4);
+            e.target.value = digits[0] || "";
+
+            for (let i = 1; i < digits.length && currentIndex + i < 4; i++) {
+                inputs[currentIndex + i].value = digits[i];
+            }
+
+            const nextIndex = Math.min(currentIndex + digits.length, 3);
+            inputs[nextIndex].focus();
+
+            const code = inputs.map(input => input.value).join("");
+            if (code.length === 4) {
+                onChange(code);
+            }
+        } else if (e.target.value.length === 1) {
+            if (currentIndex < 3) {
+                inputs[currentIndex + 1].focus();
+            }
+
+            const code = inputs.map(input => input.value).join("");
+            if (code.length === 4) {
+                onChange(code);
+            }
+        }
+    };
+
+    const handleFocus = (e) => {
+        e.target.select();
+    };
 
     return (
-        <div className={"code-wrapper" + (errorClass ? " " + errorClass : "") } ref={codeWrapper}>
-            {[...Array(4)].map((_, index) => <input key={index} type="number" placeholder="0"
-                                                    onKeyDown={blockInvalidChar}
-                                                    onChange={handleChange}/>)}
+        <div className={"code-wrapper" + (errorClass ? " " + errorClass : "")} ref={codeWrapper}>
+            {[...Array(4)].map((_, index) =>
+                <input
+                    key={index}
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    maxLength="4"
+                    placeholder="0"
+                    onKeyDown={handleKeyDown}
+                    onInput={handleInput}
+                    onPaste={handlePaste}
+                    onFocus={handleFocus}
+                    autoComplete="off"
+                />
+            )}
         </div>
     )
 }

@@ -85,7 +85,7 @@ export const QuizCreator = () => {
                     const data = pako.inflate(e.target.result, {to: "string"});
                     const parsedData = JSON.parse(data);
 
-                    if (parsedData.__type !== "QUIZZLE1") throw "Ungültiges Dateiformat.";
+                    if (parsedData.__type !== "QUIZZLE2") throw "Ungültiges Dateiformat.";
 
                     const questions = parsedData.questions.map(q => {
                         const newUuid = generateUuid();
@@ -349,7 +349,7 @@ export const QuizCreator = () => {
         if (!validateQuestions()) return;
 
         const quizData = JSON.stringify({
-            __type: "QUIZZLE1", title: titleValidation.value.trim(), questions: questions.map(q => {
+            __type: "QUIZZLE2", title: titleValidation.value.trim(), questions: questions.map(q => {
                 const {uuid, ...rest} = q;
                 const cleanQuestion = {
                     ...rest,

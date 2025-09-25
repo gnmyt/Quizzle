@@ -15,7 +15,7 @@ const uploadFile = async (content) => {
         random = generateQuizId();
     }
 
-    const compressed = pako.deflate(JSON.stringify({__type: "QUIZZLE1", ...content}), { to: 'string' });
+    const compressed = pako.deflate(JSON.stringify({__type: "QUIZZLE2", ...content}), { to: 'string' });
 
     fs.writeFile(path.join(quizzesFolder, `${random}.quizzle`), compressed, (err) => {
         if (err) {

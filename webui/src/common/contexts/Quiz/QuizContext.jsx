@@ -43,7 +43,7 @@ export const QuizProvider = ({children}) => {
     const isLoaded = useMemo(() => quiz !== null, [quiz]);
 
     const validateQuiz = (json) => {
-        if (json.__type !== "QUIZZLE1") {
+        if (json.__type !== "QUIZZLE2") {
             return false;
         }
 

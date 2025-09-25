@@ -81,7 +81,7 @@ app.put("/", createLimiter, async (req, res) => {
         await fs.mkdir(quizDir, {recursive: true});
         await fs.mkdir(resultsDir, {recursive: true});
 
-        const compressed = pako.deflate(JSON.stringify({__type: "QUIZZLE1", ...req.body}), {to: 'string'});
+        const compressed = pako.deflate(JSON.stringify({__type: "QUIZZLE2", ...req.body}), {to: 'string'});
         await fs.writeFile(path.join(quizDir, 'quiz.quizzle'), compressed);
 
         const now = new Date();

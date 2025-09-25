@@ -208,11 +208,12 @@ export const Home = () => {
                         </motion.div>
                     )}
                     {code !== null && isPracticeMode && (
-                        <motion.div
-                            initial={{opacity: 0}}
-                            animate={{opacity: 1}}
-                            transition={{delay: 0.3}}
-                        >
+                        <div className="result-area">
+                            <div className="alternative">
+                                <hr/>
+                                <h2>oder</h2>
+                                <hr/>
+                            </div>
                             <Button
                                 text="Ergebnisse einsehen"
                                 icon={faChartBar}
@@ -220,7 +221,7 @@ export const Home = () => {
                                 variant="secondary"
                                 padding="0.6rem 1.2rem"
                             />
-                        </motion.div>
+                        </div>
                     )}
                 </div>
                 <div className={`action-area ${code !== null ? 'disabled' : ''}`}>

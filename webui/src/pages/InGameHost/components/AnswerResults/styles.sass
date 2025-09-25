@@ -1,0 +1,246 @@
+@import "@/common/styles/colors"
+
+.answer-results
+  display: flex
+  flex-direction: column
+  align-items: center
+  justify-content: center
+  width: 100%
+  height: 100vh
+  padding: 1rem
+  margin: 0
+  overflow: hidden
+  position: relative
+  box-sizing: border-box
+
+  .top-area
+    position: absolute
+    top: 2rem
+    right: 2rem
+    z-index: 100
+
+  h1
+    font-size: 2.2rem
+    color: $background
+    margin: 0 0 2rem 0
+    text-align: center
+    background-color: $dark-gray
+    padding: 0.8rem 1.5rem
+    border-radius: 1.5rem
+    box-shadow: 0 0.5rem 1.5rem 0.3rem rgba(0, 0, 0, 0.3)
+
+  .vote-bars-section
+    display: flex
+    justify-content: center
+    align-items: flex-end
+    gap: 1.5rem
+    margin: 0 0 2rem 0
+    height: 10rem
+    padding: 1.5rem
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05))
+    border-radius: 2rem
+    box-shadow: 0 0.8rem 3rem rgba(0, 0, 0, 0.2)
+    max-width: 90vw
+    box-sizing: border-box
+
+    .vote-bar-column
+      display: flex
+      flex-direction: column
+      align-items: center
+      gap: 0.5rem
+
+      .vote-count-display
+        color: $background
+        font-weight: bold
+        font-size: 1.5rem
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5)
+        margin: 0
+        background: linear-gradient(135deg, $dark-gray, lighten($dark-gray, 10%))
+        padding: 0.5rem 1rem
+        border-radius: 1rem
+        min-width: 3rem
+        text-align: center
+        box-shadow: 0 0.5rem 1.2rem rgba(0, 0, 0, 0.3)
+        border: 1px solid rgba(255, 255, 255, 0.1)
+
+      .vote-bar-container
+        width: 3rem
+        height: 6.5rem
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.05))
+        border-radius: 1.2rem
+        position: relative
+        overflow: hidden
+        display: flex
+        align-items: flex-end
+        border: 2px solid rgba(255, 255, 255, 0.1)
+        box-shadow: inset 0 0.3rem 0.8rem rgba(0, 0, 0, 0.2)
+
+        .vote-bar
+          width: 100%
+          border-radius: 1.2rem
+          position: relative
+          transition: all 0.3s ease
+          box-shadow: 0 -0.3rem 1.2rem rgba(0, 0, 0, 0.3)
+          
+          &::before
+            content: ''
+            position: absolute
+            top: 0
+            left: 0
+            right: 0
+            height: 30%
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.3), transparent)
+            border-radius: 1.2rem 1.2rem 0 0
+
+  .answer-list
+    display: grid
+    grid-template-columns: repeat(2, auto)
+    gap: 1rem
+    max-width: 80vw
+    width: fit-content
+    margin: 0 auto
+    padding: 0 1rem
+    justify-content: center
+    box-sizing: border-box
+
+  .answer-container
+    position: relative
+    display: flex
+    justify-content: center
+    align-items: center
+    margin: 0
+    padding: 0
+
+    .text-answer
+      width: min(18rem, 40vw)
+      height: 7rem
+      padding: 0.8rem 1.2rem
+      color: $background
+      border-radius: 1.5rem
+      display: flex
+      justify-content: center
+      align-items: center
+      text-align: center
+      user-select: none
+      transition: all 0.3s ease
+      margin: 0
+      position: relative
+      box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.2)
+      box-sizing: border-box
+      
+      &.correct
+        &::after
+          content: ''
+          position: absolute
+          top: -1rem
+          right: -1rem
+          background: linear-gradient(135deg, $green, darken($green, 10%))
+          width: 2rem
+          height: 2rem
+          border-radius: 50%
+          z-index: 19
+          box-shadow: 0 0.3rem 0.8rem rgba(0, 0, 0, 0.3), 0 0 0 3px white
+
+    .image-answer
+      width: min(20rem, 40vw)
+      height: 8rem
+      border-radius: 1.5rem
+      display: flex
+      justify-content: center
+      align-items: center
+      text-align: center
+      background-size: cover
+      background-position: center
+      background-repeat: no-repeat
+      transition: all 0.3s ease
+      margin: 0
+      position: relative
+      box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.2)
+      box-sizing: border-box
+      
+      &.correct
+        &::after
+          content: ''
+          position: absolute
+          top: -1rem
+          right: -1rem
+          background: linear-gradient(135deg, $green, darken($green, 10%))
+          width: 2rem
+          height: 2rem
+          border-radius: 50%
+          z-index: 19
+          box-shadow: 0 0.3rem 0.8rem rgba(0, 0, 0, 0.3), 0 0 0 3px white
+          
+    .correct-badge
+      position: absolute
+      top: -1rem
+      right: -1rem
+      background: linear-gradient(135deg, $green, darken($green, 10%))
+      color: white
+      width: 2rem
+      height: 2rem
+      border-radius: 50%
+      display: flex
+      align-items: center
+      justify-content: center
+      font-size: 0.9rem
+      z-index: 20
+      box-shadow: 0 0.3rem 0.8rem rgba(0, 0, 0, 0.3), 0 0 0 3px white
+      transform: scale(1)
+      transition: transform 0.2s ease
+      
+      &:hover
+        transform: scale(1.1)
+
+  .correct-answers
+    display: flex
+    flex-wrap: wrap
+    justify-content: center
+    gap: 1.5rem
+    margin-bottom: 2rem
+    max-width: 90vw
+    box-sizing: border-box
+
+    .correct-answer-item
+      background-color: $green
+      color: $background
+      padding: 1.2rem 2rem
+      border-radius: 1.5rem
+      font-size: 1.6rem
+      font-weight: bold
+      box-shadow: 0 0.5rem 1.5rem 0.3rem rgba(28, 148, 90, 0.3)
+      box-sizing: border-box
+
+  .text-results
+    margin-top: 2rem
+    width: 100%
+    max-width: 55rem
+
+    h2
+      color: $background
+      text-align: center
+      margin-bottom: 1rem
+      background-color: $dark-gray
+      padding: 0.8rem 1.5rem
+      border-radius: 1rem
+      box-shadow: 0 0.3rem 1rem 0.2rem $dark-gray
+
+    .text-answers-grid
+      display: grid
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr))
+      gap: 0.8rem
+
+      .text-answer-item
+        padding: 0.8rem 1rem
+        border-radius: 0.5rem
+        color: $background
+        text-align: center
+        font-weight: bold
+
+        &.correct
+          background-color: $green
+          border: 2px solid $green
+
+        &.incorrect
+          background-color: $red
+          border: 2px solid $red

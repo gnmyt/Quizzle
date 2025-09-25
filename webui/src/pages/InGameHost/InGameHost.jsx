@@ -9,6 +9,7 @@ import {Question} from "@/pages/InGameHost/components/Question/Question.jsx";
 import Button from "@/common/components/Button";
 import {faForward} from "@fortawesome/free-solid-svg-icons";
 import Scoreboard from "@/pages/InGameHost/components/Scoreboard";
+import AnswerResults from "@/pages/InGameHost/components/AnswerResults";
 import Sound from "react-sound";
 import InGameMusic from "./assets/music/ingame.wav";
 
@@ -17,25 +18,35 @@ export const InGameHost = () => {
     const navigate = useNavigate();
 
     const [currentQuestion, setCurrentQuestion] = useState({});
-    const [scoreboardState, setScoreboardState] = useState(false);
+    const [gameState, setGameState] = useState('question');
+    const [answerData, setAnswerData] = useState(null);
 
     const skipQuestion = async () => {
         try {
             socket.emit("SKIP_QUESTION", null, (data) => {
-                if (!data) toast.error("Fehler beim Überspringen der Frage");
-                setScoreboard(data);
+                if (!data) {
+                    toast.error("Fehler beim Überspringen der Frage");
+                    return;
+                }
+                setScoreboard(data.scoreboard);
+                setAnswerData(data.answerData);
+                setGameState('answer-results');
             });
-            setScoreboardState(true);
         } catch (e) {
-
+            console.error("Error skipping question:", e);
         }
+    }
+
+    const showScoreboard = () => {
+        setGameState('scoreboard');
     }
 
     const nextQuestion = async () => {
         try {
             const newQuestion = await pullNextQuestion();
             setCurrentQuestion(newQuestion);
-            setScoreboardState(false);
+            setGameState('question');
+            setAnswerData(null);
             const newQuestionCopy = {...newQuestion, b64_image: undefined};
 
             for (let i = 0; i < newQuestion.answers.length; i++) {
@@ -46,7 +57,12 @@ export const InGameHost = () => {
                 if (!success) toast.error("Fehler beim Anzeigen der Frage");
             });
         } catch (e) {
-            navigate("/host/ending");
+            socket.emit("END_GAME", null, (data) => {
+                if (data && data.players) {
+                    setScoreboard({scoreboard: data.players});
+                }
+                navigate("/host/ending");
+            });
         }
     }
 
@@ -61,8 +77,10 @@ export const InGameHost = () => {
             toast.error(`${player.name} hat das Spiel verlassen`);
         });
 
-        socket.on("ANSWERS_RECEIVED", () => {
-            skipQuestion();
+        socket.on("ANSWERS_RECEIVED", (data) => {
+            setScoreboard(data.scoreboard);
+            setAnswerData(data.answerData);
+            setGameState('answer-results');
         });
 
         const timeout = setTimeout(() => nextQuestion(), 500);
@@ -77,39 +95,56 @@ export const InGameHost = () => {
     return (
         <div>
             <Sound url={InGameMusic} playStatus={Sound.status.PLAYING} loop={true} volume={100} />
-            {scoreboardState && <Scoreboard nextQuestion={nextQuestion} scoreboard={Object.values(scoreboard?.scoreboard || {})} />}
-            {!scoreboardState && <div>
-                {Object.keys(currentQuestion).length !== 0 && <div style={{
-                    display: "flex", alignItems: "center",
-                    flexDirection: "column"
-                }}>
-                    <div className="top-area">
-                        <Button onClick={skipQuestion} text="Frage überspringen"
-                                padding="1rem 1.5rem" icon={faForward} />
-                    </div>
-                    <Question title={currentQuestion.title} image={currentQuestion.b64_image}/>
-
-                    {currentQuestion.type !== 'text' && (
-                        <div className="answer-list">
-                            {currentQuestion.answers.map((answer, index) => <Answer key={index} answer={answer}
-                                                                                    index={index}/>)}
+            
+            {gameState === 'answer-results' && answerData && (
+                <AnswerResults 
+                    question={currentQuestion} 
+                    answerData={answerData}
+                    showScoreboard={showScoreboard}
+                />
+            )}
+            
+            {gameState === 'scoreboard' && (
+                <Scoreboard 
+                    nextQuestion={nextQuestion} 
+                    scoreboard={Object.values(scoreboard?.scoreboard || scoreboard || {})} 
+                />
+            )}
+            
+            {gameState === 'question' && (
+                <div>
+                    {Object.keys(currentQuestion).length !== 0 && <div style={{
+                        display: "flex", alignItems: "center",
+                        flexDirection: "column"
+                    }}>
+                        <div className="top-area">
+                            <Button onClick={skipQuestion} text="Frage überspringen"
+                                    padding="1rem 1.5rem" icon={faForward} />
                         </div>
-                    )}
+                        <Question title={currentQuestion.title} image={currentQuestion.b64_image}/>
 
-                    {currentQuestion.type === 'text' && (
-                        <div className="text-question-indicator">
-                            <h2>Spieler geben ihre Antworten ein...</h2>
-                            <div className="text-input-animation">
-                                <div className="typing-dots">
-                                    <span></span>
-                                    <span></span>
-                                    <span></span>
+                        {currentQuestion.type !== 'text' && (
+                            <div className="answer-list">
+                                {currentQuestion.answers.map((answer, index) => <Answer key={index} answer={answer}
+                                                                                        index={index}/>)}
+                            </div>
+                        )}
+
+                        {currentQuestion.type === 'text' && (
+                            <div className="text-question-indicator">
+                                <h2>Spieler geben ihre Antworten ein...</h2>
+                                <div className="text-input-animation">
+                                    <div className="typing-dots">
+                                        <span></span>
+                                        <span></span>
+                                        <span></span>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    )}
-                </div>}
-            </div>}
+                        )}
+                    </div>}
+                </div>
+            )}
         </div>
     );
 }

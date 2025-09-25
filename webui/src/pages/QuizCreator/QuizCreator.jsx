@@ -10,20 +10,25 @@ import {
     faEraser,
     faExclamationTriangle,
     faFileDownload,
-    faFileImport
+    faFileImport,
+    faLock
 } from "@fortawesome/free-solid-svg-icons";
 import QuestionPreview from "@/pages/QuizCreator/components/QuestionPreview";
 import QuestionEditor from "@/pages/QuizCreator/components/QuestionEditor";
 import AddQuestion from "@/pages/QuizCreator/components/AddQuestion";
+import PasswordDialog from "@/pages/QuizCreator/components/PasswordDialog";
 import pako from "pako";
 import toast from "react-hot-toast";
-import {putRequest} from "@/common/utils/RequestUtil.js";
+import {postRequest, putRequest} from "@/common/utils/RequestUtil.js";
 import {useInputValidation, validationRules} from "@/common/hooks/useInputValidation";
 
 export const QuizCreator = () => {
     const {setCirclePosition} = useOutletContext();
-    const {titleImg} = useContext(BrandingContext);
+    const {titleImg, passwordProtected} = useContext(BrandingContext);
     const titleValidation = useInputValidation(localStorage.getItem("qq_title") || "", validationRules.quizTitle);
+
+    const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+    const [isAuthenticated, setIsAuthenticated] = useState(!passwordProtected);
 
     const generateUuid = () => {
         return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
@@ -190,6 +195,32 @@ export const QuizCreator = () => {
         return true;
     }
 
+    const handlePasswordSubmit = async (password) => {
+        try {
+            const response = await postRequest("/quizzes/validate-password", {password});
+            if (response.valid) {
+                sessionStorage.setItem('quiz_password', password);
+                setIsAuthenticated(true);
+                setShowPasswordDialog(false);
+                toast.success("Authentifizierung erfolgreich.");
+            } else {
+                toast.error("Ungültiges Passwort.");
+            }
+        } catch (error) {
+            const errorMessage = error.message || "Ungültiges Passwort.";
+            toast.error(errorMessage);
+            console.error("Password validation error:", error);
+        }
+    };
+
+    const handleUploadClick = () => {
+        if (passwordProtected && !isAuthenticated) {
+            setShowPasswordDialog(true);
+            return;
+        }
+        uploadQuiz();
+    };
+
     const uploadQuiz = () => {
         if (!titleValidation.validate()) {
             toast.error("Quiz-Titel darf nicht leer sein.");
@@ -223,7 +254,12 @@ export const QuizCreator = () => {
             })
         };
 
-        putRequest("/quizzes", quizData).then((r) => {
+        const headers = {};
+        if (passwordProtected) {
+            headers['X-Quiz-Password'] = sessionStorage.getItem('quiz_password');
+        }
+
+        putRequest("/quizzes", quizData, headers).then((r) => {
             if (r.quizId === undefined) throw {ce: "Dein Quiz übersteigt die Speicherkapazität des Servers. Bitte lade es lokal herunter."};
             toast.success("Quiz erfolgreich hochgeladen.");
             toast.success("Quiz-ID: " + r.quizId, {duration: 10000});
@@ -300,7 +336,11 @@ export const QuizCreator = () => {
 
     useEffect(() => {
         setCirclePosition(["-25rem -25rem auto auto", "-15rem -7rem auto auto"]);
-    }, []);
+
+        if (passwordProtected && sessionStorage.getItem('quiz_password')) {
+            setIsAuthenticated(true);
+        }
+    }, [passwordProtected]);
 
     useEffect(() => {
         try {
@@ -341,7 +381,11 @@ export const QuizCreator = () => {
                     />
                     <div className="quiz-action-area">
                         <FontAwesomeIcon icon={faFileImport} onClick={importQuiz} className="import-icon"/>
-                        <FontAwesomeIcon icon={faCloudUpload} onClick={uploadQuiz}/>
+                        <FontAwesomeIcon
+                            icon={passwordProtected && !isAuthenticated ? faLock : faCloudUpload}
+                            onClick={handleUploadClick}
+                            className={passwordProtected && !isAuthenticated ? "locked" : ""}
+                        />
                         <FontAwesomeIcon icon={faFileDownload} onClick={downloadQuiz}/>
                         {(titleValidation.value !== "" || questions.some(q => q.title !== "") || questions.length > 1 ||
                                 questions.some(q => q.answers.length > 0)) &&
@@ -378,6 +422,12 @@ export const QuizCreator = () => {
                 <QuestionEditor question={questions.find(q => q.uuid === activeQuestion)} onChange={onChange}
                                 deleteQuestion={deleteQuestion} duplicateQuestion={duplicateQuestion}/>
             </div>
+
+            <PasswordDialog
+                isOpen={showPasswordDialog}
+                onClose={() => setShowPasswordDialog(false)}
+                onConfirm={handlePasswordSubmit}
+            />
         </div>
     )
 }

@@ -20,6 +20,12 @@ export const jsonRequest = async (path, headers = {}) => {
 export const postRequest = async (path, body = {}, headers = {}) => {
     try {
         const resp = await request(path, "POST", body, headers);
+        
+        if (!resp.ok) {
+            const errorData = await resp.json().catch(() => ({}));
+            throw new Error(errorData.message || `HTTP error! status: ${resp.status}`);
+        }
+        
         return await resp.json();
     } catch (e) {
         throw e;
@@ -30,6 +36,12 @@ export const postRequest = async (path, body = {}, headers = {}) => {
 export const putRequest = async (path, body = {}, headers = {}) => {
     try {
         const resp = await request(path, "PUT", body, headers);
+        
+        if (!resp.ok) {
+            const errorData = await resp.json().catch(() => ({}));
+            throw new Error(errorData.message || `HTTP error! status: ${resp.status}`);
+        }
+        
         return await resp.json();
     } catch (e) {
         throw e;

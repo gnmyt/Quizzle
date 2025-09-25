@@ -1,0 +1,52 @@
+@import "@/common/styles/colors"
+
+.dialog-overlay
+  position: fixed
+  top: 0
+  left: 0
+  right: 0
+  bottom: 0
+  background: $modal-overlay
+  display: flex
+  align-items: center
+  justify-content: center
+  z-index: 1000
+  backdrop-filter: blur(4px)
+
+.dialog
+  background: $background
+  border-radius: 1.5rem
+  box-shadow: 0 20px 40px $modal-shadow
+  max-width: 500px
+  width: 90%
+  max-height: 80vh
+  overflow-y: auto
+  border: 1px solid $modal-border
+
+.dialog-header
+  padding: 2rem 2rem 1rem 2rem
+  text-align: center
+
+.dialog-title
+  margin: 0
+  font-size: 1.5rem
+  font-weight: 700
+  color: $text
+
+.dialog-content
+  padding: 1rem 2rem 2rem 2rem
+
+.dialog-actions
+  padding: 0 2rem 2rem 2rem
+  display: flex
+  gap: 0.75rem
+  justify-content: center
+
+  .btn
+    flex: 1
+    max-width: 120px
+    min-width: 90px
+
+  .btn-compact
+    max-width: 110px
+    min-width: 85px

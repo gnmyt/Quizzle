@@ -13,7 +13,12 @@ const titlePayload = readBranding("title.png");
 const brandingPayload = require(path.join(brandingFolder, "branding.json"));
 
 app.get('/', (req, res) => {
-    res.json({logo: logoPayload, title: titlePayload, ...brandingPayload});
+    res.json({
+        logo: logoPayload, 
+        title: titlePayload, 
+        ...brandingPayload,
+        passwordProtected: !!process.env.PASSWORD_PROTECTION
+    });
 });
 
 module.exports = app;

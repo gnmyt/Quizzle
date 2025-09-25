@@ -39,6 +39,12 @@ const limiter = rateLimit({
     limit: 10,
 });
 
+const passwordLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 5,
+    message: { message: "Too many password attempts" }
+});
+
 app.get('/:quizId', (req, res) => {
     const escaped = req.params.quizId.replace(/[^a-z0-9]/gi, '');
 
@@ -52,11 +58,42 @@ app.get('/:quizId', (req, res) => {
     });
 });
 
+app.post("/validate-password", passwordLimiter, (req, res) => {
+    const { password } = req.body;
+    const correctPassword = process.env.PASSWORD_PROTECTION;
+    
+    if (!correctPassword) {
+        return res.status(400).json({ message: "Password protection not enabled" });
+    }
+    
+    if (!password) {
+        return res.status(400).json({ message: "Password is required" });
+    }
+    
+    if (password === correctPassword) {
+        res.json({ valid: true });
+    } else {
+        res.status(401).json({ valid: false, message: "Invalid password" });
+    }
+});
+
 app.put("/", limiter, async (req, res) => {
     if (validateSchema(res, quizUpload, req.body)) return;
 
-    const quizId = await uploadFile(req.body);
+    const passwordProtection = process.env.PASSWORD_PROTECTION;
+    if (passwordProtection) {
+        const password = req.headers['x-quiz-password'];
+        
+        if (!password) {
+            return res.status(401).json({ message: "Password is required" });
+        }
+        
+        if (password !== passwordProtection) {
+            return res.status(401).json({ message: "Invalid password" });
+        }
+    }
 
+    const quizId = await uploadFile(req.body);
     res.json({quizId});
 });
 

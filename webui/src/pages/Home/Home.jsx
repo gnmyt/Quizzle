@@ -5,7 +5,7 @@ import {motion} from "framer-motion";
 import Button from "@/common/components/Button";
 import {faShareFromSquare, faSwatchbook, faChartBar} from "@fortawesome/free-solid-svg-icons";
 import {useNavigate, useOutletContext} from "react-router-dom";
-import {socket} from "@/common/utils/SocketUtil.js";
+import {socket, ensureSocketConnection} from "@/common/utils/SocketUtil.js";
 import CodeInput from "@/pages/Home/components/CodeInput";
 import CharacterSelection from "@/pages/Home/components/CharacterSelection";
 import ResultsDialog from "@/pages/Home/components/ResultsDialog";
@@ -75,17 +75,24 @@ export const Home = () => {
         }
 
         if (isNumericCode(code)) {
-            socket.emit("CHECK_ROOM", {code: parseInt(code)}, (response) => {
-                if (response?.success && response?.exists && !response?.isPractice) {
-                    setCode(parseInt(code));
-                    setIsPracticeMode(false);
-                    setErrorMessage("");
-                } else {
-                    setCode(null);
-                    setErrorMessage(response?.error || "Raum nicht gefunden");
-                    setErrorClass("room-error");
-                    setTimeout(() => setErrorClass(""), 300);
-                }
+            ensureSocketConnection().then(() => {
+                socket.emit("CHECK_ROOM", {code: parseInt(code)}, (response) => {
+                    if (response?.success && response?.exists && !response?.isPractice) {
+                        setCode(parseInt(code));
+                        setIsPracticeMode(false);
+                        setErrorMessage("");
+                    } else {
+                        setCode(null);
+                        setErrorMessage(response?.error || "Raum nicht gefunden");
+                        setErrorClass("room-error");
+                        setTimeout(() => setErrorClass(""), 300);
+                    }
+                });
+            }).catch(() => {
+                setCode(null);
+                setErrorMessage("Verbindungsfehler");
+                setErrorClass("room-error");
+                setTimeout(() => setErrorClass(""), 300);
             });
         } else {
             setCode(null);
@@ -104,17 +111,22 @@ export const Home = () => {
                 setTimeout(() => navigate(`/practice/${code}?name=${encodeURIComponent(name)}&character=${character}`), 500);
                 resolve();
             } else {
-                socket.emit("JOIN_ROOM", {code: parseInt(code), name, character}, (response) => {
-                    if (response?.success) {
-                        setCirclePosition("-30rem 0 0 -30rem");
-                        setUsername(name);
-                        setRoomCode(code);
-                        setTimeout(() => navigate("/client"), 500);
-                        resolve();
-                    } else {
-                        setErrorMessage(response?.error || "Fehler beim Beitreten");
-                        reject(new Error(response?.error || "Fehler beim Beitreten"));
-                    }
+                ensureSocketConnection().then(() => {
+                    socket.emit("JOIN_ROOM", {code: parseInt(code), name, character}, (response) => {
+                        if (response?.success) {
+                            setCirclePosition("-30rem 0 0 -30rem");
+                            setUsername(name);
+                            setRoomCode(code);
+                            setTimeout(() => navigate("/client"), 500);
+                            resolve();
+                        } else {
+                            setErrorMessage(response?.error || "Fehler beim Beitreten");
+                            reject(new Error(response?.error || "Fehler beim Beitreten"));
+                        }
+                    });
+                }).catch(() => {
+                    setErrorMessage("Verbindungsfehler");
+                    reject(new Error("Verbindungsfehler"));
                 });
             }
         });
@@ -134,10 +146,36 @@ export const Home = () => {
     useEffect(() => {
         setCirclePosition(["-25rem 0 0 -25rem", "-8rem 0 0 -8rem"]);
 
+        if (!window.location.search.includes("code=")) {
+            setCode(null);
+            setErrorMessage("");
+            setIsPracticeMode(false);
+        }
+
         if (code && code !== null) {
             checkRoom(code.toString());
         }
     }, []);
+
+    useEffect(() => {
+        const handleConnect = () => {
+            if (errorMessage === "Verbindungsfehler") {
+                setErrorMessage("");
+            }
+        };
+
+        const handleDisconnect = () => {
+            console.log('Socket disconnected in Home');
+        };
+
+        socket.on('connect', handleConnect);
+        socket.on('disconnect', handleDisconnect);
+
+        return () => {
+            socket.off('connect', handleConnect);
+            socket.off('disconnect', handleDisconnect);
+        };
+    }, [errorMessage]);
 
     return (
         <div className="home-page">

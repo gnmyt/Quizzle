@@ -52,9 +52,16 @@ export const InGameClient = () => {
 
         const onAnswer = (answer) => {
             setAnswers(answer?.answers);
+            setCurrentQuestion(null);
         }
 
         const gameEnded = () => {
+            socket.off("QUESTION_RECEIVED", onQuestion);
+            socket.off("POINTS_RECEIVED", onPoints);
+            socket.off("ANSWER_RECEIVED", onAnswer);
+            socket.off("GAME_ENDED", gameEnded);
+            socket.off("disconnect", gameEnded);
+            
             navigate("/");
         }
 

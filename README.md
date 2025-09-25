@@ -1,8 +1,6 @@
 <div align="center">
   <img src="docs/docs/public/quizzle-title.png" alt="Quizzle Logo" width="400"/>
   
-  # 🎯 Quizzle
-  
   **Die kostenlose, open-source Quiz-Plattform für Schulen**
   
   *Self-hosted • Datenschutz-konform • Keine monatlichen Kosten*
@@ -54,12 +52,12 @@ cd Quizzle
 
 # Backend starten
 yarn install
-npm run dev
+yarn run dev
 
 # Frontend (neues Terminal)
 cd webui
 yarn install  
-npm run dev
+yarn run dev
 ```
 
 ## 🤝 Beitragen

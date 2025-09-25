@@ -1,0 +1,517 @@
+@import "@/common/styles/colors"
+
+.practice-results-page
+  min-height: 100vh
+  padding: 2rem
+  background: transparent
+
+  .page-header
+    display: flex
+    flex-direction: column
+    align-items: center
+    margin-bottom: 3rem
+
+    .logo
+      width: 6rem
+      margin-bottom: 1rem
+
+    h1
+      font-size: 2rem
+      margin: 0 0 0.5rem 0
+      color: $text
+      font-weight: 700
+      text-align: center
+
+    .code-display
+      font-size: 1.1rem
+      color: $gray
+
+      strong
+        color: $text
+        font-family: monospace
+
+  .auth-card
+    background: $background
+    border: 1px solid $border
+    border-radius: 0.75rem
+    padding: 2rem
+    max-width: 400px
+    margin: 0 auto
+    text-align: center
+
+    h2
+      margin: 0 0 1.5rem 0
+      color: $text
+      font-size: 1.5rem
+
+    .auth-form
+      .auth-actions
+        display: flex
+        gap: 1rem
+        margin-top: 1.5rem
+
+        button
+          flex: 1
+
+  .results-content
+    max-width: 1200px
+    margin: 0 auto
+
+    .stats-overview
+      display: grid
+      grid-template-columns: repeat(4, 1fr)
+      gap: 1.5rem
+      margin-bottom: 3rem
+
+      .stat-card
+        background: $background
+        border: 1px solid $border
+        border-radius: 0.75rem
+        padding: 1.5rem
+        text-align: center
+        transition: all 0.2s ease
+
+        &:hover
+          transform: translateY(-2px)
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1)
+
+        .stat-number
+          font-size: 2rem
+          font-weight: 900
+          color: $blue
+          margin-bottom: 0.5rem
+
+        .stat-label
+          color: $gray
+          font-size: 0.9rem
+          font-weight: 500
+
+    .results-section
+      margin-bottom: 3rem
+
+      h3
+        font-size: 1.25rem
+        margin-bottom: 1rem
+        color: $text
+        font-weight: 600
+
+      .results-table
+        background: $background
+        border: 1px solid $border
+        border-radius: 0.75rem
+        overflow: hidden
+
+        .table-header, .table-row
+          display: grid
+          grid-template-columns: 60px 1fr 100px 80px 140px
+          gap: 1rem
+          padding: 1rem
+          align-items: center
+
+        .table-header
+          background: $hover-bg
+          font-weight: 600
+          color: $text
+          font-size: 0.9rem
+          border-bottom: 1px solid $border
+
+        .table-row
+          border-bottom: 1px solid $border
+          transition: background-color 0.2s ease
+
+          &:last-child
+            border-bottom: none
+
+          &:hover
+            background: $hover-bg
+
+          &.best-score
+            background: #fef3c7
+
+            &:hover
+              background: #fde68a
+
+          .col-rank
+            font-weight: 600
+            text-align: center
+
+          .col-name
+            font-weight: 600
+            display: flex
+            align-items: center
+            gap: 0.5rem
+
+            .player-character
+              font-size: 1.2rem
+
+          .col-score
+            font-weight: 600
+            text-align: center
+
+          .col-percentage
+            text-align: center
+
+            .percentage
+              padding: 0.25rem 0.5rem
+              border-radius: 0.4rem
+              font-weight: 600
+              font-size: 0.8rem
+
+              &.excellent
+                background: #dcfce7
+                color: #166534
+
+              &.good
+                background: #fef3c7
+                color: #92400e
+
+              &.needs-improvement
+                background: #fee2e2
+                color: #991b1b
+
+          .col-timestamp
+            font-size: 0.8rem
+            color: $gray
+
+      .students-grid
+        display: grid
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr))
+        gap: 1rem
+
+        .student-card
+          background: $background
+          border: 1px solid $border
+          border-radius: 0.75rem
+          padding: 1.5rem
+          transition: all 0.2s ease
+
+          &.clickable
+            cursor: pointer
+
+          &:hover
+            transform: translateY(-2px)
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1)
+
+          .student-header
+            display: flex
+            justify-content: space-between
+            align-items: center
+            margin-bottom: 1rem
+
+            .student-name
+              font-size: 1.1rem
+              font-weight: 600
+              color: $text
+              display: flex
+              align-items: center
+              gap: 0.5rem
+
+              .player-character
+                font-size: 1.3rem
+
+          .student-stats
+            .stat
+              display: flex
+              justify-content: space-between
+              margin-bottom: 0.5rem
+              font-size: 0.9rem
+
+              .label
+                color: $gray
+
+              .value
+                font-weight: 600
+                color: $text
+
+    .page-actions
+      display: flex
+      justify-content: center
+      margin-top: 2rem
+
+  .student-details-dialog
+    max-width: 800px
+
+    .student-details-title
+      display: flex
+      align-items: center
+      gap: 0.5rem
+
+      .student-details-title-icon
+        color: $blue
+        font-size: 1.1rem
+
+    .student-details-content
+      .attempts-selector
+        h4
+          margin: 0 0 1.5rem 0
+          color: $text
+          font-size: 1.2rem
+          font-weight: 600
+          border-bottom: 2px solid $border
+          padding-bottom: 0.5rem
+
+        .attempts-list
+          display: flex
+          flex-direction: column
+          gap: 2rem
+
+          .attempt-item
+            border: 2px solid $border
+            border-radius: 0.75rem
+            overflow: hidden
+            background: $background
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05)
+
+            .attempt-header
+              background: linear-gradient(135deg, rgba($blue, 0.1) 0%, rgba($blue, 0.05) 100%)
+              padding: 1.25rem
+              border-bottom: 1px solid $border
+
+              display: grid
+              grid-template-columns: auto 1fr auto
+              gap: 1rem
+              align-items: center
+
+              strong
+                color: $text
+                font-size: 1.1rem
+                font-weight: 700
+
+              .attempt-score
+                color: $blue
+                font-weight: 700
+                font-size: 1.1rem
+                background: rgba($blue, 0.1)
+                padding: 0.25rem 0.75rem
+                border-radius: 1rem
+                text-align: center
+
+              .attempt-date
+                color: $gray
+                font-size: 0.9rem
+                text-align: right
+
+            .attempt-questions
+              padding: 1.5rem
+              display: flex
+              flex-direction: column
+              gap: 1.5rem
+
+              .loading-questions
+                text-align: center
+                color: $gray
+                font-style: italic
+                padding: 2rem
+                background: rgba($gray, 0.05)
+                border-radius: 0.5rem
+
+              .question-detail
+                background: rgba($background, 0.8)
+                border: 1px solid $border
+                border-radius: 0.75rem
+                padding: 1.25rem
+                border-left: 4px solid $blue
+                transition: all 0.2s ease
+
+                &:hover
+                  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08)
+                  transform: translateY(-1px)
+
+                .question-header
+                  display: flex
+                  justify-content: space-between
+                  align-items: center
+                  margin-bottom: 0.75rem
+
+                  .question-number
+                    font-weight: 700
+                    color: $blue
+                    font-size: 0.95rem
+                    background: rgba($blue, 0.1)
+                    padding: 0.25rem 0.75rem
+                    border-radius: 1rem
+
+                  .question-result
+                    font-size: 1.3rem
+                    padding: 0.25rem
+                    border-radius: 50%
+
+                    &.correct
+                      color: $green
+                      background: rgba($green, 0.1)
+
+                    &.partial
+                      color: $orange
+                      background: rgba($orange, 0.1)
+
+                    &.incorrect
+                      color: $red
+                      background: rgba($red, 0.1)
+
+                .question-text
+                  margin-bottom: 1rem
+                  color: $text
+                  font-weight: 600
+                  font-size: 1rem
+                  line-height: 1.4
+                  padding: 0.75rem
+                  background: rgba($blue, 0.03)
+                  border-radius: 0.5rem
+                  border-left: 3px solid $blue
+
+                .text-answer
+                  .answer-line
+                    display: flex
+                    align-items: center
+                    gap: 0.5rem
+                    margin-bottom: 0.25rem
+                    padding: 0.5rem 0.75rem
+                    background: rgba($background, 0.8)
+                    border-radius: 0.4rem
+                    border: 1px solid $border
+
+                    .answer-label
+                      color: $gray
+                      font-size: 0.85rem
+                      font-weight: 600
+                      min-width: 70px
+
+                    .answer-value
+                      font-family: 'JetBrains Mono', monospace
+                      padding: 0.25rem 0.5rem
+                      border-radius: 0.3rem
+                      font-size: 0.9rem
+                      font-weight: 600
+                      flex: 1
+
+                      &.correct
+                        background: rgba($green, 0.15)
+                        color: #0f5132
+                        border: 1px solid rgba($green, 0.3)
+
+                      &.incorrect
+                        background: rgba($red, 0.15)
+                        color: #842029
+                        border: 1px solid rgba($red, 0.3)
+
+                    .answer-icon
+                      font-size: 1rem
+
+                      &.correct
+                        color: $green
+
+                      &.incorrect
+                        color: $red
+
+                .mc-answer
+                  display: flex
+                  flex-direction: column
+                  gap: 0.5rem
+
+                  .answer-option
+                    display: flex
+                    justify-content: space-between
+                    align-items: center
+                    padding: 0.75rem 1rem
+                    border-radius: 0.5rem
+                    border: 1px solid $border
+                    background: rgba($background, 0.8)
+                    transition: all 0.2s ease
+
+                    .option-content
+                      flex: 1
+                      font-size: 0.95rem
+                      font-weight: 500
+
+                    .answer-icon
+                      font-size: 1.1rem
+                      margin-left: 0.75rem
+
+                      &.correct
+                        color: $green
+
+                      &.incorrect
+                        color: $red
+
+                    &.correct
+                      background: rgba($green, 0.12)
+                      border-color: rgba($green, 0.4)
+                      color: #0f5132
+                      font-weight: 600
+
+                    &.incorrect
+                      background: rgba($red, 0.12)
+                      border-color: rgba($red, 0.4)
+                      color: #842029
+                      font-weight: 600
+
+                    &.selected
+                      background: rgba($blue, 0.08)
+                      border-color: rgba($blue, 0.3)
+                      color: $blue
+
+                    &:hover
+                      transform: translateX(2px)
+  @media (max-width: 1024px)
+    .results-content
+      .stats-overview
+        grid-template-columns: repeat(2, 1fr)
+
+      .results-section .results-table
+        .table-header, .table-row
+          grid-template-columns: 50px 1fr 80px 140px
+          font-size: 0.8rem
+
+  @media (max-width: 768px)
+    padding: 1rem
+
+    .page-header
+      margin-bottom: 2rem
+
+      h1
+        font-size: 1.5rem
+
+    .results-content
+      .stats-overview
+        grid-template-columns: 1fr 1fr
+        gap: 1rem
+
+        .stat-card
+          padding: 1.25rem
+
+          .stat-number
+            font-size: 1.75rem
+
+      .results-section .results-table
+        .table-header, .table-row
+          grid-template-columns: 1fr 80px 100px
+          font-size: 0.8rem
+          padding: 0.75rem
+
+          .col-rank, .col-timestamp
+            display: none
+
+      .students-grid
+        grid-template-columns: 1fr
+
+    .auth-card
+      padding: 1.5rem
+
+      .auth-actions
+        flex-direction: column
+
+        button
+          width: 100%
+
+  @media (max-width: 480px)
+    .results-content
+      .stats-overview
+        grid-template-columns: 1fr
+
+      .results-section .results-table
+        .table-header, .table-row
+          grid-template-columns: 1fr 60px
+          gap: 0.5rem
+
+          .col-score, .col-percentage
+            display: none

@@ -3,11 +3,12 @@ import {useContext, useEffect, useRef, useState} from "react";
 import "./styles.sass";
 import {motion} from "framer-motion";
 import Button from "@/common/components/Button";
-import {faShareFromSquare, faSwatchbook} from "@fortawesome/free-solid-svg-icons";
+import {faShareFromSquare, faSwatchbook, faChartBar} from "@fortawesome/free-solid-svg-icons";
 import {useNavigate, useOutletContext} from "react-router-dom";
 import {socket} from "@/common/utils/SocketUtil.js";
 import CodeInput from "@/pages/Home/components/CodeInput";
 import CharacterSelection from "@/pages/Home/components/CharacterSelection";
+import ResultsDialog from "@/pages/Home/components/ResultsDialog";
 import {QuizContext} from "@/common/contexts/Quiz";
 import QrScanner from "qr-scanner";
 
@@ -15,19 +16,24 @@ export const Home = () => {
     const {titleImg, imprint, privacy} = useContext(BrandingContext);
     const {setRoomCode, setUsername} = useContext(QuizContext);
     const {setCirclePosition} = useOutletContext();
-    const [code, setCode] = useState(window.location.search.includes("code=") ? parseInt(window.location.search.split("=")[1]) : -1);
+    const [code, setCode] = useState(window.location.search.includes("code=") ? window.location.search.split("=")[1] : null);
     const [scannerShown, setScannerShown] = useState(false);
+    const [isPracticeMode, setIsPracticeMode] = useState(false);
+    const [showResultsDialog, setShowResultsDialog] = useState(false);
 
     const scanner = useRef();
     const videoEl = useRef(null);
     const qrBoxEl = useRef(null);
+
+    const isNumericCode = (code) => /^\d{4}$/.test(code);
+    const isAlphabeticCode = (code) => /^[A-Z]{4}$/i.test(code);
 
     const handleScan = ({data}) => {
         if (data) {
             stopScan();
             const code = data.split("/?code=")[1];
             if (code) {
-                setCode(parseInt(code));
+                setCode(code);
             }
         }
     }
@@ -61,43 +67,75 @@ export const Home = () => {
     const [errorMessage, setErrorMessage] = useState("");
 
     const checkRoom = (code) => {
-        socket.emit("CHECK_ROOM", {code}, (response) => {
-            if (response?.success && response?.exists) {
-                setCode(code);
-                setErrorMessage("");
-            } else {
-                setCode(-1);
-                setErrorMessage(response?.error || "Raum nicht gefunden");
-                setErrorClass("room-error");
-                setTimeout(() => setErrorClass(""), 300);
-            }
-        });
+        if (isAlphabeticCode(code)) {
+            setCode(code.toUpperCase());
+            setIsPracticeMode(true);
+            setErrorMessage("");
+            return;
+        }
+
+        if (isNumericCode(code)) {
+            socket.emit("CHECK_ROOM", {code: parseInt(code)}, (response) => {
+                if (response?.success && response?.exists && !response?.isPractice) {
+                    setCode(parseInt(code));
+                    setIsPracticeMode(false);
+                    setErrorMessage("");
+                } else {
+                    setCode(null);
+                    setErrorMessage(response?.error || "Raum nicht gefunden");
+                    setErrorClass("room-error");
+                    setTimeout(() => setErrorClass(""), 300);
+                }
+            });
+        } else {
+            setCode(null);
+            setErrorMessage("Ungültiger Code");
+            setErrorClass("room-error");
+            setTimeout(() => setErrorClass(""), 300);
+        }
     }
 
     const joinGame = (name, character) => {
         return new Promise((resolve, reject) => {
-            socket.emit("JOIN_ROOM", {code: parseInt(code), name, character}, (response) => {
-                if (response?.success) {
-                    setCirclePosition("-30rem 0 0 -30rem");
-                    setUsername(name);
-                    setRoomCode(code);
-                    setTimeout(() => navigate("/client"), 500);
-                    resolve();
-                } else {
-                    setErrorMessage(response?.error || "Fehler beim Beitreten");
-                    reject(new Error(response?.error || "Fehler beim Beitreten"));
-                }
-            });
+            if (isPracticeMode) {
+                setCirclePosition("-30rem 0 0 -30rem");
+                setUsername(name);
+                setRoomCode(code);
+                setTimeout(() => navigate(`/practice/${code}?name=${encodeURIComponent(name)}&character=${character}`), 500);
+                resolve();
+            } else {
+                socket.emit("JOIN_ROOM", {code: parseInt(code), name, character}, (response) => {
+                    if (response?.success) {
+                        setCirclePosition("-30rem 0 0 -30rem");
+                        setUsername(name);
+                        setRoomCode(code);
+                        setTimeout(() => navigate("/client"), 500);
+                        resolve();
+                    } else {
+                        setErrorMessage(response?.error || "Fehler beim Beitreten");
+                        reject(new Error(response?.error || "Fehler beim Beitreten"));
+                    }
+                });
+            }
         });
     }
+
+    const handleResultsSuccess = (practiceCode, password) => {
+        setCirclePosition("-30rem 0 0 -30rem");
+        setTimeout(() => {
+            navigate(`/results/${practiceCode}`, {
+                state: {password}
+            });
+        }, 500);
+    };
 
     const navigate = useNavigate();
 
     useEffect(() => {
         setCirclePosition(["-25rem 0 0 -25rem", "-8rem 0 0 -8rem"]);
 
-        if (code !== -1) {
-            checkRoom(code);
+        if (code && code !== null) {
+            checkRoom(code.toString());
         }
     }, []);
 
@@ -119,10 +157,10 @@ export const Home = () => {
             <motion.div initial={{opacity: 0, y: 50}} animate={{opacity: 1, y: 0}} transition={{delay: 0.5}}
                         className="home-content">
                 <div className="join-area">
-                    {code === -1 ? <CodeInput joinGame={checkRoom} errorClass={errorClass} scanQr={scanQr}/>
-                        : <CharacterSelection code={code} submit={joinGame}/>}
+                    {code === null ? <CodeInput joinGame={checkRoom} errorClass={errorClass} scanQr={scanQr}/>
+                        : <CharacterSelection code={code} submit={joinGame} isPracticeMode={isPracticeMode}/>}
                     {errorMessage && (
-                        <motion.div 
+                        <motion.div
                             className="error-message"
                             initial={{opacity: 0, y: -10}}
                             animate={{opacity: 1, y: 0}}
@@ -131,22 +169,44 @@ export const Home = () => {
                             {errorMessage}
                         </motion.div>
                     )}
+                    {code !== null && isPracticeMode && (
+                        <motion.div
+                            initial={{opacity: 0}}
+                            animate={{opacity: 1}}
+                            transition={{delay: 0.3}}
+                        >
+                            <Button
+                                text="Ergebnisse einsehen"
+                                icon={faChartBar}
+                                onClick={() => setShowResultsDialog(true)}
+                                variant="secondary"
+                                padding="0.6rem 1.2rem"
+                            />
+                        </motion.div>
+                    )}
                 </div>
-                <div className={`action-area ${code !== -1 ? 'disabled' : ''}`}>
+                <div className={`action-area ${code !== null ? 'disabled' : ''}`}>
                     <Button text="Quiz erstellen" icon={faSwatchbook} padding={"0.8rem 2.5rem"}
-                            disabled={code !== -1}
+                            disabled={code !== null}
                             onClick={() => {
                                 setCirclePosition("-30rem 0 0 -30rem");
                                 setTimeout(() => navigate("/create"), 500);
                             }}/>
                     <Button text="Raum hosten" icon={faShareFromSquare} padding={"0.8rem 2.5rem"}
-                            disabled={code !== -1}
+                            disabled={code !== null}
                             onClick={() => {
                                 setCirclePosition("-30rem 0 0 -30rem");
                                 setTimeout(() => navigate("/load"), 500);
                             }}/>
                 </div>
             </motion.div>
+
+            <ResultsDialog
+                isOpen={showResultsDialog}
+                onClose={() => setShowResultsDialog(false)}
+                practiceCode={code}
+                onSuccess={handleResultsSuccess}
+            />
         </div>
     )
 }

@@ -8,7 +8,7 @@ import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import {faTimes} from "@fortawesome/free-solid-svg-icons";
 import {useInputValidation, validationRules} from "@/common/hooks/useInputValidation";
 
-export const CharacterSelection = ({submit}) => {
+export const CharacterSelection = ({submit, isPracticeMode = false}) => {
     const nameValidation = useInputValidation('', validationRules.playerName);
     const [selectedCharacter, setSelectedCharacter] = useState(() => {
         const randomIndex = Math.floor(Math.random() * CHARACTERS.length);
@@ -59,7 +59,7 @@ export const CharacterSelection = ({submit}) => {
             />
 
             <Button
-                text={isSubmitting ? "Beitreten..." : "Beitreten"}
+                text={isSubmitting ? "Beitreten..." : (isPracticeMode ? "Quiz starten" : "Beitreten")}
                 padding={"0.7rem 1.5rem"}
                 onClick={submitSelection}
                 disabled={!nameValidation.value.trim() || !!nameValidation.error || isSubmitting}

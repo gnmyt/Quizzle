@@ -3,6 +3,7 @@ const http = require('http');
 const socketIo = require('socket.io');
 const path = require('path');
 const {firstStart} = require("./utils/file");
+const {startCleanupTask} = require("./utils/cleanup");
 
 const app = express();
 const server = http.createServer(app);
@@ -12,10 +13,13 @@ const PORT = process.env.PORT || 6412;
 
 firstStart();
 
+startCleanupTask();
+
 app.use(express.json({limit: '50kb'}));
 
 app.use("/api/branding", require("./routes/branding"));
 app.use("/api/quizzes", require("./routes/quizzes"));
+app.use("/api/practice", require("./routes/practice"));
 
 io.on('connection', (socket) => require("./socket")(io, socket));
 

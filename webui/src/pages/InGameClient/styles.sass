@@ -18,6 +18,27 @@
   h2
     margin: 0
 
+  .practice-progress
+    margin-bottom: 1rem
+
+    .progress-bar
+      width: 100%
+      height: 8px
+      background: $border
+      border-radius: 4px
+      overflow: hidden
+      margin-bottom: 0.5rem
+
+      .progress-fill
+        height: 100%
+        background: $primary
+        transition: width 0.3s ease
+        border-radius: 4px
+
+    span
+      font-size: 0.9rem
+      color: $gray
+
 .ingame-content
   flex: 1
   padding: 1rem
@@ -43,6 +64,18 @@
     align-items: center
     justify-content: center
     padding: 2rem
+
+  .practice-answer-text
+    font-size: 1.1rem
+    font-weight: 600
+    text-align: center
+    color: white
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3)
+    line-height: 1.3
+
+  .ingame-answer-selected
+    transform: scale(0.95)
+    opacity: 0.8
 
   .ingame-answer
     display: flex
@@ -82,6 +115,11 @@
     transform: translateY(240%)
     filter: drop-shadow(0 0 1rem $primary)
     transition: transform 0.2s
+    gap: 0.5rem
+
+    span
+      font-size: 1rem
+      font-weight: 600
   .submit-shown
     display: flex
     z-index: 10
@@ -123,6 +161,42 @@
   align-items: center
   justify-content: center
   height: 100%
+
+  .practice-final-score
+    display: flex
+    align-items: center
+    gap: 0.5rem
+    font-size: 3rem
+    font-weight: 900
+    margin: 1rem 0
+
+    .score
+      color: $green
+
+    .total
+      color: $gray
+
+    .percentage
+      font-size: 1.5rem
+      color: $primary
+      font-weight: 600
+      margin-left: 1rem
+
+  .practice-next-button
+    padding: 1rem 2rem
+    background: $primary
+    color: white
+    border: none
+    border-radius: 0.75rem
+    font-size: 1.1rem
+    font-weight: 600
+    cursor: pointer
+    transition: all 0.3s ease
+    margin-top: 1rem
+
+    &:hover
+      background: #5a67d8
+      transform: translateY(-2px)
 
 .ingame-answers svg
   display: flex

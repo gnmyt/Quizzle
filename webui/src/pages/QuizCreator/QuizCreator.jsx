@@ -11,7 +11,8 @@ import {
     faExclamationTriangle,
     faFileDownload,
     faFileImport,
-    faLock
+    faLock,
+    faGraduationCap
 } from "@fortawesome/free-solid-svg-icons";
 import QuestionPreview from "@/pages/QuizCreator/components/QuestionPreview";
 import QuestionEditor from "@/pages/QuizCreator/components/QuestionEditor";
@@ -28,7 +29,10 @@ export const QuizCreator = () => {
     const titleValidation = useInputValidation(localStorage.getItem("qq_title") || "", validationRules.quizTitle);
 
     const [showPasswordDialog, setShowPasswordDialog] = useState(false);
-    const [isAuthenticated, setIsAuthenticated] = useState(!passwordProtected);
+    const [pendingAction, setPendingAction] = useState(null);
+    const [isAuthenticated, setIsAuthenticated] = useState(() => {
+        return sessionStorage.getItem('quiz_password') !== null;
+    });
 
     const generateUuid = () => {
         return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
@@ -203,6 +207,13 @@ export const QuizCreator = () => {
                 setIsAuthenticated(true);
                 setShowPasswordDialog(false);
                 toast.success("Authentifizierung erfolgreich.");
+
+                if (pendingAction === 'practice') {
+                    publishPracticeQuiz();
+                } else {
+                    uploadQuiz();
+                }
+                setPendingAction(null);
             } else {
                 toast.error("Ungültiges Passwort.");
             }
@@ -216,9 +227,67 @@ export const QuizCreator = () => {
     const handleUploadClick = () => {
         if (passwordProtected && !isAuthenticated) {
             setShowPasswordDialog(true);
+            setPendingAction('upload');
             return;
         }
         uploadQuiz();
+    };
+
+    const handlePracticeUploadClick = () => {
+        if (!titleValidation.validate()) {
+            toast.error("Quiz-Titel darf nicht leer sein.");
+            return;
+        }
+
+        if (!validateQuestions()) return;
+
+        if (passwordProtected && !isAuthenticated) {
+            setShowPasswordDialog(true);
+            setPendingAction('practice');
+            return;
+        }
+
+        publishPracticeQuiz();
+    };
+
+    const publishPracticeQuiz = async () => {
+        const teacherPassword = sessionStorage.getItem('quiz_password');
+        const quizData = {
+            title: titleValidation.value.trim(), questions: questions.map(q => {
+                const {uuid, ...rest} = q;
+                const cleanQuestion = {
+                    ...rest,
+                    title: rest.title.trim(),
+                    type: rest.type || 'single-choice'
+                };
+
+                if (cleanQuestion.type === 'text') {
+                    cleanQuestion.answers = rest.answers.map(a => ({
+                        content: a.content.trim()
+                    }));
+                } else {
+                    cleanQuestion.answers = rest.answers.map(a => ({
+                        ...a,
+                        content: a.content.trim(),
+                        is_correct: a.is_correct || false
+                    }));
+                }
+
+                return cleanQuestion;
+            })
+        };
+
+        try {
+            const response = await putRequest("/practice", quizData, {password: teacherPassword});
+            if (response.practiceCode) {
+                toast.success("Übungsquiz erfolgreich erstellt!");
+                toast.success(`Übungscode: ${response.practiceCode}`, {duration: 10000});
+                navigator.clipboard?.writeText(response.practiceCode);
+            }
+        } catch (error) {
+            console.error('Practice quiz creation error:', error);
+            toast.error("Fehler beim Erstellen des Übungsquiz.");
+        }
     };
 
     const uploadQuiz = () => {
@@ -385,6 +454,13 @@ export const QuizCreator = () => {
                             icon={passwordProtected && !isAuthenticated ? faLock : faCloudUpload}
                             onClick={handleUploadClick}
                             className={passwordProtected && !isAuthenticated ? "locked" : ""}
+                            title="Als Live-Quiz hochladen"
+                        />
+                        <FontAwesomeIcon
+                            icon={faGraduationCap}
+                            onClick={handlePracticeUploadClick}
+                            className={passwordProtected && !isAuthenticated ? "locked" : "practice-upload"}
+                            title="Als Übungsquiz veröffentlichen"
                         />
                         <FontAwesomeIcon icon={faFileDownload} onClick={downloadQuiz}/>
                         {(titleValidation.value !== "" || questions.some(q => q.title !== "") || questions.length > 1 ||

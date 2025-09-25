@@ -1,4 +1,4 @@
-const {generateRoomCode} = require("./utils/random");
+const {generateRoomCode, isAlphabeticCode} = require("./utils/random");
 const {validateSchemaSocket} = require("./utils/error");
 const {checkRoom, joinRoom, answerQuestion} = require("./validations/socket");
 const {questionValidation} = require("./validations/quiz");
@@ -57,7 +57,12 @@ module.exports = (io, socket) => {
             callback({ success: false, error: validationResult.details[0].message });
             return;
         }
-        callback({ success: true, exists: !!rooms[data.code] });
+
+        if (isAlphabeticCode(data.code)) {
+            callback({ success: true, exists: false, isPractice: true });
+        } else {
+            callback({ success: true, exists: !!rooms[data.code], isPractice: false });
+        }
     });
 
     socket.on('JOIN_ROOM', (data, callback) => {

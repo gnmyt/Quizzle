@@ -44,20 +44,24 @@ const Dialog = ({
                     {children}
                 </div>
 
-                <div className="dialog-actions">
-                    {showCancelButton && (
-                        <Button
-                            onClick={handleCancel}
-                            type="secondary compact"
-                            text={cancelText}
-                        />
-                    )}
-                    <Button
-                        onClick={handleConfirm}
-                        type="primary compact"
-                        text={confirmText}
-                    />
-                </div>
+                {(showCancelButton || confirmText) && (
+                    <div className="dialog-actions">
+                        {showCancelButton && (
+                            <Button
+                                onClick={handleCancel}
+                                type="secondary compact"
+                                text={cancelText}
+                            />
+                        )}
+                        {confirmText && (
+                            <Button
+                                onClick={handleConfirm}
+                                type="primary compact"
+                                text={confirmText}
+                            />
+                        )}
+                    </div>
+                )}
             </div>
         </div>
     );

@@ -17,6 +17,7 @@ import {QuizProvider} from "@/common/contexts/Quiz";
 import InGameHost from "@/pages/InGameHost";
 import EndingHost from "@/pages/EndingHost";
 import InGameClient from "@/pages/InGameClient";
+import PracticeResults from "@/pages/PracticeResults";
 
 const router = createBrowserRouter([
     {
@@ -30,7 +31,9 @@ const router = createBrowserRouter([
             {path: '/host/lobby', element: <Host />},
             {path: '/host/ingame', element: <InGameHost />},
             {path: '/host/ending', element: <EndingHost />},
-            {path: '/client', element: <InGameClient />}
+            {path: '/client', element: <InGameClient />},
+            {path: '/practice/:practiceCode', element: <InGameClient />},
+            {path: '/results/:code', element: <PracticeResults />}
         ]
     },
 ]);

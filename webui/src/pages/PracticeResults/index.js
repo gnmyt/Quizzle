@@ -1,0 +1,1 @@
+export { PracticeResults as default } from './PracticeResults';

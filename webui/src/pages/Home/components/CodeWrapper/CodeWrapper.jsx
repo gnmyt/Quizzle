@@ -43,20 +43,20 @@ export const CodeWrapper = ({onChange, resetCode, errorClass}) => {
     const handlePaste = (e) => {
         e.preventDefault();
         const pastedData = e.clipboardData.getData('text');
-        const digits = pastedData.replace(/\D/g, '').slice(0, 4);
+        const validChars = pastedData.replace(/[^a-z0-9]/gi, '').slice(0, 4).toUpperCase();
 
-        if (digits.length > 0) {
+        if (validChars.length > 0) {
             const inputs = Array.from(codeWrapper.current.childNodes);
 
             for (let i = 0; i < 4; i++) {
-                inputs[i].value = digits[i] || "";
+                inputs[i].value = validChars[i] || "";
             }
 
-            const nextEmptyIndex = digits.length < 4 ? digits.length : 3;
+            const nextEmptyIndex = validChars.length < 4 ? validChars.length : 3;
             inputs[nextEmptyIndex].focus();
 
-            if (digits.length === 4) {
-                onChange(digits);
+            if (validChars.length === 4) {
+                onChange(validChars);
             }
         }
     };
@@ -66,14 +66,14 @@ export const CodeWrapper = ({onChange, resetCode, errorClass}) => {
         const currentIndex = inputs.indexOf(e.target);
 
         if (e.target.value.length > 1) {
-            const digits = e.target.value.replace(/\D/g, '').slice(0, 4);
-            e.target.value = digits[0] || "";
+            const validChars = e.target.value.replace(/[^a-z0-9]/gi, '').slice(0, 4).toUpperCase();
+            e.target.value = validChars[0] || "";
 
-            for (let i = 1; i < digits.length && currentIndex + i < 4; i++) {
-                inputs[currentIndex + i].value = digits[i];
+            for (let i = 1; i < validChars.length && currentIndex + i < 4; i++) {
+                inputs[currentIndex + i].value = validChars[i];
             }
 
-            const nextIndex = Math.min(currentIndex + digits.length, 3);
+            const nextIndex = Math.min(currentIndex + validChars.length, 3);
             inputs[nextIndex].focus();
 
             const code = inputs.map(input => input.value).join("");
@@ -81,7 +81,10 @@ export const CodeWrapper = ({onChange, resetCode, errorClass}) => {
                 onChange(code);
             }
         } else if (e.target.value.length === 1) {
-            if (currentIndex < 3) {
+            const char = e.target.value.replace(/[^a-z0-9]/gi, '').toUpperCase();
+            e.target.value = char;
+
+            if (currentIndex < 3 && char) {
                 inputs[currentIndex + 1].focus();
             }
 
@@ -102,8 +105,7 @@ export const CodeWrapper = ({onChange, resetCode, errorClass}) => {
                 <input
                     key={index}
                     type="text"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
+                    inputMode="text"
                     maxLength="4"
                     placeholder="0"
                     onKeyDown={handleKeyDown}
@@ -111,6 +113,7 @@ export const CodeWrapper = ({onChange, resetCode, errorClass}) => {
                     onPaste={handlePaste}
                     onFocus={handleFocus}
                     autoComplete="off"
+                    style={{textTransform: 'uppercase'}}
                 />
             )}
         </div>

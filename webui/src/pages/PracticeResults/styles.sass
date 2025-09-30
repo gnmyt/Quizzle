@@ -86,147 +86,121 @@
           font-size: 0.9rem
           font-weight: 500
 
-    .results-section
-      margin-bottom: 3rem
-
-      h3
-        font-size: 1.25rem
-        margin-bottom: 1rem
-        color: $text
-        font-weight: 600
-
-      .results-table
+    .tabs-content-section
+      .view-navigation
+        display: flex
         background: $background
         border: 1px solid $border
-        border-radius: 0.75rem
-        overflow: hidden
+        border-radius: 1rem
+        padding: 0.5rem
+        gap: 0.25rem
+        margin-bottom: 1.5rem
 
-        .table-header, .table-row
-          display: grid
-          grid-template-columns: 60px 1fr 100px 80px 140px
-          gap: 1rem
-          padding: 1rem
+        .view-tab
+          flex: 1
+          display: flex
           align-items: center
-
-        .table-header
-          background: $hover-bg
-          font-weight: 600
-          color: $text
-          font-size: 0.9rem
-          border-bottom: 1px solid $border
-
-        .table-row
-          border-bottom: 1px solid $border
-          transition: background-color 0.2s ease
-
-          &:last-child
-            border-bottom: none
-
-          &:hover
-            background: $hover-bg
-
-          &.best-score
-            background: #fef3c7
-
-            &:hover
-              background: #fde68a
-
-          .col-rank
-            font-weight: 600
-            text-align: center
-
-          .col-name
-            font-weight: 600
-            display: flex
-            align-items: center
-            gap: 0.5rem
-
-            .player-character
-              font-size: 1.2rem
-
-          .col-score
-            font-weight: 600
-            text-align: center
-
-          .col-percentage
-            text-align: center
-
-            .percentage
-              padding: 0.25rem 0.5rem
-              border-radius: 0.4rem
-              font-weight: 600
-              font-size: 0.8rem
-
-              &.excellent
-                background: #dcfce7
-                color: #166534
-
-              &.good
-                background: #fef3c7
-                color: #92400e
-
-              &.needs-improvement
-                background: #fee2e2
-                color: #991b1b
-
-          .col-timestamp
-            font-size: 0.8rem
-            color: $gray
-
-      .students-grid
-        display: grid
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr))
-        gap: 1rem
-
-        .student-card
-          background: $background
-          border: 1px solid $border
-          border-radius: 0.75rem
-          padding: 1.5rem
+          justify-content: center
+          gap: 0.5rem
+          padding: 0.8rem 1.5rem
+          border: none
+          background: transparent
+          border-radius: 0.8rem
+          font-weight: 700
+          color: $gray
+          cursor: pointer
           transition: all 0.2s ease
-
-          &.clickable
-            cursor: pointer
+          font-size: 1rem
 
           &:hover
-            transform: translateY(-2px)
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1)
+            background: rgba($primary, 0.1)
+            color: $primary
+            transform: scale(1.02)
 
-          .student-header
-            display: flex
-            justify-content: space-between
-            align-items: center
+          &.active
+            background: linear-gradient(135deg, color-mix(in srgb, $primary 100%, white 20%), color-mix(in srgb, $primary 100%, black 10%))
+            color: $background
+            box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.2), 0 2px 4px rgba(0, 0, 0, 0.1)
+
+          svg
+            font-size: 1rem
+
+      .tab-content-wrapper
+        background: $background
+        border: 1px solid $border
+        border-radius: 1rem
+        min-height: 400px
+
+        .analytics-section
+          border: none
+          background: transparent
+          border-radius: 0
+
+        .students-section
+          padding: 2rem
+
+          h3
+            font-size: 1.25rem
             margin-bottom: 1rem
+            color: $text
+            font-weight: 700
 
-            .student-name
-              font-size: 1.1rem
-              font-weight: 600
-              color: $text
-              display: flex
-              align-items: center
-              gap: 0.5rem
+          .students-grid
+            display: grid
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr))
+            gap: 1rem
 
-              .player-character
-                font-size: 1.3rem
+            .student-card
+              background: $background
+              border: 1px solid $border
+              border-radius: 0.75rem
+              padding: 1.5rem
+              transition: all 0.2s ease
 
-          .student-stats
-            .stat
-              display: flex
-              justify-content: space-between
-              margin-bottom: 0.5rem
-              font-size: 0.9rem
+              &.clickable
+                cursor: pointer
 
-              .label
-                color: $gray
+              &:hover
+                transform: translateY(-2px)
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1)
 
-              .value
-                font-weight: 600
-                color: $text
+              .student-header
+                display: flex
+                justify-content: space-between
+                align-items: center
+                margin-bottom: 1rem
 
-    .page-actions
+                .student-name
+                  font-size: 1.1rem
+                  font-weight: 600
+                  color: $text
+                  display: flex
+                  align-items: center
+                  gap: 0.5rem
+
+                  .player-character
+                    font-size: 1.3rem
+
+              .student-stats
+                .stat
+                  display: flex
+                  justify-content: space-between
+                  margin-bottom: 0.5rem
+                  font-size: 0.9rem
+
+                  .label
+                    color: $gray
+
+                  .value
+                    font-weight: 600
+                    color: $text
+
+    .bottom-actions-section
       display: flex
       justify-content: center
       margin-top: 2rem
+      padding-top: 2rem
+      border-top: 1px solid $border
 
   .student-details-dialog
     max-width: 800px

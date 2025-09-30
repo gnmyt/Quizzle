@@ -1,0 +1,249 @@
+@import "@/common/styles/colors"
+
+.student-analytics
+  .students-table
+    background: $background
+    border-radius: 1rem
+    border: 1px solid $border
+    overflow: hidden
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05)
+
+  .table-header, .table-row
+    display: grid
+    grid-template-columns: 2fr 140px 100px 100px 80px 120px
+    gap: 1rem
+    padding: 1rem 1.5rem
+    align-items: center
+
+  .table-header
+    background: $hover-bg
+    font-weight: 600
+    color: $text
+    font-size: 0.9rem
+    border-bottom: 1px solid $border
+    position: sticky
+    top: 0
+
+    .sortable
+      cursor: pointer
+      display: flex
+      align-items: center
+      gap: 0.5rem
+      transition: all 0.2s ease
+      padding: 0.5rem
+      border-radius: 0.4rem
+
+      &:hover
+        background: $background
+        color: $primary
+        transform: scale(1.02)
+
+      svg
+        font-size: 0.8rem
+        opacity: 0.6
+
+  .table-row
+    border-bottom: 1px solid $border
+    transition: all 0.2s ease
+
+    &:last-child
+      border-bottom: none
+
+    &:hover
+      background: $hover-bg
+
+    &.excellent
+      background: color-mix(in srgb, $green 3%, $background 97%)
+
+    &.good
+      background: color-mix(in srgb, $orange 3%, $background 97%)
+
+    &.needs-improvement
+      background: color-mix(in srgb, $red 3%, $background 97%)
+
+  .col-student
+    display: flex
+    align-items: center
+    gap: 0.75rem
+
+    .student-character
+      font-size: 1.3rem
+
+    .student-name
+      font-weight: 600
+      color: $text
+
+    .attention-icon
+      color: $red
+      margin-left: 0.5rem
+      padding: 0.25rem
+      background: color-mix(in srgb, $red 15%, white 85%)
+      border-radius: 0.3rem
+      font-size: 0.8rem
+
+  .col-accuracy
+    .accuracy-bar
+      position: relative
+      background: $border
+      border-radius: 1rem
+      height: 20px
+      overflow: hidden
+      min-width: 120px
+
+    .accuracy-fill
+      height: 100%
+      border-radius: 1rem
+      transition: width 0.3s ease
+      position: absolute
+      top: 0
+      left: 0
+
+      &.excellent
+        background: linear-gradient(135deg, $green, color-mix(in srgb, $green 80%, white 20%))
+
+      &.good
+        background: linear-gradient(135deg, $orange, color-mix(in srgb, $orange 80%, white 20%))
+
+      &.needs-improvement
+        background: linear-gradient(135deg, $red, color-mix(in srgb, $red 80%, white 20%))
+
+    .accuracy-text
+      position: absolute
+      top: 50%
+      left: 50%
+      transform: translate(-50%, -50%)
+      font-size: 0.75rem
+      font-weight: 700
+      color: $text
+      text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8)
+      z-index: 2
+
+  .col-correct, .col-incorrect
+    display: flex
+    align-items: center
+    gap: 0.5rem
+    font-weight: 600
+    padding: 0.5rem 0.75rem
+    border-radius: 0.5rem
+
+  .col-correct
+    color: $green
+    background: color-mix(in srgb, $green 10%, white 90%)
+
+    svg
+      color: $green
+      font-size: 1rem
+
+  .col-incorrect
+    color: $red
+    background: color-mix(in srgb, $red 10%, white 90%)
+
+    svg
+      color: $red
+      font-size: 1rem
+
+  .col-points
+    font-weight: 700
+    color: $primary
+    text-align: center
+    padding: 0.5rem
+    background: color-mix(in srgb, $primary 10%, white 90%)
+    border-radius: 0.5rem
+
+  .col-status
+    text-align: center
+    padding: 0.4rem 0.75rem
+    border-radius: 0.5rem
+    font-size: 0.8rem
+    font-weight: 700
+
+    &.excellent
+      background: color-mix(in srgb, $green 100%, white 70%)
+      color: color-mix(in srgb, $green 100%, black 30%)
+
+    &.good
+      background: color-mix(in srgb, $orange 100%, white 70%)
+      color: color-mix(in srgb, $orange 100%, black 30%)
+
+    &.needs-improvement
+      background: color-mix(in srgb, $red 100%, white 70%)
+      color: color-mix(in srgb, $red 100%, black 30%)
+
+  .attention-section
+    margin-top: 2rem
+    padding: 1.5rem
+    background: color-mix(in srgb, $red 5%, $background 95%)
+    border: 1px solid color-mix(in srgb, $red 20%, $border 80%)
+    border-radius: 1rem
+
+    h3
+      color: $text
+      margin: 0 0 1rem 0
+      display: flex
+      align-items: center
+      gap: 0.75rem
+      font-weight: 700
+      font-size: 1.1rem
+
+      svg
+        color: $red
+        font-size: 1.2rem
+        padding: 0.5rem
+        background: color-mix(in srgb, $red 15%, white 85%)
+        border-radius: 0.5rem
+
+  .attention-list
+    display: flex
+    flex-direction: column
+    gap: 0.75rem
+
+  .attention-item
+    display: flex
+    justify-content: space-between
+    align-items: center
+    padding: 1rem 1.25rem
+    background: $background
+    border-radius: 0.75rem
+    border: 1px solid $border
+    transition: all 0.2s ease
+
+    &:hover
+      background: $hover-bg
+      transform: translateX(4px)
+
+    .student-info
+      font-weight: 600
+      color: $text
+      display: flex
+      align-items: center
+      gap: 0.5rem
+
+    .student-stats
+      font-weight: 700
+      color: $red
+      padding: 0.25rem 0.75rem
+      background: color-mix(in srgb, $red 15%, white 85%)
+      border-radius: 0.4rem
+      font-size: 0.85rem
+
+@media (max-width: 1024px)
+  .student-analytics
+    .table-header, .table-row
+      grid-template-columns: 2fr 120px 80px 80px 100px
+      font-size: 0.85rem
+
+    .col-points
+      display: none
+
+@media (max-width: 768px)
+  .student-analytics
+    .table-header, .table-row
+      grid-template-columns: 2fr 100px 80px
+      gap: 0.5rem
+      padding: 0.75rem 1rem
+
+    .col-incorrect, .col-points
+      display: none
+
+    .accuracy-text
+      font-size: 0.7rem

@@ -8,7 +8,8 @@ import Dialog from "@/common/components/Dialog";
 import {postRequest} from "@/common/utils/RequestUtil.js";
 import {getCharacterEmoji} from "@/common/data/characters";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
-import {faUser, faCheck, faTimes, faMinus} from "@fortawesome/free-solid-svg-icons";
+import {faUser, faCheck, faTimes, faMinus, faChartBar} from "@fortawesome/free-solid-svg-icons";
+import AnalyticsTabs from "@/common/components/AnalyticsTabs";
 import "./styles.sass";
 import toast from "react-hot-toast";
 
@@ -24,6 +25,7 @@ export const PracticeResults = () => {
     const [authenticated, setAuthenticated] = useState(false);
     const [selectedStudent, setSelectedStudent] = useState(null);
     const [studentDetailsOpen, setStudentDetailsOpen] = useState(false);
+    const [activeView, setActiveView] = useState('analytics');
 
     useEffect(() => {
         if (location.state?.password) {
@@ -86,6 +88,107 @@ export const PracticeResults = () => {
     const closeStudentDetails = () => {
         setSelectedStudent(null);
         setStudentDetailsOpen(false);
+    };
+
+    const generatePracticeAnalytics = () => {
+        if (results && results.analytics) {
+            return results.analytics;
+        }
+
+        if (!results || !results.results || !results.quiz) {
+            return null;
+        }
+
+        const totalStudents = Object.keys(results.studentResults).length;
+        const totalQuestions = results.quiz.questions.length;
+        const allResults = results.results;
+
+        const questionAnalytics = results.quiz.questions.map((question, questionIndex) => {
+            let correctCount = 0;
+            let partialCount = 0;
+            let incorrectCount = 0;
+            let totalResponses = 0;
+
+            allResults.forEach(result => {
+                if (result.answers && result.answers[questionIndex]) {
+                    totalResponses++;
+                    const answerResult = result.answers[questionIndex].result;
+                    if (answerResult === 'correct') correctCount++;
+                    else if (answerResult === 'partial') partialCount++;
+                    else incorrectCount++;
+                }
+            });
+
+            const correctPercentage = totalResponses > 0 ? Math.round((correctCount / totalResponses) * 100) : 0;
+
+            return {
+                questionIndex,
+                title: question.title,
+                type: question.type,
+                totalResponses,
+                correctCount,
+                partialCount,
+                incorrectCount,
+                correctPercentage,
+                difficulty: correctPercentage >= 80 ? 'easy' : correctPercentage >= 60 ? 'medium' : 'hard',
+                needsReview: correctPercentage < 60
+            };
+        });
+
+        const studentAnalytics = Object.entries(results.studentResults).map(([studentName, attempts]) => {
+            const bestAttempt = attempts.reduce((best, current) =>
+                current.score > best.score ? current : best
+            );
+
+            const totalAttempts = attempts.length;
+            const avgScore = attempts.reduce((sum, attempt) => sum + attempt.score, 0) / totalAttempts;
+            const avgAccuracy = Math.round((avgScore / totalQuestions) * 100);
+
+            let correctAnswers = 0;
+            let partialAnswers = 0;
+            let incorrectAnswers = 0;
+
+            if (bestAttempt.answers) {
+                bestAttempt.answers.forEach(answer => {
+                    if (answer.result === 'correct') correctAnswers++;
+                    else if (answer.result === 'partial') partialAnswers++;
+                    else incorrectAnswers++;
+                });
+            }
+
+            return {
+                id: studentName,
+                name: studentName,
+                character: bestAttempt.character,
+                totalPoints: bestAttempt.score,
+                correctAnswers,
+                partialAnswers,
+                incorrectAnswers,
+                totalAnswered: totalQuestions,
+                accuracy: avgAccuracy,
+                needsAttention: avgAccuracy < 60,
+                attempts: totalAttempts,
+                avgScore: Math.round(avgScore * 100) / 100
+            };
+        });
+
+        const classAnalytics = {
+            totalStudents,
+            totalQuestions,
+            averageScore: results.meta.averageScore,
+            averageAccuracy: studentAnalytics.length > 0 ?
+                Math.round((studentAnalytics.reduce((sum, student) => sum + student.accuracy, 0) / studentAnalytics.length) * 100) / 100 : 0,
+            questionsNeedingReview: questionAnalytics.filter(q => q.needsReview).length,
+            studentsNeedingAttention: studentAnalytics.filter(s => s.needsAttention).length,
+            participationRate: 100,
+            totalAttempts: results.meta.totalAttempts
+        };
+
+        return {
+            classAnalytics,
+            questionAnalytics,
+            studentAnalytics
+        };
     };
 
     const renderAnswerContent = (question, answer, result, correctAnswer) => {
@@ -205,6 +308,12 @@ export const PracticeResults = () => {
 
     const sortedResults = results.results.sort((a, b) => b.score - a.score);
     const topScore = sortedResults[0]?.score || 0;
+    const analyticsData = generatePracticeAnalytics();
+
+    const viewTabs = [
+        {id: 'analytics', title: 'Analytics', icon: faChartBar},
+        {id: 'students', title: 'Details', icon: faUser}
+    ];
 
     return (
         <div className="practice-results-page">
@@ -240,90 +349,79 @@ export const PracticeResults = () => {
                     </div>
                 </div>
 
-                <div className="results-section">
-                    <h3>Alle Ergebnisse ({results.meta.totalAttempts})</h3>
-                    <div className="results-table">
-                        <div className="table-header">
-                            <div className="col-rank">Rang</div>
-                            <div className="col-name">Name</div>
-                            <div className="col-score">Punktzahl</div>
-                            <div className="col-percentage">Prozent</div>
-                            <div className="col-timestamp">Zeitstempel</div>
-                        </div>
+                <div className="tabs-content-section">
+                    <div className="view-navigation">
+                        {viewTabs.map(tab => (
+                            <button
+                                key={tab.id}
+                                className={`view-tab ${activeView === tab.id ? 'active' : ''}`}
+                                onClick={() => setActiveView(tab.id)}
+                            >
+                                <FontAwesomeIcon icon={tab.icon}/>
+                                <span>{tab.title}</span>
+                            </button>
+                        ))}
+                    </div>
+                    <div className="tab-content-wrapper">
+                        {activeView === 'analytics' && analyticsData && (
+                            <div className="analytics-section">
+                                <AnalyticsTabs
+                                    analyticsData={analyticsData}
+                                    quizData={results.quiz}
+                                    isLiveQuiz={false}
+                                />
+                            </div>
+                        )}
 
-                        {sortedResults.map((result, index) => {
-                            const percentage = Math.round((result.score / result.total) * 100);
-                            return (
-                                <div key={index} className={`table-row ${index === 0 ? 'best-score' : ''}`}>
-                                    <div className="col-rank">
-                                        {index === 0 ? '🏆' : `#${index + 1}`}
-                                    </div>
-                                    <div className="col-name">
-                                        <span className="player-character">{getCharacterEmoji(result.character)}</span>
-                                        {result.name}
-                                    </div>
-                                    <div className="col-score">
-                                        {result.score}/{result.total}
-                                    </div>
-                                    <div className="col-percentage">
-                                        <div
-                                            className={`percentage ${percentage >= 80 ? 'excellent' : percentage >= 60 ? 'good' : 'needs-improvement'}`}>
-                                            {percentage}%
-                                        </div>
-                                    </div>
-                                    <div className="col-timestamp">
-                                        {formatDate(result.timestamp)}
-                                    </div>
+                        {activeView === 'students' && (
+                            <div className="students-section">
+                                <h3>Nach Studenten gruppiert</h3>
+                                <div className="students-grid">
+                                    {Object.entries(results.studentResults).map(([studentName, attempts]) => {
+                                        const bestAttempt = attempts.reduce((best, current) =>
+                                            current.score > best.score ? current : best
+                                        );
+                                        const totalAttempts = attempts.length;
+                                        const avgScore = attempts.reduce((sum, attempt) => sum + attempt.score, 0) / totalAttempts;
+
+                                        return (
+                                            <div
+                                                key={studentName}
+                                                className="student-card clickable"
+                                                onClick={() => showStudentDetails(studentName, attempts)}
+                                            >
+                                                <div className="student-header">
+                                                    <div className="student-name">
+                                                        <span
+                                                            className="player-character">{getCharacterEmoji(bestAttempt.character)}</span>
+                                                        {studentName}
+                                                    </div>
+                                                </div>
+                                                <div className="student-stats">
+                                                    <div className="stat">
+                                                        <span className="label">Versuche:</span>
+                                                        <span className="value">{totalAttempts}</span>
+                                                    </div>
+                                                    <div className="stat">
+                                                        <span className="label">Beste:</span>
+                                                        <span
+                                                            className="value">{bestAttempt.score}/{bestAttempt.total}</span>
+                                                    </div>
+                                                    <div className="stat">
+                                                        <span className="label">Durchschnitt:</span>
+                                                        <span className="value">{avgScore.toFixed(1)}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
-                            );
-                        })}
+                            </div>
+                        )}
                     </div>
                 </div>
 
-                <div className="results-section">
-                    <h3>Nach Studenten gruppiert</h3>
-                    <div className="students-grid">
-                        {Object.entries(results.studentResults).map(([studentName, attempts]) => {
-                            const bestAttempt = attempts.reduce((best, current) =>
-                                current.score > best.score ? current : best
-                            );
-                            const totalAttempts = attempts.length;
-                            const avgScore = attempts.reduce((sum, attempt) => sum + attempt.score, 0) / totalAttempts;
-
-                            return (
-                                <div
-                                    key={studentName}
-                                    className="student-card clickable"
-                                    onClick={() => showStudentDetails(studentName, attempts)}
-                                >
-                                    <div className="student-header">
-                                        <div className="student-name">
-                                            <span
-                                                className="player-character">{getCharacterEmoji(bestAttempt.character)}</span>
-                                            {studentName}
-                                        </div>
-                                    </div>
-                                    <div className="student-stats">
-                                        <div className="stat">
-                                            <span className="label">Versuche:</span>
-                                            <span className="value">{totalAttempts}</span>
-                                        </div>
-                                        <div className="stat">
-                                            <span className="label">Beste:</span>
-                                            <span className="value">{bestAttempt.score}/{bestAttempt.total}</span>
-                                        </div>
-                                        <div className="stat">
-                                            <span className="label">Durchschnitt:</span>
-                                            <span className="value">{avgScore.toFixed(1)}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-
-                <div className="page-actions">
+                <div className="bottom-actions-section">
                     <Button text="Zurück zur Startseite" onClick={() => navigate('/')}/>
                 </div>
             </motion.div>

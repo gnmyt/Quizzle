@@ -1,0 +1,168 @@
+@import "@/common/styles/colors"
+
+.class-overview
+  .stats-grid
+    display: grid
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr))
+    gap: 1.5rem
+    margin-bottom: 2rem
+
+  .difficulty-section
+    background: $background
+    border: 1px solid $border
+    padding: 1.5rem
+    border-radius: 1rem
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05)
+
+    h3
+      font-size: 1.2rem
+      margin-bottom: 1.5rem
+      color: $text
+      font-weight: 700
+      text-align: center
+
+    .difficulty-overview
+      .difficulty-stats
+        display: grid
+        grid-template-columns: repeat(3, 1fr)
+        gap: 1rem
+        margin-bottom: 1.5rem
+
+        .difficulty-item
+          display: flex
+          align-items: center
+          gap: 1rem
+          padding: 1rem
+          border-radius: 0.75rem
+          transition: all 0.2s ease
+          border: 1px solid $border
+
+          &:hover
+            transform: translateY(-2px)
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1)
+
+          &.easy
+            background: color-mix(in srgb, $green 8%, white 92%)
+            border-color: color-mix(in srgb, $green 30%, $border 70%)
+
+            .difficulty-icon
+              background: color-mix(in srgb, $green 100%, white 20%)
+              color: white
+
+          &.medium
+            background: color-mix(in srgb, $orange 8%, white 92%)
+            border-color: color-mix(in srgb, $orange 30%, $border 70%)
+
+            .difficulty-icon
+              background: color-mix(in srgb, $orange 100%, white 20%)
+              color: white
+
+          &.hard
+            background: color-mix(in srgb, $red 8%, white 92%)
+            border-color: color-mix(in srgb, $red 30%, $border 70%)
+
+            .difficulty-icon
+              background: color-mix(in srgb, $red 100%, white 20%)
+              color: white
+
+        .difficulty-icon
+          width: 2.5rem
+          height: 2.5rem
+          border-radius: 0.75rem
+          display: flex
+          align-items: center
+          justify-content: center
+          font-size: 1.1rem
+          flex-shrink: 0
+
+        .difficulty-info
+          flex: 1
+          display: flex
+          flex-direction: column
+          gap: 0.25rem
+
+          .difficulty-label
+            font-weight: 700
+            color: $text
+            font-size: 0.95rem
+
+          .difficulty-count
+            font-size: 0.8rem
+            color: $gray
+            font-weight: 500
+
+      .difficulty-summary
+        padding: 1rem
+        border-radius: 0.75rem
+        text-align: center
+        border: 1px solid $border
+
+        .summary-text
+          display: flex
+          align-items: center
+          justify-content: center
+          gap: 0.75rem
+          font-weight: 600
+
+          .needs-review
+            color: $red
+            display: flex
+            align-items: center
+            gap: 0.5rem
+
+            svg
+              font-size: 1.1rem
+
+          .all-good
+            color: $green
+            display: flex
+            align-items: center
+            gap: 0.5rem
+
+            svg
+              font-size: 1.1rem
+
+        &:has(.needs-review)
+          background: color-mix(in srgb, $red 5%, white 95%)
+          border-color: color-mix(in srgb, $red 20%, $border 80%)
+
+        &:has(.all-good)
+          background: color-mix(in srgb, $green 5%, white 95%)
+          border-color: color-mix(in srgb, $green 20%, $border 80%)
+
+  .live-quiz-info
+    text-align: center
+    margin-top: 1.5rem
+    padding: 1rem
+    background: $hover-bg
+    border-radius: 0.5rem
+    
+    strong
+      color: $primary
+      font-size: 1.1rem
+
+@media (max-width: 768px)
+  .class-overview
+    .stats-grid
+      grid-template-columns: repeat(2, 1fr)
+      gap: 1rem
+
+    .difficulty-section
+      .difficulty-overview
+        .difficulty-stats
+          grid-template-columns: 1fr
+          gap: 0.75rem
+
+        .difficulty-item
+          padding: 0.75rem
+
+        .difficulty-icon
+          width: 2rem
+          height: 2rem
+          font-size: 1rem
+
+@media (max-width: 480px)
+  .class-overview
+    .stats-grid
+      grid-template-columns: 1fr
+      gap: 0.75rem

@@ -333,6 +333,100 @@ app.post('/:code/results', passwordLimiter, async (req, res) => {
         const decompressed = pako.inflate(quizData, {to: 'string'});
         const quiz = JSON.parse(decompressed);
 
+        const generatePracticeAnalytics = () => {
+            const totalStudents = Object.keys(studentResults).length;
+            const totalQuestions = quiz.questions.length;
+
+            const questionAnalytics = quiz.questions.map((question, questionIndex) => {
+                let correctCount = 0;
+                let partialCount = 0;
+                let incorrectCount = 0;
+                let totalResponses = 0;
+
+                results.forEach(result => {
+                    if (result.answers && result.answers[questionIndex]) {
+                        totalResponses++;
+                        const answerResult = result.answers[questionIndex].result;
+                        if (answerResult === 'correct') correctCount++;
+                        else if (answerResult === 'partial') partialCount++;
+                        else incorrectCount++;
+                    }
+                });
+
+                const correctPercentage = totalResponses > 0 ? Math.round((correctCount / totalResponses) * 100) : 0;
+
+                return {
+                    questionIndex,
+                    title: question.title,
+                    type: question.type,
+                    totalResponses,
+                    correctCount,
+                    partialCount,
+                    incorrectCount,
+                    correctPercentage,
+                    difficulty: correctPercentage >= 80 ? 'easy' : correctPercentage >= 60 ? 'medium' : 'hard',
+                    needsReview: correctPercentage < 60
+                };
+            });
+
+            const studentAnalytics = Object.entries(studentResults).map(([studentName, attempts]) => {
+                const bestAttempt = attempts.reduce((best, current) => 
+                    current.score > best.score ? current : best
+                );
+                
+                const totalAttempts = attempts.length;
+                const avgScore = attempts.reduce((sum, attempt) => sum + attempt.score, 0) / totalAttempts;
+                const avgAccuracy = Math.round((avgScore / totalQuestions) * 100);
+
+                let correctAnswers = 0;
+                let partialAnswers = 0;
+                let incorrectAnswers = 0;
+
+                if (bestAttempt.answers) {
+                    bestAttempt.answers.forEach(answer => {
+                        if (answer.result === 'correct') correctAnswers++;
+                        else if (answer.result === 'partial') partialAnswers++;
+                        else incorrectAnswers++;
+                    });
+                }
+
+                return {
+                    id: studentName,
+                    name: studentName,
+                    character: bestAttempt.character,
+                    totalPoints: bestAttempt.score,
+                    correctAnswers,
+                    partialAnswers,
+                    incorrectAnswers,
+                    totalAnswered: totalQuestions,
+                    accuracy: avgAccuracy,
+                    needsAttention: avgAccuracy < 60,
+                    attempts: totalAttempts,
+                    avgScore: Math.round(avgScore * 100) / 100
+                };
+            });
+
+            const classAnalytics = {
+                totalStudents,
+                totalQuestions,
+                averageScore: Math.round(averageScore * 100) / 100,
+                averageAccuracy: studentAnalytics.length > 0 ? 
+                    Math.round((studentAnalytics.reduce((sum, student) => sum + student.accuracy, 0) / studentAnalytics.length) * 100) / 100 : 0,
+                questionsNeedingReview: questionAnalytics.filter(q => q.needsReview).length,
+                studentsNeedingAttention: studentAnalytics.filter(s => s.needsAttention).length,
+                participationRate: 100,
+                totalAttempts: totalAttempts
+            };
+
+            return {
+                classAnalytics,
+                questionAnalytics,
+                studentAnalytics
+            };
+        };
+
+        const analytics = generatePracticeAnalytics();
+
         res.json({
             meta: {
                 created: meta.created,
@@ -344,7 +438,8 @@ app.post('/:code/results', passwordLimiter, async (req, res) => {
             },
             results: results.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)),
             studentResults,
-            quiz: quiz
+            quiz: quiz,
+            analytics: analytics
         });
     } catch (error) {
         console.error('Error viewing practice quiz results:', error);

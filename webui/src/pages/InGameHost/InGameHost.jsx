@@ -58,8 +58,15 @@ export const InGameHost = () => {
             });
         } catch (e) {
             socket.emit("END_GAME", null, (data) => {
-                if (data && data.players) {
-                    setScoreboard({scoreboard: data.players});
+                if (data) {
+                    if (data.analytics) {
+                        setScoreboard({
+                            scoreboard: data.players,
+                            analytics: data.analytics
+                        });
+                    } else if (data.players) {
+                        setScoreboard({scoreboard: data.players});
+                    }
                 }
                 navigate("/host/ending");
             });

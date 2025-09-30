@@ -1,0 +1,51 @@
+@import "@/common/styles/colors"
+
+.analytics-tabs
+  width: 100%
+  max-width: 1200px
+  margin: 0 auto
+
+.tab-navigation
+  display: flex
+  background: $background
+  border: 1px solid $border
+  border-radius: 1rem 1rem 0 0
+  padding: 0.5rem
+  gap: 0.25rem
+
+.tab-button
+  flex: 1
+  display: flex
+  align-items: center
+  justify-content: center
+  gap: 0.5rem
+  padding: 0.8rem 1.5rem
+  border: none
+  background: transparent
+  border-radius: 0.8rem
+  font-weight: 700
+  color: $gray
+  cursor: pointer
+  transition: all 0.2s ease
+  font-size: 1rem
+
+  &:hover
+    background: rgba($primary, 0.1)
+    color: $primary
+    transform: scale(1.02)
+
+  &.active
+    background: linear-gradient(135deg, color-mix(in srgb, $primary 100%, white 20%), color-mix(in srgb, $primary 100%, black 10%))
+    color: $background
+    box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.2), 0 2px 4px rgba(0, 0, 0, 0.1)
+
+  svg
+    font-size: 1.1rem
+
+.tab-content
+  background: $background
+  border: 1px solid $border
+  border-top: none
+  border-radius: 0 0 1rem 1rem
+  padding: 2rem
+  min-height: 400px

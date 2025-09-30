@@ -1,0 +1,128 @@
+@import "@/common/styles/colors"
+
+.recommendations-tab
+  .recommendations-list
+    display: flex
+    flex-direction: column
+    gap: 1.5rem
+
+.recommendation-card
+  background: $background
+  border: 1px solid $border
+  border-radius: 1rem
+  padding: 1.5rem
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05)
+  transition: all 0.2s ease
+
+  &:hover
+    transform: translateY(-2px)
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1)
+
+  &.urgent
+    border-left: 4px solid $red
+    background: color-mix(in srgb, $red 5%, $background 95%)
+
+  &.warning
+    border-left: 4px solid $orange
+    background: color-mix(in srgb, $orange 5%, $background 95%)
+
+  &.success
+    border-left: 4px solid $green
+    background: color-mix(in srgb, $green 5%, $background 95%)
+
+.recommendation-header
+  display: flex
+  align-items: center
+  gap: 0.75rem
+  margin-bottom: 1rem
+
+  h3
+    color: $text
+    margin: 0
+    font-weight: 700
+    font-size: 1.1rem
+
+.recommendation-icon
+  font-size: 1.3rem
+  padding: 0.5rem
+  border-radius: 0.5rem
+  background: rgba(255, 255, 255, 0.5)
+
+  &.urgent
+    color: $red
+    background: color-mix(in srgb, $red 15%, white 85%)
+
+  &.warning
+    color: $orange
+    background: color-mix(in srgb, $orange 15%, white 85%)
+
+  &.success
+    color: $green
+    background: color-mix(in srgb, $green 15%, white 85%)
+
+.recommendation-content
+  .recommendation-action
+    color: $text
+    font-weight: 600
+    margin-bottom: 1rem
+    padding: 0.75rem
+    background: $hover-bg
+    border-radius: 0.5rem
+    border-left: 3px solid $primary
+
+.recommendation-details
+  margin-top: 1rem
+  padding: 1rem
+  background: $hover-bg
+  border-radius: 0.75rem
+
+  h4
+    color: $text
+    font-weight: 600
+    margin: 0 0 0.75rem 0
+    font-size: 0.95rem
+
+  ul
+    list-style: none
+    padding: 0
+    margin: 0
+    display: flex
+    flex-direction: column
+    gap: 0.5rem
+
+    li
+      color: $gray
+      font-size: 0.9rem
+      padding: 0.5rem 0.75rem
+      background: $background
+      border-radius: 0.4rem
+      border-left: 2px solid $border
+      transition: all 0.2s ease
+
+      &:hover
+        border-left-color: $primary
+        background: color-mix(in srgb, $primary 5%, $background 95%)
+
+.no-recommendations
+  text-align: center
+  padding: 3rem 2rem
+  background: $background
+  border: 1px solid $border
+  border-radius: 1rem
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05)
+
+  svg
+    font-size: 3rem
+    color: $green
+    margin-bottom: 1rem
+
+  h3
+    color: $text
+    font-weight: 700
+    margin: 0 0 0.5rem 0
+    font-size: 1.2rem
+
+  p
+    color: $gray
+    margin: 0
+    font-size: 0.95rem

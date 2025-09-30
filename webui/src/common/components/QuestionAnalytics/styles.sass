@@ -1,0 +1,207 @@
+@import "@/common/styles/colors"
+
+.question-analytics
+  .questions-list
+    display: flex
+    flex-direction: column
+    gap: 1.5rem
+
+.question-card
+  background: $background
+  border-radius: 1rem
+  border: 1px solid $border
+  overflow: hidden
+  transition: all 0.3s ease
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05)
+
+  &:hover
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1)
+    transform: translateY(-1px)
+
+  &.easy
+    border-left: 4px solid $green
+
+  &.medium
+    border-left: 4px solid $orange
+
+  &.hard
+    border-left: 4px solid $red
+
+.question-header
+  display: flex
+  justify-content: space-between
+  align-items: center
+  padding: 1.5rem
+  background: $hover-bg
+  border-bottom: 1px solid $border
+
+.question-title
+  display: flex
+  align-items: center
+  gap: 0.75rem
+  font-weight: 700
+  color: $text
+
+  svg
+    color: $primary
+    font-size: 1.1rem
+
+.question-number
+  color: $text
+  font-weight: 600
+
+.review-icon
+  color: $red
+  margin-left: 0.5rem
+  padding: 0.25rem
+  background: color-mix(in srgb, $red 15%, white 85%)
+  border-radius: 0.3rem
+
+.question-stats
+  display: flex
+  align-items: center
+  gap: 1rem
+
+.difficulty-badge
+  padding: 0.4rem 0.8rem
+  border-radius: 0.5rem
+  font-size: 0.75rem
+  font-weight: 700
+
+  &.easy
+    background: color-mix(in srgb, $green 100%, white 70%)
+    color: color-mix(in srgb, $green 100%, black 30%)
+
+  &.medium
+    background: color-mix(in srgb, $orange 100%, white 70%)
+    color: color-mix(in srgb, $orange 100%, black 30%)
+
+  &.hard
+    background: color-mix(in srgb, $red 100%, white 70%)
+    color: color-mix(in srgb, $red 100%, black 30%)
+
+.accuracy-badge
+  padding: 0.4rem 0.8rem
+  border-radius: 0.5rem
+  font-size: 0.8rem
+  font-weight: 700
+  background: $primary
+  color: $background
+
+.question-content
+  padding: 1.5rem
+
+  h4
+    font-weight: 600
+    color: $text
+    margin: 0 0 1rem 0
+    font-size: 1rem
+    line-height: 1.4
+
+.response-summary
+  .response-bar
+    height: 12px
+    background: $border
+    border-radius: 0.6rem
+    overflow: hidden
+    margin-bottom: 1rem
+    display: flex
+
+  .response-segment
+    height: 100%
+    transition: all 0.3s ease
+
+    &.correct
+      background: linear-gradient(135deg, $green, color-mix(in srgb, $green 80%, white 20%))
+
+    &.partial
+      background: linear-gradient(135deg, $orange, color-mix(in srgb, $orange 80%, white 20%))
+
+    &.incorrect
+      background: linear-gradient(135deg, $red, color-mix(in srgb, $red 80%, white 20%))
+
+.response-counts
+  display: flex
+  gap: 1.5rem
+  align-items: center
+
+  .correct-count, .incorrect-count
+    display: flex
+    align-items: center
+    gap: 0.5rem
+    font-weight: 600
+    padding: 0.5rem 0.75rem
+    border-radius: 0.5rem
+    font-size: 0.9rem
+
+  .correct-count
+    color: $green
+    background: color-mix(in srgb, $green 10%, white 90%)
+
+    svg
+      color: $green
+      font-size: 1rem
+      margin-right: 0.25rem
+
+  .incorrect-count
+    color: $red
+    background: color-mix(in srgb, $red 10%, white 90%)
+
+    svg
+      color: $red
+      font-size: 1rem
+      margin-right: 0.25rem
+
+.review-section
+  margin-top: 2rem
+  padding: 1.5rem
+  background: color-mix(in srgb, $red 5%, $background 95%)
+  border: 1px solid color-mix(in srgb, $red 20%, $border 80%)
+  border-radius: 1rem
+
+  h3
+    color: $text
+    margin: 0 0 1rem 0
+    display: flex
+    align-items: center
+    gap: 0.75rem
+    font-weight: 700
+    font-size: 1.1rem
+
+    svg
+      color: $red
+      font-size: 1.2rem
+      padding: 0.5rem
+      background: color-mix(in srgb, $red 15%, white 85%)
+      border-radius: 0.5rem
+
+.review-list
+  display: flex
+  flex-direction: column
+  gap: 0.75rem
+
+.review-item
+  display: flex
+  justify-content: space-between
+  align-items: center
+  padding: 1rem 1.25rem
+  background: $background
+  border-radius: 0.75rem
+  border: 1px solid $border
+  transition: all 0.2s ease
+
+  &:hover
+    background: $hover-bg
+    transform: translateX(4px)
+
+  .question-info
+    font-weight: 600
+    color: $text
+
+  .question-stats
+    font-weight: 700
+    color: $red
+    padding: 0.25rem 0.75rem
+    background: color-mix(in srgb, $red 15%, white 85%)
+    border-radius: 0.4rem
+    font-size: 0.85rem

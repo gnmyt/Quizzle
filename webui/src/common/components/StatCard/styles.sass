@@ -1,0 +1,71 @@
+@import "@/common/styles/colors"
+
+.stat-card
+  background: $background
+  padding: 1.5rem
+  border-radius: 1rem
+  border: 1px solid $border
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05)
+  display: flex
+  align-items: center
+  gap: 1rem
+  transition: all 0.2s ease
+
+  &:hover
+    transform: translateY(-2px)
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1)
+
+  &.blue
+    border-left: 4px solid $blue
+
+  &.green
+    border-left: 4px solid $green
+
+  &.orange
+    border-left: 4px solid $orange
+
+  &.red
+    border-left: 4px solid $red
+
+.stat-icon
+  width: 3rem
+  height: 3rem
+  border-radius: 1rem
+  display: flex
+  align-items: center
+  justify-content: center
+  font-size: 1.2rem
+  color: $background
+  font-weight: 700
+
+  .stat-card.blue &
+    background: linear-gradient(135deg, color-mix(in srgb, $blue 100%, white 20%), color-mix(in srgb, $blue 100%, black 10%))
+
+  .stat-card.green &
+    background: linear-gradient(135deg, color-mix(in srgb, $green 100%, white 20%), color-mix(in srgb, $green 100%, black 10%))
+
+  .stat-card.orange &
+    background: linear-gradient(135deg, color-mix(in srgb, $orange 100%, white 20%), color-mix(in srgb, $orange 100%, black 10%))
+
+  .stat-card.red &
+    background: linear-gradient(135deg, color-mix(in srgb, $red 100%, white 20%), color-mix(in srgb, $red 100%, black 10%))
+
+.stat-content
+  flex: 1
+
+.stat-value
+  font-size: 2rem
+  font-weight: 700
+  color: $text
+  line-height: 1
+
+.stat-title
+  font-size: 0.9rem
+  color: $gray
+  font-weight: 500
+  margin-top: 0.25rem
+
+.stat-subtitle
+  font-size: 0.8rem
+  color: $gray
+  margin-top: 0.25rem

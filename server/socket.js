@@ -69,6 +69,164 @@ const broadcastAnswerResults = (io, roomCode, answerData, room) => {
     }
 };
 
+const generateAnalyticsData = (room) => {
+    const players = Object.keys(room.players);
+    const totalQuestions = room.playerAnswers.length;
+
+    const questionAnalytics = room.playerAnswers.map((questionAnswers, questionIndex) => {
+        const totalResponses = Object.keys(questionAnswers).length;
+        const question = room.questionHistory[questionIndex];
+        
+        if (!question) {
+            return {
+                questionIndex,
+                totalResponses: 0,
+                correctCount: 0,
+                partialCount: 0,
+                incorrectCount: 0,
+                correctPercentage: 0,
+                difficulty: 'unknown',
+                title: 'Unknown Question'
+            };
+        }
+        
+        let correctCount = 0;
+        let partialCount = 0;
+        let incorrectCount = 0;
+
+        Object.values(questionAnswers).forEach(playerAnswer => {
+            if (question.type === 'text') {
+                const isCorrect = question.answers.some(acceptedAnswer => 
+                    acceptedAnswer.content.toLowerCase().trim() === playerAnswer.toLowerCase().trim()
+                );
+                if (isCorrect) correctCount++;
+                else incorrectCount++;
+            } else {
+                let correctSelected = 0;
+                let incorrectSelected = 0;
+                
+                const playerAnswers = Array.isArray(playerAnswer) ? playerAnswer : [playerAnswer];
+                
+                playerAnswers.forEach(answerIndex => {
+                    if (question.answers[answerIndex]?.is_correct) {
+                        correctSelected++;
+                    } else {
+                        incorrectSelected++;
+                    }
+                });
+                
+                const totalCorrectAnswers = question.answers.filter(a => a.is_correct).length;
+                
+                if (correctSelected === totalCorrectAnswers && incorrectSelected === 0) {
+                    correctCount++;
+                } else if (correctSelected > 0) {
+                    partialCount++;
+                } else {
+                    incorrectCount++;
+                }
+            }
+        });
+        
+        const correctPercentage = totalResponses > 0 ? Math.round((correctCount / totalResponses) * 100) : 0;
+        
+        return {
+            questionIndex,
+            title: question.title,
+            type: question.type,
+            totalResponses,
+            correctCount,
+            partialCount,
+            incorrectCount,
+            correctPercentage,
+            difficulty: totalResponses > 0 ? 
+                (correctPercentage >= 80) ? 'easy' :
+                (correctPercentage >= 60) ? 'medium' : 'hard' : 'unknown',
+            needsReview: correctPercentage < 60
+        };
+    });
+
+    const studentAnalytics = players.map(playerId => {
+        const player = room.players[playerId];
+        const studentAnswers = room.playerAnswers.map(questionAnswers => questionAnswers[playerId]);
+        
+        let correctAnswers = 0;
+        let partialAnswers = 0;
+        let incorrectAnswers = 0;
+        
+        studentAnswers.forEach((answer, questionIndex) => {
+            const question = room.questionHistory[questionIndex];
+            
+            if (answer !== undefined && question) {
+                if (question.type === 'text') {
+                    const isCorrect = question.answers.some(acceptedAnswer => 
+                        acceptedAnswer.content.toLowerCase().trim() === answer.toLowerCase().trim()
+                    );
+                    if (isCorrect) correctAnswers++;
+                    else incorrectAnswers++;
+                } else {
+                    let correctSelected = 0;
+                    let incorrectSelected = 0;
+                    
+                    const playerAnswers = Array.isArray(answer) ? answer : [answer];
+                    
+                    playerAnswers.forEach(answerIndex => {
+                        if (question.answers[answerIndex]?.is_correct) {
+                            correctSelected++;
+                        } else {
+                            incorrectSelected++;
+                        }
+                    });
+                    
+                    const totalCorrectAnswers = question.answers.filter(a => a.is_correct).length;
+                    
+                    if (correctSelected === totalCorrectAnswers && incorrectSelected === 0) {
+                        correctAnswers++;
+                    } else if (correctSelected > 0) {
+                        partialAnswers++;
+                    } else {
+                        incorrectAnswers++;
+                    }
+                }
+            }
+        });
+        
+        const totalAnswered = studentAnswers.filter(answer => answer !== undefined).length;
+        
+        return {
+            id: playerId,
+            name: player.name,
+            character: player.character,
+            totalPoints: player.points,
+            correctAnswers,
+            partialAnswers,
+            incorrectAnswers,
+            totalAnswered,
+            accuracy: totalAnswered > 0 ? Math.round((correctAnswers / totalAnswered) * 100) : 0,
+            needsAttention: correctAnswers < (totalAnswered * 0.6)
+        };
+    });
+
+    const totalAnsweredQuestions = studentAnalytics.reduce((sum, student) => sum + student.totalAnswered, 0);
+    const classAnalytics = {
+        totalStudents: players.length,
+        totalQuestions,
+        averageScore: players.length > 0 ? 
+            Math.round((Object.values(room.players).reduce((sum, player) => sum + player.points, 0) / players.length) * 100) / 100 : 0,
+        averageAccuracy: studentAnalytics.length > 0 ?
+            Math.round((studentAnalytics.reduce((sum, student) => sum + student.accuracy, 0) / studentAnalytics.length) * 100) / 100 : 0,
+        questionsNeedingReview: questionAnalytics.filter(q => q.needsReview).length,
+        studentsNeedingAttention: studentAnalytics.filter(s => s.needsAttention).length,
+        participationRate: players.length > 0 && totalQuestions > 0 ? 
+            Math.round((totalAnsweredQuestions / (players.length * totalQuestions)) * 100) : 0
+    };
+    
+    return {
+        classAnalytics,
+        questionAnalytics,
+        studentAnalytics
+    };
+};
+
 const endGameForAllPlayers = (io, room, roomCode) => {
     for (const player of Object.keys(room.players)) {
         io.to(player).emit("GAME_ENDED", room.playerAnswers.filter(answer => answer[player]));
@@ -93,7 +251,7 @@ module.exports = (io, socket) => {
         socket.join(roomCode.toString());
         rooms[roomCode] = {
             host: socket.id, code: roomCode, state: 'waiting', players: {}, playerAnswers: [],
-            currentQuestion: {}, startTime: 0
+            currentQuestion: {}, startTime: 0, questionHistory: []
         };
         currentRoomCode = roomCode;
 
@@ -172,6 +330,12 @@ module.exports = (io, socket) => {
             }),
             isCompleted: false
         };
+
+        room.questionHistory.push({
+            title: data.title,
+            type: data.type,
+            answers: data.answers
+        });
 
         room.playerAnswers.push({});
 
@@ -291,7 +455,13 @@ module.exports = (io, socket) => {
         }
 
         const room = rooms[currentRoomCode];
-        callback({playerAnswers: room.playerAnswers, players: room.players});
+        const analytics = generateAnalyticsData(room);
+        
+        callback({
+            playerAnswers: room.playerAnswers, 
+            players: room.players,
+            analytics: analytics
+        });
         endGameForAllPlayers(io, room, currentRoomCode);
     });
 

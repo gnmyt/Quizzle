@@ -8,6 +8,7 @@ import {faCheck, faCheckCircle, faMinus, faPaperPlane, faX} from "@fortawesome/f
 import {TrueFalseClient} from "./components/TrueFalseClient";
 import {TextInputClient} from "./components/TextInputClient";
 import {jsonRequest, postRequest} from "@/common/utils/RequestUtil.js";
+import {generateUuid} from "@/common/utils/UuidUtil.js";
 import toast from "react-hot-toast";
 
 export const InGameClient = () => {
@@ -21,7 +22,7 @@ export const InGameClient = () => {
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [showingPracticeResult, setShowingPracticeResult] = useState(false);
     const [practiceQuestionResult, setPracticeQuestionResult] = useState(null);
-    const [attemptId] = useState(() => crypto.randomUUID());
+    const [attemptId] = useState(() => generateUuid());
 
     const [points, setPoints] = useState(0);
     const [selection, setSelection] = useState([]);

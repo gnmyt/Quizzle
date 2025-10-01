@@ -4,6 +4,7 @@ import {BrandingContext} from "@/common/contexts/Branding";
 import {AnimatePresence, motion, Reorder} from "framer-motion";
 import "./styles.sass";
 import Input from "@/common/components/Input";
+import {generateUuid} from "@/common/utils/UuidUtil.js";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import {
     faCloudUpload,
@@ -33,13 +34,6 @@ export const QuizCreator = () => {
     const [isAuthenticated, setIsAuthenticated] = useState(() => {
         return sessionStorage.getItem('quiz_password') !== null;
     });
-
-    const generateUuid = () => {
-        return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
-            const r = Math.random() * 16 | 0, v = c === "x" ? r : (r & 0x3 | 0x8);
-            return v.toString(16);
-        });
-    }
 
     const [errorToastId, setErrorToastId] = useState(null);
     const [questions, setQuestions] = useState(() => {

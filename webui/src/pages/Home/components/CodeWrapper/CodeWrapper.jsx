@@ -37,6 +37,10 @@ export const CodeWrapper = ({onChange, resetCode, errorClass}) => {
         } else if (e.key === "ArrowRight" && currentIndex < inputs.length - 1) {
             e.preventDefault();
             inputs[currentIndex + 1].focus();
+        } else if (e.key.match(/^[a-z0-9]$/i)) {
+            if (e.target.value !== "") {
+                e.target.value = "";
+            }
         }
     };
 
@@ -64,9 +68,10 @@ export const CodeWrapper = ({onChange, resetCode, errorClass}) => {
     const handleInput = (e) => {
         const inputs = Array.from(codeWrapper.current.childNodes);
         const currentIndex = inputs.indexOf(e.target);
+        const inputValue = e.target.value;
 
-        if (e.target.value.length > 1) {
-            const validChars = e.target.value.replace(/[^a-z0-9]/gi, '').slice(0, 4).toUpperCase();
+        if (inputValue.length > 1) {
+            const validChars = inputValue.replace(/[^a-z0-9]/gi, '').toUpperCase();
             e.target.value = validChars[0] || "";
 
             for (let i = 1; i < validChars.length && currentIndex + i < 4; i++) {
@@ -80,8 +85,8 @@ export const CodeWrapper = ({onChange, resetCode, errorClass}) => {
             if (code.length === 4) {
                 onChange(code);
             }
-        } else if (e.target.value.length === 1) {
-            const char = e.target.value.replace(/[^a-z0-9]/gi, '').toUpperCase();
+        } else if (inputValue.length === 1) {
+            const char = inputValue.replace(/[^a-z0-9]/gi, '').toUpperCase();
             e.target.value = char;
 
             if (currentIndex < 3 && char) {

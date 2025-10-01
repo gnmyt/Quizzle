@@ -320,6 +320,21 @@ jobs:
         with:
           path: ./artifacts
 
+      - name: Prepare release files
+        run: |
+          mkdir -p ./release-files
+          
+          cp ./artifacts/migrator-windows-x64.exe/migrator.exe ./release-files/migrator-windows-x64.exe
+          cp ./artifacts/migrator-linux-x64/migrator ./release-files/migrator-linux-x64
+          cp ./artifacts/migrator-linux-arm64/migrator ./release-files/migrator-linux-arm64
+          
+          cp ./artifacts/Quizzle-windows-x64.exe/Quizzle.exe ./release-files/Quizzle-windows-x64.exe
+          cp ./artifacts/Quizzle-linux-x64/Quizzle ./release-files/Quizzle-linux-x64
+          
+          cp ./artifacts/Quizzle-windows-installer/Quizzle-${{ needs.prepare.outputs.version_number }}-installer.msi ./release-files/
+          
+          ls -la ./release-files/
+
       - name: Generate changelog
         id: changelog
         run: |
@@ -373,11 +388,11 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            ./artifacts/migrator-windows-x64.exe/migrator.exe
-            ./artifacts/migrator-linux-x64/migrator
-            ./artifacts/migrator-linux-arm64/migrator
-            ./artifacts/Quizzle-windows-x64.exe/Quizzle.exe
-            ./artifacts/Quizzle-linux-x64/Quizzle
-            ./artifacts/Quizzle-windows-installer/Quizzle-${{ needs.prepare.outputs.version_number }}-installer.msi
+            ./release-files/migrator-windows-x64.exe
+            ./release-files/migrator-linux-x64
+            ./release-files/migrator-linux-arm64
+            ./release-files/Quizzle-windows-x64.exe
+            ./release-files/Quizzle-linux-x64
+            ./release-files/Quizzle-${{ needs.prepare.outputs.version_number }}-installer.msi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

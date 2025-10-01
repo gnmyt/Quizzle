@@ -1,18 +1,21 @@
-FROM node:18-alpine AS build
-RUN apk add g++ make cmake python3
+FROM oven/bun:1-alpine AS build
 
 WORKDIR /quizzle
 
+COPY ./package.json ./package.json
+COPY ./webui/package.json ./webui/package.json
+
+RUN bun install --frozen-lockfile
+RUN cd webui && bun install --frozen-lockfile
+
 COPY ./webui ./webui
 COPY ./server ./server
-COPY ./package.json ./package.json
+COPY ./content ./content
 
-RUN yarn install
-RUN cd webui && yarn install --force
-RUN cd webui && yarn run build
-RUN mv /quizzle/webui/dist /quizzle
+RUN cd webui && bun run build
+RUN mv /quizzle/webui/dist /quizzle/dist
 
-FROM node:18-alpine
+FROM oven/bun:1-alpine
 
 RUN apk add --no-cache tzdata
 
@@ -23,11 +26,12 @@ WORKDIR /quizzle
 
 COPY --from=build /quizzle/dist /quizzle/dist
 COPY --from=build /quizzle/server /quizzle/server
-COPY --from=build /quizzle/node_modules /quizzle/node_modules
 COPY --from=build /quizzle/package.json /quizzle/package.json
+
+RUN bun install --production --frozen-lockfile
 
 VOLUME ["/quizzle/data"]
 
 EXPOSE 6412
 
-CMD ["node", "server"]
+CMD ["bun", "run", "server/index.js"]

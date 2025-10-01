@@ -29,4 +29,4 @@ jobs:
           file: ./Dockerfile
           platforms: linux/amd64
           push: true
-          tags: germannewsmaker/quizzle:main
+          tags: germannewsmaker/quizzle:development

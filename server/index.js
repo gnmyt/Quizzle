@@ -24,11 +24,11 @@ app.use("/api/practice", require("./routes/practice"));
 io.on('connection', (socket) => require("./socket")(io, socket));
 
 if (process.env.NODE_ENV === 'production') {
-    app.use(express.static(path.join(__dirname, '../dist')));
+    app.use(express.static(path.join(process.cwd(), 'dist')));
 
-    app.get('*', (req, res) => res.sendFile(path.join(__dirname, '../dist', 'index.html')));
+    app.get('*', (req, res) => res.sendFile(path.join(process.cwd(), 'dist', 'index.html')));
 } else {
-    app.get("*", (req, res) => res.status(500).sendFile(path.join(__dirname, 'templates', 'env.html')));
+    app.get("*", (req, res) => res.status(500).sendFile(path.join(process.cwd(), 'server', 'templates', 'env.html')));
 }
 
 app.use((err, req, res, next) => {

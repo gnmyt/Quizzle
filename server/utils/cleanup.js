@@ -1,7 +1,7 @@
 const fs = require("fs").promises;
 const path = require("path");
 
-const practiceQuizzesDir = path.join(__dirname, '../../data/practice-quizzes');
+const practiceQuizzesDir = path.join(process.cwd(), 'data', 'practice-quizzes');
 
 const isAlphabeticCode = (code) => {
     return /^[A-Z]{4}$/i.test(code);

@@ -7,7 +7,7 @@ const fs = require("fs").promises;
 const {generatePracticeCode, isAlphabeticCode} = require("../utils/random");
 const app = require('express').Router();
 
-const practiceQuizzesDir = path.join(__dirname, '../../data/practice-quizzes');
+const practiceQuizzesDir = path.join(process.cwd(), 'data', 'practice-quizzes');
 
 const ensurePracticeQuizzesDir = async () => {
     try {

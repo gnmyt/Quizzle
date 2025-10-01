@@ -15,7 +15,7 @@ import toast from "react-hot-toast";
 import {jsonRequest} from "@/common/utils/RequestUtil.js";
 
 export const Home = () => {
-    const {titleImg, imprint, privacy} = useContext(BrandingContext);
+    const {titleImg, imprint, privacy, version} = useContext(BrandingContext);
     const {setRoomCode, setUsername} = useContext(QuizContext);
     const {setCirclePosition} = useOutletContext();
     const [code, setCode] = useState(window.location.search.includes("code=") ? window.location.search.split("=")[1] : null);
@@ -211,6 +211,7 @@ export const Home = () => {
             <motion.div className="legal-area" initial={{opacity: 0, y: 50}} animate={{opacity: 1, y: 0}}>
                 <a href={imprint} target="_blank" rel="noreferrer">Impressum</a>
                 <a href={privacy} target="_blank" rel="noreferrer">Datenschutz</a>
+                {version && <span className="version">v{version}</span>}
             </motion.div>
 
             <div className={"scan-dialog" + (scannerShown ? " scanner-shown" : "")} onClick={() => stopScan()}>

@@ -11,13 +11,15 @@ const readBranding = (fileName) => {
 const logoPayload = readBranding("logo.png");
 const titlePayload = readBranding("title.png");
 const brandingPayload = require(path.join(brandingFolder, "branding.json"));
+const packageJson = require("../../package.json");
 
 app.get('/', (req, res) => {
     res.json({
         logo: logoPayload, 
         title: titlePayload, 
         ...brandingPayload,
-        passwordProtected: !!process.env.PASSWORD_PROTECTION
+        passwordProtected: !!process.env.PASSWORD_PROTECTION,
+        version: packageJson.version
     });
 });
 

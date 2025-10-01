@@ -17,7 +17,7 @@ export const PracticeResults = () => {
     const {code} = useParams();
     const navigate = useNavigate();
     const location = useLocation();
-    const {titleImg} = useContext(BrandingContext);
+    const {titleImg, passwordProtected} = useContext(BrandingContext);
 
     const [password, setPassword] = useState("");
     const [results, setResults] = useState(null);
@@ -28,15 +28,16 @@ export const PracticeResults = () => {
     const [activeView, setActiveView] = useState('analytics');
 
     useEffect(() => {
-        if (location.state?.password) {
-            loadResultsWithPassword(location.state.password);
+        if (location.state?.password || !passwordProtected) {
+            loadResultsWithPassword(location.state?.password || "");
         }
-    }, [location.state]);
+    }, [location.state, passwordProtected]);
 
     const loadResultsWithPassword = async (pwd) => {
         setLoading(true);
         try {
-            const response = await postRequest(`/practice/${code}/results`, {password: pwd});
+            const requestBody = passwordProtected ? {password: pwd} : {};
+            const response = await postRequest(`/practice/${code}/results`, requestBody);
             setResults(response);
             setAuthenticated(true);
         } catch (error) {
@@ -54,12 +55,12 @@ export const PracticeResults = () => {
     };
 
     const loadResults = async () => {
-        if (!password.trim()) {
+        if (passwordProtected && !password.trim()) {
             toast.error('Bitte Passwort eingeben.');
             return;
         }
 
-        await loadResultsWithPassword(password);
+        await loadResultsWithPassword(passwordProtected ? password : "");
     };
 
     const formatDate = (dateString) => {
@@ -263,33 +264,56 @@ export const PracticeResults = () => {
                     initial={{opacity: 0, y: 20}}
                     animate={{opacity: 1, y: 0}}
                 >
-                    <h2>Passwort eingeben</h2>
+                    {passwordProtected ? (
+                        <>
+                            <h2>Passwort eingeben</h2>
 
-                    <div className="auth-form">
-                        <Input
-                            type="password"
-                            placeholder="Passwort eingeben"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            onKeyPress={(e) => e.key === 'Enter' && loadResults()}
-                            disabled={loading}
-                            autoFocus
-                        />
+                            <div className="auth-form">
+                                <Input
+                                    type="password"
+                                    placeholder="Passwort eingeben"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    onKeyPress={(e) => e.key === 'Enter' && loadResults()}
+                                    disabled={loading}
+                                    autoFocus
+                                />
 
-                        <div className="auth-actions">
-                            <Button
-                                text="Zurück"
-                                onClick={() => navigate('/')}
-                                variant="secondary"
-                                disabled={loading}
-                            />
-                            <Button
-                                text={loading ? "Wird geladen..." : "Ergebnisse laden"}
-                                onClick={loadResults}
-                                disabled={loading || !password.trim()}
-                            />
-                        </div>
-                    </div>
+                                <div className="auth-actions">
+                                    <Button
+                                        text="Zurück"
+                                        onClick={() => navigate('/')}
+                                        variant="secondary"
+                                        disabled={loading}
+                                    />
+                                    <Button
+                                        text={loading ? "Wird geladen..." : "Ergebnisse laden"}
+                                        onClick={loadResults}
+                                        disabled={loading || !password.trim()}
+                                    />
+                                </div>
+                            </div>
+                        </>
+                    ) : (
+                        <>
+                            <h2>Ergebnisse laden</h2>
+                            <p>Möchten Sie die Ergebnisse für das Übungsquiz <strong>{code}</strong> laden?</p>
+
+                            <div className="auth-actions">
+                                <Button
+                                    text="Zurück"
+                                    onClick={() => navigate('/')}
+                                    variant="secondary"
+                                    disabled={loading}
+                                />
+                                <Button
+                                    text={loading ? "Wird geladen..." : "Ergebnisse laden"}
+                                    onClick={loadResults}
+                                    disabled={loading}
+                                />
+                            </div>
+                        </>
+                    )}
                 </motion.div>
             </div>
         );

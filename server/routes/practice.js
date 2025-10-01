@@ -56,16 +56,14 @@ app.put("/", createLimiter, async (req, res) => {
         const {password} = req.headers;
         const correctPassword = process.env.PASSWORD_PROTECTION;
 
-        if (!correctPassword) {
-            return res.status(400).json({message: "Teacher password not configured"});
-        }
+        if (correctPassword) {
+            if (!password) {
+                return res.status(400).json({message: "Teacher password is required for practice quizzes"});
+            }
 
-        if (!password) {
-            return res.status(400).json({message: "Teacher password is required for practice quizzes"});
-        }
-
-        if (password !== correctPassword) {
-            return res.status(401).json({message: "Invalid teacher password"});
+            if (password !== correctPassword) {
+                return res.status(401).json({message: "Invalid teacher password"});
+            }
         }
 
         await ensurePracticeQuizzesDir();
@@ -306,10 +304,6 @@ app.post('/:code/results', passwordLimiter, async (req, res) => {
             return res.status(400).json({message: "Invalid practice code format"});
         }
 
-        if (!password) {
-            return res.status(400).json({message: "Password is required"});
-        }
-
         if (!await practiceQuizExists(code)) {
             return res.status(404).json({message: "Practice quiz not found"});
         }
@@ -319,12 +313,15 @@ app.post('/:code/results', passwordLimiter, async (req, res) => {
         const meta = JSON.parse(metaContent);
 
         const correctPassword = process.env.PASSWORD_PROTECTION;
-        if (!correctPassword) {
-            return res.status(500).json({message: "Teacher password not configured"});
-        }
 
-        if (password !== correctPassword) {
-            return res.status(401).json({message: "Invalid teacher password"});
+        if (correctPassword) {
+            if (!password) {
+                return res.status(400).json({message: "Password is required"});
+            }
+            
+            if (password !== correctPassword) {
+                return res.status(401).json({message: "Invalid teacher password"});
+            }
         }
 
         const resultsDir = path.join(practiceQuizzesDir, code, 'results');

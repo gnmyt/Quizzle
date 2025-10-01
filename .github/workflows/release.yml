@@ -1,0 +1,346 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  DOCKER_REGISTRY: germannewsmaker/quizzle
+  CARGO_TERM_COLOR: always
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      version_number: ${{ steps.version.outputs.version_number }}
+    steps:
+      - name: Extract version
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          VERSION_NUMBER=${VERSION#v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "version_number=$VERSION_NUMBER" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+          echo "Version Number: $VERSION_NUMBER"
+
+  docker:
+    needs: prepare
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ env.DOCKER_REGISTRY }}:latest
+            ${{ env.DOCKER_REGISTRY }}:${{ needs.prepare.outputs.version_number }}
+
+  build-migrator:
+    needs: prepare
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-pc-windows-gnu
+            os: ubuntu-latest
+            artifact_name: migrator.exe
+            release_name: migrator-windows-x64.exe
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+            artifact_name: migrator
+            release_name: migrator-linux-x64
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-latest
+            artifact_name: migrator
+            release_name: migrator-linux-arm64
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: ${{ matrix.target }}
+          override: true
+
+      - name: Install cross-compilation dependencies
+        if: matrix.target == 'x86_64-pc-windows-gnu'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-mingw-w64-x86-64
+
+      - name: Install cross-compilation dependencies for ARM64
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu
+
+      - name: Configure cargo for cross compilation
+        run: |
+          mkdir -p ~/.cargo
+          cat >> ~/.cargo/config.toml << EOF
+          [target.x86_64-pc-windows-gnu]
+          linker = "x86_64-w64-mingw32-gcc"
+          
+          [target.aarch64-unknown-linux-gnu]
+          linker = "aarch64-linux-gnu-gcc"
+          EOF
+
+      - name: Build migrator
+        working-directory: migrator
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Upload migrator artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.release_name }}
+          path: migrator/target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
+
+  build-server:
+    needs: prepare
+    strategy:
+      matrix:
+        include:
+          - target: bun-windows-x64
+            os: windows-latest
+            artifact_name: Quizzle.exe
+            release_name: Quizzle-windows-x64.exe
+          - target: bun-linux-x64
+            os: ubuntu-latest
+            artifact_name: Quizzle
+            release_name: Quizzle-linux-x64
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build WebUI
+        working-directory: webui
+        run: |
+          bun install --frozen-lockfile
+          bun run build
+
+      - name: Compile server binary (Windows)
+        if: matrix.target == 'bun-windows-x64'
+        env:
+          NODE_ENV: production
+        run: |
+          bun build --minify --sourcemap --compile ./server/index.js --target=bun-windows-x64 --outfile ${{ matrix.artifact_name }}
+
+      - name: Compile server binary (Linux)
+        if: matrix.target == 'bun-linux-x64'
+        env:
+          NODE_ENV: production
+        run: |
+          bun build --minify --sourcemap --compile ./server/index.js --target=bun-linux-x64 --outfile ${{ matrix.artifact_name }}
+
+      - name: Upload server artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.release_name }}
+          path: ${{ matrix.artifact_name }}
+
+  build-msi:
+    needs: [prepare, build-server]
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build WebUI
+        working-directory: webui
+        run: |
+          bun install --frozen-lockfile
+          bun run build
+
+      - name: Download Windows server binary
+        uses: actions/download-artifact@v4
+        with:
+          name: Quizzle-windows-x64.exe
+          path: ./installer
+
+      - name: Install WiX Toolset
+        run: |
+          choco install wixtoolset -y
+          echo "C:\Program Files (x86)\WiX Toolset v3.11\bin" >> $GITHUB_PATH
+
+      - name: Create MSI installer structure
+        shell: cmd
+        run: |
+          mkdir installer\webui-dist
+          mkdir installer\content-files
+          xcopy /E /I webui\dist installer\webui-dist
+          xcopy /E /I content installer\content-files
+
+      - name: Create WiX configuration
+        shell: powershell
+        run: |
+          $wxsContent = @"
+          <?xml version="1.0" encoding="UTF-8"?>
+          <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+            <Product Id="*" Name="Quizzle" Language="1033" Version="${{ needs.prepare.outputs.version_number }}.0" Manufacturer="Mathias Wagner" UpgradeCode="12345678-1234-1234-1234-123456789012">
+              <Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine" />
+              
+              <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+              <MediaTemplate EmbedCab="yes" />
+              
+              <Feature Id="ProductFeature" Title="Quizzle" Level="1">
+                <ComponentGroupRef Id="ProductComponents" />
+                <ComponentRef Id="QuizzleService" />
+                <ComponentRef Id="DataFolder" />
+              </Feature>
+              
+              <Directory Id="TARGETDIR" Name="SourceDir">
+                <Directory Id="ProgramFilesFolder">
+                  <Directory Id="INSTALLFOLDER" Name="Quizzle">
+                    <Directory Id="DATAFOLDER" Name="data" />
+                  </Directory>
+                </Directory>
+              </Directory>
+              
+              <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
+                <Component Id="QuizzleExecutable" Guid="*">
+                  <File Id="QuizzleExe" Source="Quizzle.exe" KeyPath="yes" />
+                </Component>
+              </ComponentGroup>
+              
+              <Component Id="QuizzleService" Directory="INSTALLFOLDER" Guid="*">
+                <ServiceInstall Id="QuizzleService" Name="Quizzle" DisplayName="Quizzle Quiz Platform" 
+                               Type="ownProcess" Start="auto" ErrorControl="normal" 
+                               Description="Quizzle Quiz Platform Service"
+                               Arguments="" />
+                <ServiceControl Id="QuizzleServiceControl" Name="Quizzle" Start="install" Stop="both" Remove="uninstall" Wait="yes" />
+              </Component>
+              
+              <Component Id="DataFolder" Directory="DATAFOLDER" Guid="*">
+                <CreateFolder />
+              </Component>
+            </Product>
+          </Wix>
+          "@
+          $wxsContent | Out-File -FilePath "installer\quizzle.wxs" -Encoding UTF8
+
+      - name: Build MSI
+        working-directory: installer
+        run: |
+          candle quizzle.wxs
+          light quizzle.wixobj -o Quizzle-${{ needs.prepare.outputs.version_number }}-installer.msi
+
+      - name: Upload MSI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Quizzle-windows-installer
+          path: installer/Quizzle-${{ needs.prepare.outputs.version_number }}-installer.msi
+
+  release:
+    needs: [prepare, docker, build-migrator, build-server, build-msi]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          PREVIOUS_TAG=$(git tag --sort=-version:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -2 | tail -1)
+          
+          if [ -z "$PREVIOUS_TAG" ]; then
+            PREVIOUS_TAG=$(git rev-list --max-parents=0 HEAD)
+          fi
+          
+          echo "Previous tag: $PREVIOUS_TAG"
+          echo "Current tag: ${{ needs.prepare.outputs.version }}"
+          
+          COMMITS=$(git log --pretty=format:"- %s (%h)" $PREVIOUS_TAG..${{ needs.prepare.outputs.version }} --no-merges | head -20)
+          
+          cat > CHANGELOG.md << EOF
+          # Quizzle ${{ needs.prepare.outputs.version }}
+          
+          ## What's Changed
+          
+          $COMMITS
+          
+          ## Downloads
+          
+          ### Server Binaries
+          - **Windows x64**: Quizzle-windows-x64.exe
+          - **Linux x64**: Quizzle-linux-x64
+          - **Windows Installer**: Quizzle-${{ needs.prepare.outputs.version_number }}-installer.msi
+          
+          ### Migrator Tool
+          - **Windows x64**: migrator-windows-x64.exe
+          - **Linux x64**: migrator-linux-x64
+          - **Linux ARM64**: migrator-linux-arm64
+          
+          ### Docker Images
+          - \`germannewsmaker/quizzle:latest\`
+          - \`germannewsmaker/quizzle:${{ needs.prepare.outputs.version_number }}\`
+          
+          **Full Changelog**: https://github.com/gnmyt/Quizzle/compare/$PREVIOUS_TAG...${{ needs.prepare.outputs.version }}
+          EOF
+          
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          cat CHANGELOG.md >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ needs.prepare.outputs.version }}
+          name: Quizzle ${{ needs.prepare.outputs.version }}
+          body: ${{ steps.changelog.outputs.changelog }}
+          draft: false
+          prerelease: false
+          files: |
+            ./artifacts/migrator-windows-x64.exe/migrator.exe
+            ./artifacts/migrator-linux-x64/migrator
+            ./artifacts/migrator-linux-arm64/migrator
+            ./artifacts/Quizzle-windows-x64.exe/Quizzle.exe
+            ./artifacts/Quizzle-linux-x64/Quizzle
+            ./artifacts/Quizzle-windows-installer/Quizzle-${{ needs.prepare.outputs.version_number }}-installer.msi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

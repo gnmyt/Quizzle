@@ -352,7 +352,7 @@ jobs:
           cat > CHANGELOG.md << EOF
           # Quizzle ${{ needs.prepare.outputs.version }}
           
-          ## What's Changed
+          ## Was ist neu?
           
           $COMMITS
           

@@ -1,7 +1,7 @@
 import {createContext, useEffect, useMemo, useState} from "react";
 import {request} from "@/common/utils/RequestUtil.js";
 import pako from "pako";
-import {socket} from "@/common/utils/SocketUtil.js";
+import {socket, getSessionData} from "@/common/utils/SocketUtil.js";
 
 export const QuizContext = createContext({});
 
@@ -12,6 +12,15 @@ export const QuizProvider = ({children}) => {
     const [roomCode, setRoomCode] = useState(null);
     const [username, setUsername] = useState("");
     const [soundEnabled, setSoundEnabled] = useState(true);
+
+    useEffect(() => {
+        const sessionData = getSessionData();
+        if (sessionData && !roomCode && !username) {
+            console.log('Restoring session data in QuizContext', sessionData);
+            setRoomCode(sessionData.roomCode);
+            setUsername(sessionData.playerData.name);
+        }
+    }, [roomCode, username]);
 
     const pullNextQuestion = async () => {
         return new Promise((resolve, reject) => {

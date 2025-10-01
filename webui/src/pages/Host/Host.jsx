@@ -44,14 +44,40 @@ export const Host = () => {
             setPlayers(players => players.filter(p => p.id !== player.id));
         });
 
+        socket.on("PLAYER_DISCONNECTED", (player) => {
+            if (player.temporary) {
+                setPlayers(players => players.map(p => p.id === player.id ? {...p, disconnected: true} : p));
+            } else {
+                setPlayers(players => players.filter(p => p.id !== player.id));
+            }
+        });
+
+        socket.on("PLAYER_RECONNECTED", (player) => {
+            setPlayers(players => {
+                if (player.oldId) {
+                    return players.map(p => p.id === player.oldId ? {...player, disconnected: false} : p);
+                } else {
+                    const existingPlayer = players.find(p => p.name === player.name);
+                    if (existingPlayer) {
+                        return players.map(p => p.name === player.name ? {...player, disconnected: false} : p);
+                    } else {
+                        return [...players, player];
+                    }
+                }
+            });
+        });
+
         return () => {
             socket.off("PLAYER_JOINED");
             socket.off("PLAYER_LEFT");
+            socket.off("PLAYER_DISCONNECTED");
+            socket.off("PLAYER_RECONNECTED");
         }
     }, [isLoaded]);
 
     const kickPlayer = (id) => {
-        socket.emit("KICK_PLAYER", {id}, () => {});
+        socket.emit("KICK_PLAYER", {id}, () => {
+        });
     }
 
     const startGame = () => {
@@ -99,10 +125,18 @@ export const Host = () => {
 
                 <div className="player-list">
                     {players.map(player => (
-                        <motion.div key={player.id} className="player" initial={{scale: 0}} animate={{scale: 1}}
-                                    onClick={() => kickPlayer(player.id)}>
+                        <motion.div
+                            key={player.id}
+                            className={`player ${player.disconnected ? 'disconnected' : ''}`}
+                            initial={{scale: 0}}
+                            animate={{scale: 1}}
+                            onClick={() => !player.disconnected && kickPlayer(player.id)}
+                        >
                             <div className="player-character">{getCharacterEmoji(player.character)}</div>
                             <h3>{player.name}</h3>
+                            {player.disconnected && (
+                                <div className="disconnected-indicator"></div>
+                            )}
                         </motion.div>
                     ))}
                 </div>

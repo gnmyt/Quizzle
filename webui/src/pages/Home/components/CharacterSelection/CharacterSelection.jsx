@@ -8,7 +8,7 @@ import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import {faTimes} from "@fortawesome/free-solid-svg-icons";
 import {useInputValidation, validationRules} from "@/common/hooks/useInputValidation";
 
-export const CharacterSelection = ({submit, isPracticeMode = false}) => {
+export const CharacterSelection = ({code, submit, isPracticeMode = false}) => {
     const nameValidation = useInputValidation('', validationRules.playerName);
     const [selectedCharacter, setSelectedCharacter] = useState(() => {
         const randomIndex = Math.floor(Math.random() * CHARACTERS.length);
@@ -24,7 +24,7 @@ export const CharacterSelection = ({submit, isPracticeMode = false}) => {
 
         setIsSubmitting(true);
         try {
-            await submit(nameValidation.value.trim(), selectedCharacter.id);
+            await submit(nameValidation.value.trim(), selectedCharacter.id, code);
         } catch (error) {
             console.error('Submission error:', error);
         } finally {

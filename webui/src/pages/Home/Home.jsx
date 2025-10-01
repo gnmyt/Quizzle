@@ -5,7 +5,7 @@ import {motion} from "framer-motion";
 import Button from "@/common/components/Button";
 import {faShareFromSquare, faSwatchbook, faChartBar} from "@fortawesome/free-solid-svg-icons";
 import {useNavigate, useOutletContext} from "react-router-dom";
-import {socket, ensureSocketConnection} from "@/common/utils/SocketUtil.js";
+import {socket, ensureSocketConnection, joinRoomWithSession, addReconnectionCallback, removeReconnectionCallback} from "@/common/utils/SocketUtil.js";
 import CodeInput from "@/pages/Home/components/CodeInput";
 import CharacterSelection from "@/pages/Home/components/CharacterSelection";
 import ResultsDialog from "@/pages/Home/components/ResultsDialog";
@@ -65,6 +65,7 @@ export const Home = () => {
     }
     const [errorClass, setErrorClass] = useState("");
     const [errorMessage, setErrorMessage] = useState("");
+    const [loading, setLoading] = useState(false);
 
     const checkRoom = (code) => {
         if (isAlphabeticCode(code)) {
@@ -102,32 +103,35 @@ export const Home = () => {
         }
     }
 
-    const joinGame = (name, character) => {
+    const joinRoom = async (name, character, code) => {
+        setLoading(true);
+        setErrorMessage("");
+
         return new Promise((resolve, reject) => {
             if (isPracticeMode) {
                 setCirclePosition("-30rem 0 0 -30rem");
-                setUsername(name);
-                setRoomCode(code);
-                setTimeout(() => navigate(`/practice/${code}?name=${encodeURIComponent(name)}&character=${character}`), 500);
+                setTimeout(() => {
+                    navigate(`/practice/${code}`);
+                    setLoading(false);
+                }, 500);
                 resolve();
             } else {
-                ensureSocketConnection().then(() => {
-                    socket.emit("JOIN_ROOM", {code: parseInt(code), name, character}, (response) => {
-                        if (response?.success) {
-                            setCirclePosition("-30rem 0 0 -30rem");
-                            setUsername(name);
-                            setRoomCode(code);
-                            setTimeout(() => navigate("/client"), 500);
-                            resolve();
-                        } else {
-                            setErrorMessage(response?.error || "Fehler beim Beitreten");
-                            reject(new Error(response?.error || "Fehler beim Beitreten"));
-                        }
+                joinRoomWithSession(parseInt(code), name, character)
+                    .then(() => {
+                        setCirclePosition("-30rem 0 0 -30rem");
+                        setUsername(name);
+                        setRoomCode(code);
+                        setTimeout(() => {
+                            navigate("/client");
+                            setLoading(false);
+                        }, 500);
+                        resolve();
+                    })
+                    .catch((error) => {
+                        setLoading(false);
+                        setErrorMessage(error.message || "Fehler beim Beitreten");
+                        reject(error);
                     });
-                }).catch(() => {
-                    setErrorMessage("Verbindungsfehler");
-                    reject(new Error("Verbindungsfehler"));
-                });
             }
         });
     }
@@ -168,12 +172,22 @@ export const Home = () => {
             console.log('Socket disconnected in Home');
         };
 
+        const handleReconnection = (success, error) => {
+            if (success) {
+                console.log('Successfully reconnected from Home page');
+            } else if (error) {
+                console.warn('Reconnection failed in Home page:', error);
+            }
+        };
+
         socket.on('connect', handleConnect);
         socket.on('disconnect', handleDisconnect);
+        addReconnectionCallback(handleReconnection);
 
         return () => {
             socket.off('connect', handleConnect);
             socket.off('disconnect', handleDisconnect);
+            removeReconnectionCallback(handleReconnection);
         };
     }, [errorMessage]);
 
@@ -196,7 +210,7 @@ export const Home = () => {
                         className="home-content">
                 <div className="join-area">
                     {code === null ? <CodeInput joinGame={checkRoom} errorClass={errorClass} scanQr={scanQr}/>
-                        : <CharacterSelection code={code} submit={joinGame} isPracticeMode={isPracticeMode}/>}
+                        : <CharacterSelection code={code} submit={joinRoom} isPracticeMode={isPracticeMode}/>}
                     {errorMessage && (
                         <motion.div
                             className="error-message"

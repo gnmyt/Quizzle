@@ -81,6 +81,23 @@
     background-color: $primary
     user-select: none
     cursor: pointer
+    position: relative
+
+    &.disconnected
+      opacity: 0.6
+      background-color: #6b7280
+      cursor: not-allowed
+      
+      .disconnected-indicator
+        position: absolute
+        top: -0.25rem
+        right: -0.25rem
+        background: #ef4444
+        border: 2px solid white
+        border-radius: 50%
+        width: 1rem
+        height: 1rem
+        animation: pulse-dot 1.5s infinite
 
     .player-character
       font-size: 2rem
@@ -96,10 +113,18 @@
     h3
       margin: 0
 
-    &:hover
+    &:hover:not(.disconnected)
       h3
         text-decoration: line-through
 
+
+@keyframes pulse-dot
+  0%, 100%
+    opacity: 1
+    transform: scale(1)
+  50%
+    opacity: 0.7
+    transform: scale(1.1)
 
 .host-page .system-ui
   position: fixed

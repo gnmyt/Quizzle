@@ -4,12 +4,45 @@
   display: flex
   flex-direction: column
   height: 100dvh
+  position: relative
+
+  .connection-status
+    position: fixed
+    top: 1rem
+    right: 1rem
+    background: rgba(0, 0, 0, 0.8)
+    color: white
+    padding: 0.75rem 1rem
+    border-radius: 0.5rem
+    display: flex
+    align-items: center
+    gap: 0.5rem
+    z-index: 1000
+    backdrop-filter: blur(10px)
+    
+    .connection-icon
+      &.reconnecting
+        color: $orange
+        animation: pulse 1.5s infinite
+        
+      &.disconnected
+        color: $red
+        
+    span
+      font-size: 0.875rem
+      font-weight: 500
 
   .loading-container
     display: flex
     justify-content: center
     align-items: center
     height: 100%
+
+@keyframes pulse
+  0%, 100%
+    opacity: 1
+  50%
+    opacity: 0.5
 
 .ingame-header
   text-align: center

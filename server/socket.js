@@ -2,6 +2,14 @@ const {generateRoomCode, isAlphabeticCode} = require("./utils/random");
 const {validateSchemaSocket} = require("./utils/error");
 const {checkRoom, joinRoom, answerQuestion} = require("./validations/socket");
 const {questionValidation} = require("./validations/quiz");
+const {
+    createSession,
+    getSession,
+    updateSessionSocket,
+    invalidateSession,
+    cleanupRoomSessions,
+    getSessionBySocketId
+} = require("./utils/session");
 
 const rooms = {};
 
@@ -232,6 +240,8 @@ const endGameForAllPlayers = (io, room, roomCode) => {
         io.to(player).emit("GAME_ENDED", room.playerAnswers.filter(answer => answer[player]));
         io.sockets.sockets.get(player)?.disconnect();
     }
+
+    cleanupRoomSessions(roomCode);
     delete rooms[roomCode];
 };
 
@@ -304,11 +314,127 @@ module.exports = (io, socket) => {
 
             socket.join(data.code.toString());
             room.players[socket.id] = {name: sanitizedName, character: data.character, points: 0};
+            
+            const sessionToken = createSession(socket.id, data.code, {
+                name: sanitizedName,
+                character: data.character
+            });
+            
             io.to(room.host).emit('PLAYER_JOINED', {id: socket.id, name: sanitizedName, character: data.character});
             currentRoomCode = data.code;
-            callback({success: true});
+            callback({success: true, sessionToken});
         } else {
             callback({success: false, error: 'Raum existiert nicht oder Spiel hat bereits begonnen'});
+        }
+    });
+
+    socket.on('RECONNECT_SESSION', (data, callback) => {
+        if (!validateCallback(callback)) return;
+        
+        const {token, roomCode, playerData} = data;
+        
+        if (!token || !roomCode || !playerData) {
+            return callback({success: false, error: 'Ungültige Sitzungsdaten'});
+        }
+        
+        const session = getSession(token);
+        if (!session) {
+            return callback({success: false, error: 'Sitzung abgelaufen oder ungültig'});
+        }
+        
+        const room = rooms[roomCode];
+        if (!room) {
+            invalidateSession(token);
+            return callback({success: false, error: 'Raum nicht mehr verfügbar'});
+        }
+
+        let existingPlayerId = null;
+        let existingPlayerData = null;
+        
+        for (const [playerId, player] of Object.entries(room.players)) {
+            if (player.name === playerData.name) {
+                existingPlayerId = playerId;
+                existingPlayerData = player;
+                break;
+            }
+        }
+
+        if (updateSessionSocket(token, socket.id)) {
+            socket.join(roomCode.toString());
+            currentRoomCode = roomCode;
+            
+            if (existingPlayerId && existingPlayerData) {
+                delete room.players[existingPlayerId];
+                
+                room.players[socket.id] = {
+                    name: existingPlayerData.name,
+                    character: existingPlayerData.character,
+                    points: existingPlayerData.points
+                };
+
+                if (room.playerAnswers && room.playerAnswers.length > 0) {
+                    room.playerAnswers.forEach(questionAnswers => {
+                        if (questionAnswers[existingPlayerId] !== undefined) {
+                            questionAnswers[socket.id] = questionAnswers[existingPlayerId];
+                            delete questionAnswers[existingPlayerId];
+                        }
+                    });
+                }
+                
+                console.log(`Player ${playerData.name} reconnected: ${existingPlayerId} -> ${socket.id}`);
+
+                io.to(room.host).emit('PLAYER_RECONNECTED', {
+                    id: socket.id,
+                    name: playerData.name,
+                    character: playerData.character,
+                    oldId: existingPlayerId
+                });
+            } else {
+                room.players[socket.id] = {
+                    name: playerData.name,
+                    character: playerData.character,
+                    points: session.playerData.points || 0
+                };
+                
+                io.to(room.host).emit('PLAYER_JOINED', {
+                    id: socket.id,
+                    name: playerData.name,
+                    character: playerData.character
+                });
+            }
+
+            const gameState = {
+                roomState: room.state,
+                currentQuestion: room.currentQuestion,
+                playerPoints: room.players[socket.id].points
+            };
+            
+            if (room.state === 'ingame' && room.currentQuestion && !room.currentQuestion.isCompleted) {
+                let questionType = room.currentQuestion.type;
+                if (room.currentQuestion.type === 'multiple-choice') {
+                    const isMultipleChoice = room.currentQuestion.answers.filter(answer => answer.is_correct).length > 1;
+                    questionType = isMultipleChoice ? 'multiple' : 'single';
+                }
+
+                const questionData = {
+                    type: questionType,
+                    title: room.currentQuestion.title
+                };
+
+                if (room.currentQuestion.type === 'text') {
+                    questionData.maxLength = 200;
+                } else {
+                    questionData.answers = room.currentQuestion.answers.length;
+                }
+                
+                socket.emit('QUESTION_RECEIVED', questionData);
+            }
+
+            socket.emit('GAME_STATE_RESTORED', gameState);
+            
+            callback({success: true, gameState});
+        } else {
+            callback({success: false, error: 'Fehler beim Wiederherstellen der Sitzung'});
         }
     });
 
@@ -466,7 +592,13 @@ module.exports = (io, socket) => {
     });
 
     socket.on('disconnect', () => {
-        if (!currentRoomCode || !rooms[currentRoomCode]) return;
+        if (!currentRoomCode || !rooms[currentRoomCode]) {
+            const session = getSessionBySocketId(socket.id);
+            if (session) {
+                invalidateSession(session.token);
+            }
+            return;
+        }
 
         const room = rooms[currentRoomCode];
 
@@ -476,11 +608,21 @@ module.exports = (io, socket) => {
         }
 
         if (room.players[socket.id]) {
-            io.to(room.host).emit('PLAYER_LEFT', {
+            const session = getSessionBySocketId(socket.id);
+            if (session) {
+                session.playerData.points = room.players[socket.id].points;
+                session.playerData.name = room.players[socket.id].name;
+                session.playerData.character = room.players[socket.id].character;
+                console.log(`Player ${room.players[socket.id].name} disconnected but session preserved for reconnection`);
+            }
+
+            const playerName = room.players[socket.id].name;
+
+            io.to(room.host).emit('PLAYER_DISCONNECTED', {
                 id: socket.id,
-                name: room.players[socket.id].name
+                name: playerName,
+                temporary: true
             });
-            delete room.players[socket.id];
         }
     });
 };

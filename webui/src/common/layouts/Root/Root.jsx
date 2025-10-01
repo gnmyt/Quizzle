@@ -1,20 +1,32 @@
-import {Outlet} from "react-router-dom";
+import {Outlet, useNavigate} from "react-router-dom";
 import "./styles.sass";
 import Background from "@/common/components/Background";
 import {useEffect, useState} from "react";
 import {Toaster} from "react-hot-toast";
-import {socket} from "@/common/utils/SocketUtil.js";
+import {socket, getSessionManager} from "@/common/utils/SocketUtil.js";
 
 export const Root = () => {
     const [circlePosition, setCirclePosition] = useState(["-25rem 0 0 -25rem", "-8rem 0 0 -8rem"]);
+    const navigate = useNavigate();
 
     useEffect(() => {
         socket.connect();
 
+        const sessionManager = getSessionManager();
+        if (sessionManager.hasValidSession()) {
+            const session = sessionManager.getSession();
+            const currentPath = window.location.pathname;
+            
+            if (currentPath === '/' && session.roomCode && session.playerData) {
+                console.log('Found existing session, redirecting to game...');
+                navigate('/client');
+            }
+        }
+
         return () => {
             socket.disconnect();
         }
-    }, []);
+    }, [navigate]);
 
     return (
         <>

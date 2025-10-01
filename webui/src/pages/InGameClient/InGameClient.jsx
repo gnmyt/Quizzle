@@ -2,9 +2,9 @@ import "./styles.sass";
 import {QuizContext} from "@/common/contexts/Quiz";
 import {useContext, useEffect, useState} from "react";
 import {useNavigate, useParams, useSearchParams} from "react-router-dom";
-import {socket} from "@/common/utils/SocketUtil.js";
+import {socket, addReconnectionCallback, removeReconnectionCallback, clearCurrentSession, getSessionManager} from "@/common/utils/SocketUtil.js";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
-import {faCheck, faCheckCircle, faMinus, faPaperPlane, faX} from "@fortawesome/free-solid-svg-icons";
+import {faCheck, faCheckCircle, faMinus, faPaperPlane, faX, faWifi, faExclamationTriangle} from "@fortawesome/free-solid-svg-icons";
 import {TrueFalseClient} from "./components/TrueFalseClient";
 import {TextInputClient} from "./components/TextInputClient";
 import {jsonRequest, postRequest} from "@/common/utils/RequestUtil.js";
@@ -28,6 +28,8 @@ export const InGameClient = () => {
     const [selection, setSelection] = useState([]);
     const [currentQuestion, setCurrentQuestion] = useState(null);
     const [answers, setAnswers] = useState([]);
+    const [isConnected, setIsConnected] = useState(socket.connected);
+    const [isReconnecting, setIsReconnecting] = useState(false);
 
     useEffect(() => {
         if (practiceCode) {
@@ -36,7 +38,12 @@ export const InGameClient = () => {
             return;
         }
 
-        if (roomCode === null) {
+        const sessionManager = getSessionManager();
+        const session = sessionManager.getSession();
+        
+        if (!roomCode && session.roomCode && session.playerData) {
+            console.log('Restoring session after page refresh...');
+        } else if (!roomCode && !session.roomCode) {
             navigate("/");
             return;
         }
@@ -57,27 +64,85 @@ export const InGameClient = () => {
         }
 
         const gameEnded = () => {
+            clearCurrentSession();
             socket.off("QUESTION_RECEIVED", onQuestion);
             socket.off("POINTS_RECEIVED", onPoints);
             socket.off("ANSWER_RECEIVED", onAnswer);
             socket.off("GAME_ENDED", gameEnded);
-            socket.off("disconnect", gameEnded);
+            socket.off("disconnect", handleDisconnect);
             
             navigate("/");
         }
+
+        const handleConnect = () => {
+            setIsConnected(true);
+            setIsReconnecting(false);
+        };
+
+        const handleDisconnect = (reason) => {
+            setIsConnected(false);
+            if (reason === 'io server disconnect' || reason === 'io client disconnect') {
+                navigate("/");
+            }
+        };
+
+        const handleReconnection = (success, error) => {
+            if (success) {
+                setIsReconnecting(false);
+                toast.success("Erfolgreich wieder verbunden!", {
+                    duration: 3000
+                });
+            } else {
+                setIsReconnecting(true);
+                if (error === 'Session expired' || error === 'Max reconnection attempts reached') {
+                    toast.error("Verbindung verloren. Zurück zur Startseite...", {
+                        duration: 3000
+                    });
+                    setTimeout(() => navigate("/"), 3000);
+                } else {
+                    toast.error("Verbindung unterbrochen. Versuche wieder zu verbinden...", {
+                        duration: 2000
+                    });
+                }
+            }
+        };
+
+        socket.on('GAME_STATE_RESTORED', (gameState) => {
+            if (gameState.playerPoints !== undefined) {
+                setPoints(gameState.playerPoints);
+            }
+        });
+
+        const handleSessionRestored = () => {
+            const sessionManager = getSessionManager();
+            const session = sessionManager.getSession();
+            
+            if (session.roomCode && session.playerData && !roomCode) {
+                setRoomCode(session.roomCode);
+                setUsername(session.playerData.name);
+                console.log('Session restored from storage');
+            }
+        };
+
+        handleSessionRestored();
 
         socket.on("QUESTION_RECEIVED", onQuestion);
         socket.on("POINTS_RECEIVED", onPoints);
         socket.on("ANSWER_RECEIVED", onAnswer);
         socket.on("GAME_ENDED", gameEnded);
-        socket.on("disconnect", gameEnded);
+        socket.on("disconnect", handleDisconnect);
+        socket.on('connect', handleConnect);
+        addReconnectionCallback(handleReconnection);
 
         return () => {
             socket.off("QUESTION_RECEIVED", onQuestion);
             socket.off("POINTS_RECEIVED", onPoints);
             socket.off("ANSWER_RECEIVED", onAnswer);
             socket.off("GAME_ENDED", gameEnded);
-            socket.off("disconnect", gameEnded);
+            socket.off("disconnect", handleDisconnect);
+            socket.off('connect', handleConnect);
+            socket.off('GAME_STATE_RESTORED');
+            removeReconnectionCallback(handleReconnection);
         }
     }, [roomCode, practiceCode]);
 
@@ -342,6 +407,16 @@ export const InGameClient = () => {
 
     return (
         <div className="ingame-client">
+            {!isPracticeMode && (!isConnected || isReconnecting) && (
+                <div className="connection-status">
+                    <FontAwesomeIcon 
+                        icon={isConnected ? faWifi : faExclamationTriangle} 
+                        className={`connection-icon ${isReconnecting ? 'reconnecting' : 'disconnected'}`}
+                    />
+                    <span>{isReconnecting ? 'Verbinde wieder...' : 'Verbindung verloren'}</span>
+                </div>
+            )}
+            
             {shouldShowQuestion() && (
                 <>
                     <div className="ingame-header">

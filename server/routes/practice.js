@@ -100,6 +100,31 @@ app.put("/", createLimiter, async (req, res) => {
     }
 });
 
+app.get('/:code/exists', async (req, res) => {
+    try {
+        const code = req.params.code.replace(/[^A-Z]/gi, '').toUpperCase();
+
+        if (!isAlphabeticCode(code)) {
+            return res.status(400).json({exists: false, message: "Invalid practice code format"});
+        }
+
+        const exists = await practiceQuizExists(code);
+        if (!exists) {
+            return res.status(404).json({exists: false, message: "Practice quiz not found"});
+        }
+
+        const expired = await isPracticeQuizExpired(code);
+        if (expired) {
+            return res.status(410).json({exists: false, message: "Practice quiz has expired"});
+        }
+
+        res.json({exists: true});
+    } catch (error) {
+        console.error('Error checking practice quiz existence:', error);
+        res.status(500).json({exists: false, message: "Error checking practice quiz"});
+    }
+});
+
 app.get('/:code', async (req, res) => {
     try {
         const code = req.params.code.replace(/[^A-Z]/gi, '').toUpperCase();

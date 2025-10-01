@@ -11,6 +11,8 @@ import CharacterSelection from "@/pages/Home/components/CharacterSelection";
 import ResultsDialog from "@/pages/Home/components/ResultsDialog";
 import {QuizContext} from "@/common/contexts/Quiz";
 import QrScanner from "qr-scanner";
+import toast from "react-hot-toast";
+import {jsonRequest} from "@/common/utils/RequestUtil.js";
 
 export const Home = () => {
     const {titleImg, imprint, privacy} = useContext(BrandingContext);
@@ -64,14 +66,32 @@ export const Home = () => {
         setScannerShown(false);
     }
     const [errorClass, setErrorClass] = useState("");
-    const [errorMessage, setErrorMessage] = useState("");
     const [loading, setLoading] = useState(false);
 
     const checkRoom = (code) => {
         if (isAlphabeticCode(code)) {
-            setCode(code.toUpperCase());
-            setIsPracticeMode(true);
-            setErrorMessage("");
+            setLoading(true);
+            jsonRequest(`/practice/${code.toUpperCase()}/exists`)
+                .then(data => {
+                    setLoading(false);
+                    if (data.exists) {
+                        setCode(code.toUpperCase());
+                        setIsPracticeMode(true);
+                    } else {
+                        setCode(null);
+                        toast.error(data.message || "Übungsquiz nicht gefunden");
+                        setErrorClass("room-error");
+                        setTimeout(() => setErrorClass(""), 300);
+                    }
+                })
+                .catch(error => {
+                    setLoading(false);
+                    console.error('Error checking practice quiz:', error);
+                    setCode(null);
+                    toast.error("Fehler beim Überprüfen des Übungsquiz");
+                    setErrorClass("room-error");
+                    setTimeout(() => setErrorClass(""), 300);
+                });
             return;
         }
 
@@ -81,23 +101,22 @@ export const Home = () => {
                     if (response?.success && response?.exists && !response?.isPractice) {
                         setCode(parseInt(code));
                         setIsPracticeMode(false);
-                        setErrorMessage("");
                     } else {
                         setCode(null);
-                        setErrorMessage(response?.error || "Raum nicht gefunden");
+                        toast.error(response?.error || "Raum nicht gefunden");
                         setErrorClass("room-error");
                         setTimeout(() => setErrorClass(""), 300);
                     }
                 });
             }).catch(() => {
                 setCode(null);
-                setErrorMessage("Verbindungsfehler");
+                toast.error("Verbindungsfehler");
                 setErrorClass("room-error");
                 setTimeout(() => setErrorClass(""), 300);
             });
         } else {
             setCode(null);
-            setErrorMessage("Ungültiger Code");
+            toast.error("Ungültiger Code");
             setErrorClass("room-error");
             setTimeout(() => setErrorClass(""), 300);
         }
@@ -105,7 +124,6 @@ export const Home = () => {
 
     const joinRoom = async (name, character, code) => {
         setLoading(true);
-        setErrorMessage("");
 
         return new Promise((resolve, reject) => {
             if (isPracticeMode) {
@@ -129,7 +147,7 @@ export const Home = () => {
                     })
                     .catch((error) => {
                         setLoading(false);
-                        setErrorMessage(error.message || "Fehler beim Beitreten");
+                        toast.error(error.message || "Fehler beim Beitreten");
                         reject(error);
                     });
             }
@@ -152,7 +170,6 @@ export const Home = () => {
 
         if (!window.location.search.includes("code=")) {
             setCode(null);
-            setErrorMessage("");
             setIsPracticeMode(false);
         }
 
@@ -163,9 +180,7 @@ export const Home = () => {
 
     useEffect(() => {
         const handleConnect = () => {
-            if (errorMessage === "Verbindungsfehler") {
-                setErrorMessage("");
-            }
+            // Connection restored, no need to clear error messages since we're using toasts
         };
 
         const handleDisconnect = () => {
@@ -189,7 +204,7 @@ export const Home = () => {
             socket.off('disconnect', handleDisconnect);
             removeReconnectionCallback(handleReconnection);
         };
-    }, [errorMessage]);
+    }, []);
 
     return (
         <div className="home-page">
@@ -211,16 +226,6 @@ export const Home = () => {
                 <div className="join-area">
                     {code === null ? <CodeInput joinGame={checkRoom} errorClass={errorClass} scanQr={scanQr}/>
                         : <CharacterSelection code={code} submit={joinRoom} isPracticeMode={isPracticeMode}/>}
-                    {errorMessage && (
-                        <motion.div
-                            className="error-message"
-                            initial={{opacity: 0, y: -10}}
-                            animate={{opacity: 1, y: 0}}
-                            exit={{opacity: 0, y: -10}}
-                        >
-                            {errorMessage}
-                        </motion.div>
-                    )}
                     {code !== null && isPracticeMode && (
                         <div className="result-area">
                             <div className="alternative">

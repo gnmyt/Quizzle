@@ -136,3 +136,6 @@ data/**
 .idea
 .vscode
 *.sublime-project
+
+# Migrator
+migrator/target

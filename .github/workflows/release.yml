@@ -196,6 +196,31 @@ jobs:
           name: Quizzle-windows-x64.exe
           path: ./installer
 
+      - name: Download WinSW service wrapper
+        run: |
+          Invoke-WebRequest -Uri "https://github.com/winsw/winsw/releases/download/v3.0.0-alpha.11/WinSW-x64.exe" -OutFile "installer\QuizzleService.exe"
+
+      - name: Create service configuration
+        shell: powershell
+        run: |
+          $serviceConfig = @"
+          <service>
+            <id>Quizzle</id>
+            <name>Quizzle Quiz Platform</name>
+            <description>Quizzle Quiz Platform Service</description>
+            <executable>Quizzle.exe</executable>
+            <workingdirectory>%BASE%</workingdirectory>
+            <logmode>rotate</logmode>
+            <logpath>%BASE%\logs</logpath>
+            <stoptimeout>30 sec</stoptimeout>
+            <startmode>Automatic</startmode>
+            <onfailure action="restart" delay="10 sec"/>
+            <resetfailure>1 hour</resetfailure>
+            <env name="NODE_ENV" value="production"/>
+          </service>
+          "@
+          $serviceConfig | Out-File -FilePath "installer\QuizzleService.xml" -Encoding UTF8
+
       - name: Install WiX Toolset
         run: |
           choco install wixtoolset -y
@@ -204,10 +229,10 @@ jobs:
       - name: Create MSI installer structure
         shell: cmd
         run: |
-          mkdir installer\webui-dist
-          mkdir installer\content-files
-          xcopy /E /I webui\dist installer\webui-dist
-          xcopy /E /I content installer\content-files
+          mkdir installer\dist
+          mkdir installer\content
+          xcopy /E /I webui\dist installer\dist
+          xcopy /E /I content installer\content
 
       - name: Create WiX configuration
         shell: powershell
@@ -215,7 +240,7 @@ jobs:
           $wxsContent = @"
           <?xml version="1.0" encoding="UTF-8"?>
           <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
-            <Product Id="*" Name="Quizzle" Language="1033" Version="${{ needs.prepare.outputs.version_number }}.0" Manufacturer="Mathias Wagner" UpgradeCode="12345678-1234-1234-1234-123456789012">
+            <Product Id="*" Name="Quizzle" Language="1033" Version="${{ needs.prepare.outputs.version_number }}.0" Manufacturer="Mathias Wagner" UpgradeCode="8F4A2E6D-1B9C-4E7A-A5D3-2F8E6B4C9D1A">
               <Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine" />
               
               <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
@@ -223,14 +248,19 @@ jobs:
               
               <Feature Id="ProductFeature" Title="Quizzle" Level="1">
                 <ComponentGroupRef Id="ProductComponents" />
-                <ComponentRef Id="QuizzleService" />
+                <ComponentGroupRef Id="DistFilesGroup" />
+                <ComponentGroupRef Id="ContentFilesGroup" />
                 <ComponentRef Id="DataFolder" />
+                <ComponentRef Id="LogsFolderComponent" />
               </Feature>
               
               <Directory Id="TARGETDIR" Name="SourceDir">
                 <Directory Id="ProgramFilesFolder">
                   <Directory Id="INSTALLFOLDER" Name="Quizzle">
+                    <Directory Id="DISTFOLDER" Name="dist" />
+                    <Directory Id="CONTENTFOLDER" Name="content" />
                     <Directory Id="DATAFOLDER" Name="data" />
+                    <Directory Id="LOGSFOLDER" Name="logs" />
                   </Directory>
                 </Directory>
               </Directory>
@@ -239,17 +269,22 @@ jobs:
                 <Component Id="QuizzleExecutable" Guid="*">
                   <File Id="QuizzleExe" Source="Quizzle.exe" KeyPath="yes" />
                 </Component>
+                <Component Id="ServiceWrapper" Guid="7A3E5C9F-8B2D-4E6A-9C1F-5A8D3E7B9C2F">
+                  <File Id="ServiceWrapperExe" Source="QuizzleService.exe" KeyPath="yes" />
+                  <File Id="ServiceConfig" Source="QuizzleService.xml" />
+                  <ServiceInstall Id="QuizzleService" Name="Quizzle" DisplayName="Quizzle Quiz Platform" 
+                                 Type="ownProcess" Start="auto" ErrorControl="normal" 
+                                 Description="Quizzle Quiz Platform Service"
+                                 Account="LocalSystem" Interactive="no" />
+                  <ServiceControl Id="QuizzleServiceControl" Name="Quizzle" Start="install" Stop="both" Remove="uninstall" Wait="yes" />
+                </Component>
               </ComponentGroup>
               
-              <Component Id="QuizzleService" Directory="INSTALLFOLDER" Guid="*">
-                <ServiceInstall Id="QuizzleService" Name="Quizzle" DisplayName="Quizzle Quiz Platform" 
-                               Type="ownProcess" Start="auto" ErrorControl="normal" 
-                               Description="Quizzle Quiz Platform Service"
-                               Arguments="" />
-                <ServiceControl Id="QuizzleServiceControl" Name="Quizzle" Start="install" Stop="both" Remove="uninstall" Wait="yes" />
+              <Component Id="LogsFolderComponent" Directory="LOGSFOLDER" Guid="2E6A8C4F-1D7B-4A9E-8C3F-7A2E6B9D4C8A">
+                <CreateFolder />
               </Component>
               
-              <Component Id="DataFolder" Directory="DATAFOLDER" Guid="*">
+              <Component Id="DataFolder" Directory="DATAFOLDER" Guid="9B4E7A2D-6C8F-4E1A-9D3C-5A8E7B1F4C9D">
                 <CreateFolder />
               </Component>
             </Product>
@@ -260,8 +295,10 @@ jobs:
       - name: Build MSI
         working-directory: installer
         run: |
-          candle quizzle.wxs
-          light quizzle.wixobj -o Quizzle-${{ needs.prepare.outputs.version_number }}-installer.msi
+          heat dir dist -cg DistFilesGroup -gg -scom -sreg -sfrag -srd -dr DISTFOLDER -var var.DistSourceDir -out dist-files.wxs
+          heat dir content -cg ContentFilesGroup -gg -scom -sreg -sfrag -srd -dr CONTENTFOLDER -var var.ContentSourceDir -out content-files.wxs
+          candle quizzle.wxs dist-files.wxs content-files.wxs -dDistSourceDir=dist -dContentSourceDir=content
+          light quizzle.wixobj dist-files.wixobj content-files.wixobj -o Quizzle-${{ needs.prepare.outputs.version_number }}-installer.msi
 
       - name: Upload MSI artifact
         uses: actions/upload-artifact@v4

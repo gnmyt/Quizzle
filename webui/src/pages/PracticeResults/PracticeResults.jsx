@@ -8,8 +8,9 @@ import Dialog from "@/common/components/Dialog";
 import {postRequest} from "@/common/utils/RequestUtil.js";
 import {getCharacterEmoji} from "@/common/data/characters";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
-import {faUser, faCheck, faTimes, faMinus, faChartBar} from "@fortawesome/free-solid-svg-icons";
+import {faUser, faCheck, faTimes, faMinus, faChartBar, faDownload, faHome} from "@fortawesome/free-solid-svg-icons";
 import AnalyticsTabs from "@/common/components/AnalyticsTabs";
+import {exportPracticeResultsToExcel} from "@/common/utils/ExcelExport";
 import "./styles.sass";
 import toast from "react-hot-toast";
 
@@ -89,6 +90,21 @@ export const PracticeResults = () => {
     const closeStudentDetails = () => {
         setSelectedStudent(null);
         setStudentDetailsOpen(false);
+    };
+
+    const handleExportToExcel = () => {
+        if (!results || !analyticsData) {
+            toast.error('Keine Daten zum Exportieren verfügbar');
+            return;
+        }
+
+        try {
+            const filename = exportPracticeResultsToExcel(results, code);
+            toast.success(`Analytics exportiert: ${filename}`);
+        } catch (error) {
+            console.error('Error exporting to Excel:', error);
+            toast.error('Fehler beim Exportieren der Daten');
+        }
     };
 
     const generatePracticeAnalytics = () => {
@@ -369,7 +385,7 @@ export const PracticeResults = () => {
                         <div className="stat-number">
                             {formatDuration(results.meta.created, results.meta.expiry)} Tage
                         </div>
-                        <div className="stat-label">Verbleibt</div>
+                        <div className="stat-label">Verbleiben</div>
                     </div>
                 </div>
 
@@ -399,7 +415,7 @@ export const PracticeResults = () => {
 
                         {activeView === 'students' && (
                             <div className="students-section">
-                                <h3>Nach Studenten gruppiert</h3>
+                                <h3>Nach Schülern gruppiert</h3>
                                 <div className="students-grid">
                                     {Object.entries(results.studentResults).map(([studentName, attempts]) => {
                                         const bestAttempt = attempts.reduce((best, current) =>
@@ -446,7 +462,20 @@ export const PracticeResults = () => {
                 </div>
 
                 <div className="bottom-actions-section">
-                    <Button text="Zurück zur Startseite" onClick={() => navigate('/')}/>
+                    <Button 
+                        text="Zurück zur Startseite"
+                        icon={faHome}
+                        onClick={() => navigate('/')}
+                        type="compact primary"
+                    />
+                    {analyticsData && (
+                        <Button
+                            text="Als Excel herunterladen"
+                            icon={faDownload}
+                            onClick={handleExportToExcel}
+                            type="compact green"
+                        />
+                    )}
                 </div>
             </motion.div>
 

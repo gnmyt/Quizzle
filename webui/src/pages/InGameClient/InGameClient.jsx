@@ -28,6 +28,8 @@ export const InGameClient = () => {
     const [selection, setSelection] = useState([]);
     const [currentQuestion, setCurrentQuestion] = useState(null);
     const [answers, setAnswers] = useState([]);
+    const [lastQuestionType, setLastQuestionType] = useState(null);
+    const [userSubmittedAnswer, setUserSubmittedAnswer] = useState(null);
     const [isConnected, setIsConnected] = useState(socket.connected);
     const [isReconnecting, setIsReconnecting] = useState(false);
 
@@ -51,7 +53,9 @@ export const InGameClient = () => {
         const onQuestion = (question) => {
             setAnswers([]);
             setSelection([]);
+            setUserSubmittedAnswer(null);
             setCurrentQuestion(question);
+            setLastQuestionType(question?.type || null);
         }
 
         const onPoints = (points) => {
@@ -325,6 +329,8 @@ export const InGameClient = () => {
 
         if (currentQuestion.type === 'text') {
             setSelection([answers]);
+            setUserSubmittedAnswer(answers);
+            setLastQuestionType('text');
             socket.emit("SUBMIT_ANSWER", {answers}, (success) => {
                 if (!success) {
                     console.error("Failed to submit answer");
@@ -335,6 +341,7 @@ export const InGameClient = () => {
         } else {
             let selection = Array.from({length: currentQuestion.answers}, (_, index) => answers.includes(index));
             setSelection(selection);
+            setLastQuestionType(currentQuestion.type);
             socket.emit("SUBMIT_ANSWER", {answers}, (success) => {
                 if (!success) {
                     console.error("Failed to submit answer");
@@ -346,11 +353,14 @@ export const InGameClient = () => {
     }
 
     const getCorrectStatus = (selection, answers) => {
-        if (currentQuestion?.type === 'text') {
-            const userAnswer = selection[0];
+        const questionType = currentQuestion?.type || lastQuestionType;
+        
+        if (questionType === 'text') {
+            const userAnswer = userSubmittedAnswer || selection[0];
+            
             if (Array.isArray(answers)) {
                 return answers.some(correctAnswer => 
-                    correctAnswer.toLowerCase().trim() === userAnswer.toLowerCase().trim()
+                    correctAnswer.toLowerCase().trim() === userAnswer?.toLowerCase().trim()
                 ) ? 1 : -1;
             }
             return -1;
@@ -488,12 +498,6 @@ export const InGameClient = () => {
                                 {getCorrectStatus(selection, answers) === 0 && "Teilweise richtig!"}
                                 {getCorrectStatus(selection, answers) === -1 && "Falsch!"}
                             </h2>
-
-                            {getCorrectStatus(selection, answers) === 0 && Array.isArray(answers) && !currentQuestion?.type === 'text' && 
-                                <h3>Richtige Antworten: {answers.map((value, index) => value ? index + 1 : null).filter(value => value !== null).join(", ")}</h3>}
-                            
-                            {currentQuestion?.type === 'text' && getCorrectStatus(selection, answers) === -1 && Array.isArray(answers) &&
-                                <h3>Richtige Antworten: {answers.join(", ")}</h3>}
                         </>
                     )}
                 </div>

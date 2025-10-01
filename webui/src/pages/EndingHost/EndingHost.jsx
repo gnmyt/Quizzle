@@ -6,12 +6,16 @@ import Scoreboard from "@/pages/InGameHost/components/Scoreboard/index.js";
 import AnalyticsTabs from "@/common/components/AnalyticsTabs";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faChartBar, faTrophy } from "@fortawesome/free-solid-svg-icons";
+import {useSoundManager} from "@/common/utils/SoundManager.js";
+import SoundRenderer from "@/common/components/SoundRenderer";
 
 export const EndingHost = () => {
     const {isLoaded, scoreboard} = useContext(QuizContext);
     const navigate = useNavigate();
+    const soundManager = useSoundManager();
     const [activeView, setActiveView] = useState('scoreboard');
     const [analyticsData, setAnalyticsData] = useState(null);
+    const [hasPlayedEndingSound, setHasPlayedEndingSound] = useState(false);
 
     useEffect(() => {
         if (!isLoaded) {
@@ -24,6 +28,19 @@ export const EndingHost = () => {
         }
     }, [isLoaded, scoreboard]);
 
+    useEffect(() => {
+        if (!isLoaded) return;
+
+        if (!hasPlayedEndingSound) {
+            const timer = setTimeout(() => {
+                soundManager.playCelebration('GAME_COMPLETE');
+                setHasPlayedEndingSound(true);
+            }, 500);
+
+            return () => clearTimeout(timer);
+        }
+    }, [isLoaded, soundManager, hasPlayedEndingSound]);
+
     const viewTabs = [
         { id: 'scoreboard', title: 'Ergebnisse', icon: faTrophy },
         { id: 'analytics', title: 'Analytics', icon: faChartBar }
@@ -31,20 +48,19 @@ export const EndingHost = () => {
 
     return (
         <div className="ending-page">
-            <div className="ending-header">
-                <h1>Quiz Beendet</h1>
-                <div className="view-toggle">
-                    {viewTabs.map(tab => (
-                        <button
-                            key={tab.id}
-                            className={`toggle-button ${activeView === tab.id ? 'active' : ''}`}
-                            onClick={() => setActiveView(tab.id)}
-                        >
-                            <FontAwesomeIcon icon={tab.icon} />
-                            <span>{tab.title}</span>
-                        </button>
-                    ))}
-                </div>
+            <SoundRenderer />
+            
+            <div className="view-toggle">
+                {viewTabs.map(tab => (
+                    <button
+                        key={tab.id}
+                        className={`toggle-button ${activeView === tab.id ? 'active' : ''}`}
+                        onClick={() => setActiveView(tab.id)}
+                    >
+                        <FontAwesomeIcon icon={tab.icon} />
+                        <span>{tab.title}</span>
+                    </button>
+                ))}
             </div>
 
             {activeView === 'scoreboard' && (

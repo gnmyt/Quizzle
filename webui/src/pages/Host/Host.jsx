@@ -7,19 +7,23 @@ import Triangle from "@/pages/Host/assets/Triangle.jsx";
 import {BrandingContext} from "@/common/contexts/Branding";
 import {motion} from "framer-motion";
 import Button from "@/common/components/Button";
-import {faGamepad, faUser, faVolumeMute} from "@fortawesome/free-solid-svg-icons";
+import {faGamepad, faUser, faVolumeMute, faVolumeUp} from "@fortawesome/free-solid-svg-icons";
 import {socket} from "@/common/utils/SocketUtil.js";
 import {getCharacterEmoji} from "@/common/data/characters";
+import {useSoundManager} from "@/common/utils/SoundManager.js";
+import SoundRenderer from "@/common/components/SoundRenderer";
 
 export const Host = () => {
     const navigate = useNavigate();
     const {setCirclePosition} = useOutletContext();
-    const {isLoaded, quizRaw} = useContext(QuizContext);
+    const {isLoaded, quizRaw, soundEnabled, toggleSound} = useContext(QuizContext);
     const {titleImg} = useContext(BrandingContext);
+    const soundManager = useSoundManager();
     const [qrShown, setQrShown] = useState(false);
 
     const [roomCode, setRoomCode] = useState("0000");
     const [players, setPlayers] = useState([]);
+    const [lobbyAmbientId, setLobbyAmbientId] = useState(null);
 
     const getJoinUrl = () => {
         return window.location.href.split("/host")[0]
@@ -38,10 +42,12 @@ export const Host = () => {
 
         socket.on("PLAYER_JOINED", (player) => {
             setPlayers(players => [...players, player]);
+            soundManager.playFeedback('PLAYER_JOINED');
         });
 
         socket.on("PLAYER_LEFT", (player) => {
             setPlayers(players => players.filter(p => p.id !== player.id));
+            soundManager.playFeedback('PLAYER_LEFT');
         });
 
         socket.on("PLAYER_DISCONNECTED", (player) => {
@@ -49,6 +55,7 @@ export const Host = () => {
                 setPlayers(players => players.map(p => p.id === player.id ? {...p, disconnected: true} : p));
             } else {
                 setPlayers(players => players.filter(p => p.id !== player.id));
+                soundManager.playFeedback('PLAYER_LEFT');
             }
         });
 
@@ -72,6 +79,10 @@ export const Host = () => {
             socket.off("PLAYER_LEFT");
             socket.off("PLAYER_DISCONNECTED");
             socket.off("PLAYER_RECONNECTED");
+
+            if (lobbyAmbientId) {
+                soundManager.stopSound(lobbyAmbientId);
+            }
         }
     }, [isLoaded]);
 
@@ -82,11 +93,26 @@ export const Host = () => {
 
     const startGame = () => {
         if (players.length === 0) return;
+
+        if (lobbyAmbientId) {
+            soundManager.stopSound(lobbyAmbientId);
+            setLobbyAmbientId(null);
+        }
+        
         navigate("/host/ingame");
     }
 
     useEffect(() => {
         setCirclePosition(["-25rem 0 0 -25rem", "-8rem 0 0 -8rem"]);
+
+        const ambientId = soundManager.playAmbient('LOBBY');
+        setLobbyAmbientId(ambientId);
+        
+        return () => {
+            if (ambientId) {
+                soundManager.stopSound(ambientId);
+            }
+        };
     }, []);
 
     if (!isLoaded) {
@@ -144,8 +170,15 @@ export const Host = () => {
 
             <motion.div className="system-ui" initial={{opacity: 0, y: 100}} animate={{opacity: 1, y: 0}}>
                 <Button icon={faUser} text={players.length} padding="0.5rem 0.8rem"/>
-                <Button icon={faVolumeMute} padding="0.5rem 0.8rem"/>
+                <Button 
+                    icon={soundEnabled ? faVolumeUp : faVolumeMute} 
+                    padding="0.5rem 0.8rem"
+                    onClick={toggleSound}
+                    variant={soundEnabled ? "primary" : "secondary"}
+                />
             </motion.div>
+            
+            <SoundRenderer />
         </div>
     );
 }

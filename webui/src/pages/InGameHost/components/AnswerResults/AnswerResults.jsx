@@ -3,8 +3,19 @@ import "./styles.sass";
 import Button from "@/common/components/Button";
 import {faForward, faCheck} from "@fortawesome/free-solid-svg-icons";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
+import {useSoundManager} from "@/common/utils/SoundManager.js";
+import {useEffect} from "react";
 
 export const AnswerResults = ({question, answerData, showScoreboard}) => {
+    const soundManager = useSoundManager();
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            soundManager.playFeedback('ANSWER_REVEALED');
+        }, 600);
+
+        return () => clearTimeout(timer);
+    }, [soundManager]);
     const getColorByIndex = (index) => {
         switch (index) {
             case 1:

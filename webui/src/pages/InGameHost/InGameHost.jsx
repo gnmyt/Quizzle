@@ -1,4 +1,4 @@
-import {useContext, useEffect, useState} from "react";
+import {useContext, useEffect, useRef, useState} from "react";
 import {socket} from "@/common/utils/SocketUtil.js";
 import {QuizContext} from "@/common/contexts/Quiz";
 import toast from "react-hot-toast";
@@ -10,12 +10,14 @@ import Button from "@/common/components/Button";
 import {faForward} from "@fortawesome/free-solid-svg-icons";
 import Scoreboard from "@/pages/InGameHost/components/Scoreboard";
 import AnswerResults from "@/pages/InGameHost/components/AnswerResults";
-import Sound from "react-sound";
-import InGameMusic from "./assets/music/ingame.wav";
+import {useSoundManager} from "@/common/utils/SoundManager.js";
+import SoundRenderer from "@/common/components/SoundRenderer";
 
 export const InGameHost = () => {
     const {isLoaded, pullNextQuestion, scoreboard, setScoreboard} = useContext(QuizContext);
     const navigate = useNavigate();
+    const soundManager = useSoundManager();
+    const inGameMusicRef = useRef(null);
 
     const [currentQuestion, setCurrentQuestion] = useState({});
     const [gameState, setGameState] = useState('question');
@@ -31,6 +33,12 @@ export const InGameHost = () => {
                 setScoreboard(data.scoreboard);
                 setAnswerData(data.answerData);
                 setGameState('answer-results');
+
+                if (inGameMusicRef.current) {
+                    soundManager.stopSound(inGameMusicRef.current);
+                    inGameMusicRef.current = null;
+                }
+                soundManager.playTransition('RESULTS');
             });
         } catch (e) {
             console.error("Error skipping question:", e);
@@ -39,6 +47,11 @@ export const InGameHost = () => {
 
     const showScoreboard = () => {
         setGameState('scoreboard');
+        if (inGameMusicRef.current) {
+            soundManager.stopSound(inGameMusicRef.current);
+            inGameMusicRef.current = null;
+        }
+        soundManager.playTransition('SCOREBOARD');
     }
 
     const nextQuestion = async () => {
@@ -47,6 +60,13 @@ export const InGameHost = () => {
             setCurrentQuestion(newQuestion);
             setGameState('question');
             setAnswerData(null);
+
+            if (!inGameMusicRef.current && (gameState === 'answer-results' || gameState === 'scoreboard')) {
+                inGameMusicRef.current = soundManager.playAmbient('INGAME');
+            }
+
+            soundManager.playTransition('QUESTION');
+            
             const newQuestionCopy = {...newQuestion, b64_image: undefined};
 
             for (let i = 0; i < newQuestion.answers.length; i++) {
@@ -68,6 +88,12 @@ export const InGameHost = () => {
                         setScoreboard({scoreboard: data.players});
                     }
                 }
+
+                if (inGameMusicRef.current) {
+                    soundManager.stopSound(inGameMusicRef.current);
+                    inGameMusicRef.current = null;
+                }
+                
                 navigate("/host/ending");
             });
         }
@@ -80,14 +106,23 @@ export const InGameHost = () => {
             return;
         }
 
+        inGameMusicRef.current = soundManager.playAmbient('INGAME');
+
         socket.on("PLAYER_LEFT", (player) => {
             toast.error(`${player.name} hat das Spiel verlassen`);
+            soundManager.playFeedback('PLAYER_LEFT');
         });
 
         socket.on("ANSWERS_RECEIVED", (data) => {
             setScoreboard(data.scoreboard);
             setAnswerData(data.answerData);
             setGameState('answer-results');
+
+            if (inGameMusicRef.current) {
+                soundManager.stopSound(inGameMusicRef.current);
+                inGameMusicRef.current = null;
+            }
+            soundManager.playTransition('RESULTS');
         });
 
         const timeout = setTimeout(() => nextQuestion(), 500);
@@ -96,12 +131,17 @@ export const InGameHost = () => {
             socket.off("PLAYER_LEFT");
             socket.off("ANSWERS_RECEIVED");
             clearTimeout(timeout);
+
+            if (inGameMusicRef.current) {
+                soundManager.stopSound(inGameMusicRef.current);
+                inGameMusicRef.current = null;
+            }
         }
     }, [isLoaded]);
 
     return (
         <div>
-            <Sound url={InGameMusic} playStatus={Sound.status.PLAYING} loop={true} volume={100} />
+            <SoundRenderer />
             
             {gameState === 'answer-results' && answerData && (
                 <AnswerResults 

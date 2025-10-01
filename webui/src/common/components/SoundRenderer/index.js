@@ -1,0 +1,1 @@
+export { SoundRenderer as default } from './SoundRenderer.jsx';

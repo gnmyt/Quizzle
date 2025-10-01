@@ -2,6 +2,7 @@ import {createContext, useEffect, useMemo, useState} from "react";
 import {request} from "@/common/utils/RequestUtil.js";
 import pako from "pako";
 import {socket, getSessionData} from "@/common/utils/SocketUtil.js";
+import {soundManager} from "@/common/utils/SoundManager.js";
 
 export const QuizContext = createContext({});
 
@@ -11,7 +12,7 @@ export const QuizProvider = ({children}) => {
     const [scoreboard, setScoreboard] = useState([]);
     const [roomCode, setRoomCode] = useState(null);
     const [username, setUsername] = useState("");
-    const [soundEnabled, setSoundEnabled] = useState(true);
+    const [soundEnabled, setSoundEnabled] = useState(() => soundManager.getSoundEnabled());
 
     useEffect(() => {
         const sessionData = getSessionData();
@@ -21,6 +22,16 @@ export const QuizProvider = ({children}) => {
             setUsername(sessionData.playerData.name);
         }
     }, [roomCode, username]);
+
+    useEffect(() => {
+        soundManager.setSoundEnabled(soundEnabled);
+    }, [soundEnabled]);
+
+    const toggleSound = () => {
+        const newSoundEnabled = !soundEnabled;
+        setSoundEnabled(newSoundEnabled);
+        soundManager.setSoundEnabled(newSoundEnabled);
+    };
 
     const pullNextQuestion = async () => {
         return new Promise((resolve, reject) => {
@@ -191,7 +202,7 @@ export const QuizProvider = ({children}) => {
 
     return (
         <QuizContext.Provider value={{isLoaded, loadQuizById, loadQuizByContent, quizRaw: quiz, pullNextQuestion,
-            scoreboard, setScoreboard, roomCode, setRoomCode, username, setUsername}}>
+            scoreboard, setScoreboard, roomCode, setRoomCode, username, setUsername, soundEnabled, setSoundEnabled, toggleSound}}>
             {children}
         </QuizContext.Provider>
     );

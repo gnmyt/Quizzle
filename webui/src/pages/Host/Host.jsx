@@ -2,7 +2,7 @@ import {useContext, useEffect, useState} from "react";
 import {QuizContext} from "@/common/contexts/Quiz";
 import {useNavigate, useOutletContext} from "react-router-dom";
 import "./styles.sass";
-import QRCode from "qrcode.react";
+import {QRCodeSVG} from "qrcode.react";
 import Triangle from "@/pages/Host/assets/Triangle.jsx";
 import {BrandingContext} from "@/common/contexts/Branding";
 import {motion} from "framer-motion";
@@ -123,7 +123,7 @@ export const Host = () => {
         <div className="host-page">
             {qrShown && <div className="qr-dialog" onClick={() => setQrShown(!qrShown)}>
                 <motion.div initial={{scale: 0}} animate={{scale: 1}}>
-                    <QRCode value={getJoinUrl()} className="qr-big" renderAs="svg"/>
+                    <QRCodeSVG value={getJoinUrl()} className="qr-big"/>
                 </motion.div>
             </div>}
 
@@ -131,7 +131,7 @@ export const Host = () => {
                 <motion.div className="quiz-information" initial={{opacity: 0, y: -100}} animate={{opacity: 1, y: 0}}>
                     <div className="info-header">
                         <h1>“{quizRaw.title}”</h1>
-                        <QRCode value={getJoinUrl()} size={100} renderAs="svg" className="qr"
+                        <QRCodeSVG value={getJoinUrl()} size={100} className="qr"
                                 onClick={() => setQrShown(!qrShown)}/>
                     </div>
 

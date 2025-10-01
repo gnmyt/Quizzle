@@ -1,4 +1,5 @@
-@import "@/common/styles/colors"
+@use "sass:color"
+@use "@/common/styles/colors" as *
 
 .answer-results
   display: flex
@@ -55,7 +56,7 @@
         font-size: 1.5rem
         text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5)
         margin: 0
-        background: linear-gradient(135deg, $dark-gray, lighten($dark-gray, 10%))
+        background: linear-gradient(135deg, $dark-gray, color.adjust($dark-gray, $lightness: 10%))
         padding: 0.5rem 1rem
         border-radius: 1rem
         min-width: 3rem
@@ -134,7 +135,7 @@
           position: absolute
           top: -1rem
           right: -1rem
-          background: linear-gradient(135deg, $green, darken($green, 10%))
+          background: linear-gradient(135deg, $green, color.adjust($green, $lightness: -10%))
           width: 2rem
           height: 2rem
           border-radius: 50%
@@ -164,7 +165,7 @@
           position: absolute
           top: -1rem
           right: -1rem
-          background: linear-gradient(135deg, $green, darken($green, 10%))
+          background: linear-gradient(135deg, $green, color.adjust($green, $lightness: -10%))
           width: 2rem
           height: 2rem
           border-radius: 50%
@@ -175,7 +176,7 @@
       position: absolute
       top: -1rem
       right: -1rem
-      background: linear-gradient(135deg, $green, darken($green, 10%))
+      background: linear-gradient(135deg, $green, color.adjust($green, $lightness: -10%))
       color: white
       width: 2rem
       height: 2rem

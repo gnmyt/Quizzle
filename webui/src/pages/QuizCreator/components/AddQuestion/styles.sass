@@ -3,7 +3,7 @@
 .add-question
   margin-top: 0.5rem
   display: flex
-  width: 10rem
+  width: clamp(8rem, 12vw, 12rem)
   height: 6rem
   background-color: $background
   border: 2px dashed $border
@@ -20,5 +20,5 @@
 
 @media screen and (max-width: 915px)
   .add-question
-    width: auto
+    width: 100%
     height: 5rem

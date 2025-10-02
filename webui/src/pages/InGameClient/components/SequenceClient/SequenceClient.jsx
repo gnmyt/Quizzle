@@ -10,14 +10,11 @@ export const SequenceClient = ({question, onSubmit}) => {
 
     useEffect(() => {
         if (question && question.answers && Array.isArray(question.answers) && question.answers.length > 0) {
-            const shuffled = [...question.answers]
-                .map((answer, index) => ({
-                    ...answer,
-                    originalIndex: index,
-                    displayId: `client-${index}-${Math.random().toString(36).substring(2, 9)}`
-                }))
-                .sort(() => Math.random() - 0.5);
-            setSortableAnswers(shuffled);
+            const answersWithDisplayId = question.answers.map((answer, index) => ({
+                ...answer,
+                displayId: `client-${index}-${Math.random().toString(36).substring(2, 9)}`
+            }));
+            setSortableAnswers(answersWithDisplayId);
             setHasSubmitted(false);
         } else {
             setSortableAnswers([]);

@@ -433,6 +433,77 @@
 
                     &:hover
                       transform: translateX(2px)
+
+                .sequence-answer
+                  .answer-line
+                    margin-bottom: 1rem
+
+                    .answer-label
+                      color: $gray
+                      font-size: 0.85rem
+                      font-weight: 600
+                      margin-bottom: 0.5rem
+                      display: block
+
+                    .sequence-list
+                      display: flex
+                      flex-direction: column
+                      gap: 0.5rem
+
+                      &.correct-order
+                        .sequence-item
+                          background: rgba($green, 0.08)
+                          border-color: rgba($green, 0.3)
+
+                      .sequence-item
+                        display: flex
+                        align-items: center
+                        gap: 0.75rem
+                        padding: 0.75rem 1rem
+                        border-radius: 0.5rem
+                        border: 1px solid $border
+                        background: rgba($background, 0.8)
+                        transition: all 0.2s ease
+
+                        .position-number
+                          font-weight: 700
+                          color: $blue
+                          background: rgba($blue, 0.1)
+                          padding: 0.25rem 0.5rem
+                          border-radius: 1rem
+                          min-width: 2rem
+                          text-align: center
+                          font-size: 0.85rem
+
+                        .answer-content
+                          flex: 1
+                          font-size: 0.95rem
+                          font-weight: 500
+
+                        .answer-icon
+                          font-size: 1rem
+
+                          &.correct
+                            color: $green
+
+                          &.incorrect
+                            color: $red
+
+                        &.correct
+                          background: rgba($green, 0.12)
+                          border-color: rgba($green, 0.4)
+                          color: #0f5132
+
+                          .answer-content
+                            font-weight: 600
+
+                        &.incorrect
+                          background: rgba($red, 0.12)
+                          border-color: rgba($red, 0.4)
+                          color: #842029
+
+                          .answer-content
+                            font-weight: 600
   @media (max-width: 1024px)
     .results-content
       .stats-overview

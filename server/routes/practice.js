@@ -147,6 +147,16 @@ app.get('/:code', async (req, res) => {
         const decompressed = pako.inflate(quizData, {to: 'string'});
         const quiz = JSON.parse(decompressed);
 
+        const shuffleSequenceAnswers = (answers) => {
+            const shuffledAnswers = [...answers]
+                .map((answer, index) => ({
+                    ...answer,
+                    originalIndex: index
+                }))
+                .sort(() => Math.random() - 0.5);
+            return shuffledAnswers;
+        };
+
         const practiceQuiz = {
             ...quiz,
             questions: quiz.questions.map(question => {
@@ -154,6 +164,11 @@ app.get('/:code', async (req, res) => {
 
                 if (question.type === 'text') {
                     practiceQuestion.answers = [];
+                } else if (question.type === 'sequence') {
+                    practiceQuestion.answers = shuffleSequenceAnswers(question.answers.map(answer => ({
+                        content: answer.content,
+                        type: answer.type || 'text'
+                    })));
                 } else {
                     practiceQuestion.answers = question.answers.map(answer => ({
                         content: answer.content,
@@ -212,6 +227,36 @@ app.post('/:code/submit-answer', async (req, res) => {
             );
             answerResult = isCorrect ? 'correct' : 'incorrect';
             correctAnswer = question.answers[0]?.content;
+        } else if (question.type === 'sequence') {
+            const userOrder = answer;
+            const correctOrder = Array.from({length: question.answers.length}, (_, i) => i);
+
+            let isCompletelyCorrect = true;
+            if (userOrder.length !== correctOrder.length) {
+                isCompletelyCorrect = false;
+            } else {
+                for (let i = 0; i < userOrder.length; i++) {
+                    if (userOrder[i] !== correctOrder[i]) {
+                        isCompletelyCorrect = false;
+                        break;
+                    }
+                }
+            }
+            
+            if (isCompletelyCorrect) {
+                answerResult = 'correct';
+            } else {
+                let correctPositions = 0;
+                for (let i = 0; i < Math.min(userOrder.length, correctOrder.length); i++) {
+                    if (userOrder[i] === correctOrder[i]) {
+                        correctPositions++;
+                    }
+                }
+                const partialScore = correctPositions / correctOrder.length;
+                answerResult = partialScore >= 0.99 ? 'correct' : (partialScore > 0 ? 'partial' : 'incorrect');
+            }
+            
+            correctAnswer = question.answers.map(answer => answer.content);
         } else {
             if (Array.isArray(answer)) {
                 const correctIndices = question.answers

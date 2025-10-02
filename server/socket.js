@@ -13,10 +13,6 @@ const {
 
 const rooms = {};
 
-const getCorrectSequenceOrder = (question) => {
-    return question.answers.map((_, index) => index);
-};
-
 const isSequenceCompletelyCorrect = (userOrder, correctOrder) => {
     if (userOrder.length !== correctOrder.length) {
         return false;
@@ -42,7 +38,15 @@ const calculateSequencePartialScore = (userOrder, correctOrder) => {
 };
 
 const validateSequenceAnswer = (userOrder, question) => {
-    const correctOrder = getCorrectSequenceOrder(question);
+    let correctOrder;
+    if (Array.isArray(question.answers)) {
+        correctOrder = question.answers.map((_, index) => index);
+    } else if (typeof question.answers === 'number') {
+        correctOrder = Array.from({length: question.answers}, (_, index) => index);
+    } else {
+        correctOrder = Array.from({length: userOrder.length}, (_, index) => index);
+    }
+    
     const isCompletelyCorrect = isSequenceCompletelyCorrect(userOrder, correctOrder);
     
     if (isCompletelyCorrect) {
@@ -495,11 +499,8 @@ module.exports = (io, socket) => {
                     questionData.maxLength = 200;
                 } else if (room.currentQuestion.type === 'sequence') {
                     const originalQuestion = room.questionHistory[room.questionHistory.length - 1];
-                    if (originalQuestion && originalQuestion.answers) {
-                        questionData.answers = originalQuestion.answers.map(answer => ({
-                            content: answer.content,
-                            type: answer.type || 'text'
-                        }));
+                    if (originalQuestion && originalQuestion.shuffledAnswers) {
+                        questionData.answers = originalQuestion.shuffledAnswers;
                     } else {
                         questionData.answers = room.currentQuestion.answers.length;
                     }
@@ -534,10 +535,12 @@ module.exports = (io, socket) => {
         room.currentQuestion = {
             title: data.title,
             type: data.type,
-            answers: data.type === 'text' ? data.answers : data.answers.map(answer => {
-                const {content, ...rest} = answer;
-                return rest;
-            }),
+            answers: data.type === 'text' ? data.answers : 
+                     data.type === 'sequence' ? data.answers.length :
+                     data.answers.map(answer => {
+                         const {content, ...rest} = answer;
+                         return rest;
+                     }),
             isCompleted: false,
             answersReady: false
         };
@@ -545,7 +548,14 @@ module.exports = (io, socket) => {
         room.questionHistory.push({
             title: data.title,
             type: data.type,
-            answers: data.answers
+            answers: data.answers,
+            shuffledAnswers: data.type === 'sequence' ? [...data.answers]
+                .map((answer, index) => ({
+                    content: answer.content,
+                    type: answer.type || 'text',
+                    originalIndex: index
+                }))
+                .sort(() => Math.random() - 0.5) : undefined
         });
 
         room.playerAnswers.push({});
@@ -564,10 +574,8 @@ module.exports = (io, socket) => {
         if (data.type === 'text') {
             questionData.maxLength = 200;
         } else if (data.type === 'sequence') {
-            questionData.answers = data.answers.map(answer => ({
-                content: answer.content,
-                type: answer.type || 'text'
-            }));
+            const currentQuestionHistory = room.questionHistory[room.questionHistory.length - 1];
+            questionData.answers = currentQuestionHistory.shuffledAnswers;
         } else {
             questionData.answers = data.answers.length;
         }
@@ -617,7 +625,8 @@ module.exports = (io, socket) => {
             const correctTextAnswers = currentQuestion.answers.map(a => a.content.toLowerCase().trim());
             correctAnswers = correctTextAnswers.includes(userAnswer) ? 1 : 0;
         } else if (currentQuestion.type === 'sequence') {
-            correctAnswers = validateSequenceAnswer(data.answers, currentQuestion);
+            const sequenceResult = validateSequenceAnswer(data.answers, currentQuestion);
+            correctAnswers = sequenceResult.score;
         } else {
             let correctSelected = 0;
             let incorrectSelected = 0;

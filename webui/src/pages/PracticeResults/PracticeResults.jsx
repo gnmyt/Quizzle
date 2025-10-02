@@ -219,6 +219,49 @@ export const PracticeResults = () => {
                     )}
                 </div>
             );
+        } else if (question.type === QUESTION_TYPES.SEQUENCE) {
+            const userOrder = Array.isArray(answer) ? answer : [];
+            const correctOrder = Array.isArray(correctAnswer) ? correctAnswer : [];
+            
+            return (
+                <div className="sequence-answer">
+                    <div className="answer-line">
+                        <span className="answer-label">Ihre Reihenfolge:</span>
+                        <div className="sequence-list">
+                            {userOrder.map((originalIndex, position) => {
+                                const answerContent = question.answers[originalIndex]?.content || `Antwort ${originalIndex + 1}`;
+                                const isCorrectPosition = userOrder[position] === position;
+                                return (
+                                    <div 
+                                        key={position} 
+                                        className={`sequence-item ${isCorrectPosition ? 'correct' : 'incorrect'}`}
+                                    >
+                                        <span className="position-number">{position + 1}.</span>
+                                        <span className="answer-content">{answerContent}</span>
+                                        <FontAwesomeIcon
+                                            icon={isCorrectPosition ? faCheck : faTimes}
+                                            className={`answer-icon ${isCorrectPosition ? 'correct' : 'incorrect'}`}
+                                        />
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                    {result !== 'correct' && (
+                        <div className="answer-line">
+                            <span className="answer-label">Richtige Reihenfolge:</span>
+                            <div className="sequence-list correct-order">
+                                {correctOrder.map((content, position) => (
+                                    <div key={position} className="sequence-item correct">
+                                        <span className="position-number">{position + 1}.</span>
+                                        <span className="answer-content">{content}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
         } else {
             const userSelections = Array.isArray(answer) ? answer : [answer];
             const correctIndices = Array.isArray(correctAnswer) ? correctAnswer : [correctAnswer];

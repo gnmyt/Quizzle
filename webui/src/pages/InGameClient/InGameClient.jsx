@@ -286,7 +286,7 @@ export const InGameClient = () => {
                 return (
                     <div className="ingame-content text-layout">
                         <TextInputClient onSubmit={submitAnswer} maxLength={question.maxLength || 200} />
-                        {!answersReady && (
+                        {!isPracticeMode && !answersReady && (
                             <div className="answers-not-ready-overlay">
                                 <div className="countdown-message">
                                     <div className="countdown-spinner">
@@ -304,7 +304,7 @@ export const InGameClient = () => {
                 return (
                     <div className="ingame-content sequence-layout">
                         <SequenceClient question={question} onSubmit={submitAnswer} />
-                        {!answersReady && (
+                        {!isPracticeMode && !answersReady && (
                             <div className="answers-not-ready-overlay">
                                 <div className="countdown-message">
                                     <div className="countdown-spinner">
@@ -342,7 +342,7 @@ export const InGameClient = () => {
                                 <FontAwesomeIcon icon={faCheckCircle} className={"ingame-icon"}/>
                             </div>
                         ))}
-                        {!answersReady && (
+                        {!isPracticeMode && !answersReady && (
                             <div className="answers-not-ready-overlay">
                                 <div className="countdown-message">
                                     <div className="countdown-spinner">
@@ -396,7 +396,7 @@ export const InGameClient = () => {
                                 <FontAwesomeIcon icon={faPaperPlane}/>
                             </button>
                         </div>
-                        {!answersReady && (
+                        {!isPracticeMode && !answersReady && (
                             <div className="answers-not-ready-overlay">
                                 <div className="countdown-message">
                                     <div className="countdown-spinner">

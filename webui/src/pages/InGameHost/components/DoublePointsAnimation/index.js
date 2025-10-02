@@ -1,0 +1,1 @@
+export { DoublePointsAnimation } from './DoublePointsAnimation';

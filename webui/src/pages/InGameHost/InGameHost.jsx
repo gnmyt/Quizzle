@@ -11,6 +11,7 @@ import {faForward} from "@fortawesome/free-solid-svg-icons";
 import Scoreboard from "@/pages/InGameHost/components/Scoreboard";
 import AnswerResults from "@/pages/InGameHost/components/AnswerResults";
 import CountdownTimer from "@/pages/InGameHost/components/CountdownTimer";
+import {DoublePointsAnimation} from "@/pages/InGameHost/components/DoublePointsAnimation";
 import {useSoundManager} from "@/common/utils/SoundManager.js";
 import SoundRenderer from "@/common/components/SoundRenderer";
 import {QUESTION_TYPES} from "@/common/constants/QuestionTypes.js";
@@ -26,10 +27,11 @@ export const InGameHost = () => {
     const [answerData, setAnswerData] = useState(null);
     const [questionAnimationState, setQuestionAnimationState] = useState('hidden');
     const [timerActive, setTimerActive] = useState(false);
+    const [showDoublePointsAnimation, setShowDoublePointsAnimation] = useState(false);
 
     const skipQuestion = async () => {
         try {
-            setTimerActive(false); // Stop the timer when manually skipping
+            setTimerActive(false);
             socket.emit("SKIP_QUESTION", null, (data) => {
                 if (!data) {
                     toast.error("Fehler beim Überspringen der Frage");
@@ -80,20 +82,38 @@ export const InGameHost = () => {
                 delete newQuestion.answers[i].b64_image;
             }
 
-            setTimeout(() => {
-                setQuestionAnimationState('question-appear');
-            }, 100);
+            if (newQuestion.pointMultiplier === 'double') {
+                setShowDoublePointsAnimation(true);
 
-            setTimeout(() => {
-                setQuestionAnimationState('answers-ready');
-                if (newQuestion.timer !== -1) {
-                    setTimerActive(true);
-                }
-            }, 5100);
+                setTimeout(() => {
+                    setShowDoublePointsAnimation(false);
 
-            socket.emit("SHOW_QUESTION", newQuestionCopy, (success) => {
-                if (!success) toast.error("Fehler beim Anzeigen der Frage");
-            });
+                    socket.emit("SHOW_QUESTION", newQuestionCopy, (success) => {
+                        if (!success) toast.error("Fehler beim Anzeigen der Frage");
+                    });
+                    
+                    startQuestionSequence();
+                }, 3000);
+            } else {
+                socket.emit("SHOW_QUESTION", newQuestionCopy, (success) => {
+                    if (!success) toast.error("Fehler beim Anzeigen der Frage");
+                });
+                
+                startQuestionSequence();
+            }
+
+            function startQuestionSequence() {
+                setTimeout(() => {
+                    setQuestionAnimationState('question-appear');
+                }, 100);
+
+                setTimeout(() => {
+                    setQuestionAnimationState('answers-ready');
+                    if (newQuestion.timer !== -1) {
+                        setTimerActive(true);
+                    }
+                }, 5100);
+            }
         } catch (e) {
             socket.emit("END_GAME", null, (data) => {
                 if (data) {
@@ -161,6 +181,11 @@ export const InGameHost = () => {
     return (
         <div>
             <SoundRenderer />
+
+            <DoublePointsAnimation 
+                isVisible={showDoublePointsAnimation} 
+                onComplete={() => setShowDoublePointsAnimation(false)}
+            />
 
             {gameState === 'question' && questionAnimationState === 'answers-ready' && currentQuestion && (
                 <CountdownTimer

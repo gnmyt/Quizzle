@@ -1,7 +1,7 @@
 import "./styles.sass";
 import SelectBox from "@/common/components/SelectBox";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
-import {faClock, faInfinity} from "@fortawesome/free-solid-svg-icons";
+import {faClock, faInfinity, faCoins} from "@fortawesome/free-solid-svg-icons";
 import {useState, useEffect} from "react";
 import {motion} from "framer-motion";
 
@@ -12,6 +12,11 @@ export const QuestionSettings = ({question, onChange}) => {
         if (question.timer === 30) return "30";
         if (question.timer === 120) return "120";
         return "custom";
+    });
+
+    const [selectedPointMultiplier, setSelectedPointMultiplier] = useState(() => {
+        if (question.pointMultiplier === undefined || question.pointMultiplier === null) return "standard";
+        return question.pointMultiplier;
     });
 
     const timerOptions = [
@@ -41,6 +46,27 @@ export const QuestionSettings = ({question, onChange}) => {
         }
     ];
 
+    const pointMultiplierOptions = [
+        {
+            value: "standard",
+            label: "Standard",
+            description: "Normale Punkteverteilung",
+            icon: faCoins
+        },
+        {
+            value: "none",
+            label: "Keine Punkte",
+            description: "Für diese Frage gibt es keine Punkte",
+            icon: faCoins
+        },
+        {
+            value: "double",
+            label: "Doppelte Punkte",
+            description: "Diese Frage bringt doppelte Punkte",
+            icon: faCoins
+        }
+    ];
+
     useEffect(() => {
         if (question.timer === undefined || question.timer === null) {
             setSelectedTimer("default");
@@ -53,7 +79,13 @@ export const QuestionSettings = ({question, onChange}) => {
         } else {
             setSelectedTimer("custom");
         }
-    }, [question.timer]);
+
+        if (question.pointMultiplier === undefined || question.pointMultiplier === null) {
+            setSelectedPointMultiplier("standard");
+        } else {
+            setSelectedPointMultiplier(question.pointMultiplier);
+        }
+    }, [question.timer, question.pointMultiplier]);
 
     const handleTimerChange = (value) => {
         setSelectedTimer(value);
@@ -70,6 +102,12 @@ export const QuestionSettings = ({question, onChange}) => {
         }
 
         onChange({...question, timer: timerNum});
+    };
+
+    const handlePointMultiplierChange = (value) => {
+        setSelectedPointMultiplier(value);
+        const multiplierValue = value === "standard" ? undefined : value;
+        onChange({...question, pointMultiplier: multiplierValue});
     };
 
     if (!question) return null;
@@ -92,6 +130,15 @@ export const QuestionSettings = ({question, onChange}) => {
                 </div>
 
                 <SelectBox value={selectedTimer} onChange={handleTimerChange} options={timerOptions} placeholder="Timer auswählen..."/>
+            </div>
+
+            <div className="setting-group">
+                <div className="setting-label">
+                    <FontAwesomeIcon icon={faCoins}/>
+                    <span>Punkteverteilung</span>
+                </div>
+
+                <SelectBox value={selectedPointMultiplier} onChange={handlePointMultiplierChange} options={pointMultiplierOptions} placeholder="Punkteverteilung auswählen..."/>
             </div>
         </motion.div>
     );

@@ -63,13 +63,23 @@ const validateSequenceAnswer = (userOrder, question) => {
     }
 };
 
-const calculatePoints = (correctAnswers, room) => {
+const calculatePoints = (correctAnswers, room, pointMultiplier) => {
+    if (pointMultiplier === 'none') {
+        return 0;
+    }
+    
     const basePoints = 100;
     const maxTime = 30000;
     const timeTaken = Math.min(maxTime, Date.now() - room.startTime);
     const timeFactor = 1 - timeTaken / maxTime;
 
-    return correctAnswers > 0 ? Math.round(basePoints * timeFactor + (correctAnswers * basePoints)) : 0;
+    let points = correctAnswers > 0 ? Math.round(basePoints * timeFactor + (correctAnswers * basePoints)) : 0;
+
+    if (pointMultiplier === 'double') {
+        points *= 2;
+    }
+    
+    return points;
 }
 
 const getActivePlayers = (room, io) => {
@@ -682,6 +692,7 @@ module.exports = (io, socket) => {
         room.currentQuestion = {
             title: data.title,
             type: data.type,
+            pointMultiplier: data.pointMultiplier,
             answers: data.type === 'text' ? data.answers : 
                      data.type === 'sequence' ? data.answers.length :
                      data.answers.map(answer => {
@@ -695,6 +706,7 @@ module.exports = (io, socket) => {
         room.questionHistory.push({
             title: data.title,
             type: data.type,
+            pointMultiplier: data.pointMultiplier,
             answers: data.answers,
             shuffledAnswers: data.type === 'sequence' ? [...data.answers]
                 .map((answer, index) => ({
@@ -797,7 +809,7 @@ module.exports = (io, socket) => {
             }
         }
 
-        const points = calculatePoints(correctAnswers, room);
+        const points = calculatePoints(correctAnswers, room, currentQuestion.pointMultiplier);
         room.players[socket.id].points += points;
 
         const currentAnswers = playerAnswers[playerAnswers.length - 1];

@@ -19,6 +19,10 @@ module.exports.questionValidation = Joi.object({
             'number.min': 'Timer muss -1 (unbegrenzt) oder eine positive Zahl sein',
             'number.max': 'Timer darf maximal 3600 Sekunden (1 Stunde) betragen'
         }),
+    pointMultiplier: Joi.string().valid('none', 'double').optional()
+        .messages({
+            'any.only': 'Punktemultiplikator muss "none" oder "double" sein'
+        }),
     b64_image: Joi.string().max(10000000),
     answers: Joi.when('type', {
         is: 'text',

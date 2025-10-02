@@ -589,18 +589,18 @@ export const InGameClient = () => {
                     )}
                     
                     {renderAnswerContent()}
+                </div>
+            )}
 
-                    {!isPracticeMode && !answersReady && (
-                        <div className="answers-not-ready-overlay">
-                            <div className="countdown-message">
-                                <div className="countdown-spinner">
-                                    <div className="countdown-number">{clientCountdown > 0 ? clientCountdown : '✓'}</div>
-                                    <div className="countdown-circle"></div>
-                                    <div className="spinner-background"></div>
-                                </div>
-                            </div>
+            {!isPracticeMode && !answersReady && (
+                <div className="answers-not-ready-overlay">
+                    <div className="countdown-message">
+                        <div className="countdown-spinner">
+                            <div className="countdown-number">{clientCountdown > 0 ? clientCountdown : '✓'}</div>
+                            <div className="countdown-circle"></div>
+                            <div className="spinner-background"></div>
                         </div>
-                    )}
+                    </div>
                 </div>
             )}
 

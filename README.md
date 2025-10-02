@@ -7,7 +7,7 @@
   
   [![GitHub stars](https://img.shields.io/github/stars/gnmyt/Quizzle?style=for-the-badge)](https://github.com/gnmyt/Quizzle/stargazers)
   [![GitHub license](https://img.shields.io/github/license/gnmyt/Quizzle?style=for-the-badge)](https://github.com/gnmyt/Quizzle/blob/main/LICENSE)
-  [![Docker Pulls](https://img.shields.io/docker/pulls/germannewsmaker/quizzle?style=for-the-badge)](https://hub.docker.com/r/gnmyt/quizzle)
+  [![Docker Pulls](https://img.shields.io/docker/pulls/germannewsmaker/quizzle?style=for-the-badge)](https://hub.docker.com/r/germannewsmaker/quizzle)
   
 </div>
 

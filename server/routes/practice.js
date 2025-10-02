@@ -5,6 +5,7 @@ const pako = require("pako");
 const path = require("path");
 const fs = require("fs").promises;
 const {generatePracticeCode, isAlphabeticCode} = require("../utils/random");
+const {brandingFolder} = require("../utils/file");
 const app = require('express').Router();
 
 const practiceQuizzesDir = path.join(process.cwd(), 'data', 'practice-quizzes');
@@ -54,7 +55,8 @@ app.put("/", createLimiter, async (req, res) => {
         if (validateSchema(res, quizUpload, req.body)) return;
 
         const {password} = req.headers;
-        const correctPassword = process.env.PASSWORD_PROTECTION;
+        const configPayload = require(path.join(brandingFolder, "config.json"));
+        const correctPassword = configPayload.password;
 
         if (correctPassword) {
             if (!password) {
@@ -313,7 +315,8 @@ app.post('/:code/results', passwordLimiter, async (req, res) => {
         const metaContent = await fs.readFile(metaPath, 'utf8');
         const meta = JSON.parse(metaContent);
 
-        const correctPassword = process.env.PASSWORD_PROTECTION;
+        const configPayload = require(path.join(brandingFolder, "config.json"));
+        const correctPassword = configPayload.password;
 
         if (correctPassword) {
             if (!password) {

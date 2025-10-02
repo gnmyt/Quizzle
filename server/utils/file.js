@@ -2,6 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const {validateSchema} = require("./error");
 const {brandingConfig} = require("../validations/brandingConfig");
+const {config} = require("../validations/config");
 
 const dataFolder = path.join(process.cwd(), 'data');
 const quizzesFolder = path.join(dataFolder, 'quizzes');
@@ -25,6 +26,10 @@ const createFiles = () => {
     if (!fs.existsSync(path.join(brandingFolder, "branding.json"))) {
         fs.copyFileSync(path.join(process.cwd(), "content", "branding.json"), path.join(brandingFolder, "branding.json"));
     }
+
+    if (!fs.existsSync(path.join(brandingFolder, "config.json"))) {
+        fs.copyFileSync(path.join(process.cwd(), "content", "config.json"), path.join(brandingFolder, "config.json"));
+    }
 }
 
 module.exports.firstStart = () => {
@@ -35,6 +40,13 @@ module.exports.firstStart = () => {
 
     if (error) {
         console.error("Invalid branding.json file: " + error.message);
+        process.exit(1);
+    }
+
+    const configError = validateSchema(null, config, require(path.join(brandingFolder, "config.json")));
+
+    if (configError) {
+        console.error("Invalid config.json file: " + configError.message);
         process.exit(1);
     }
 }

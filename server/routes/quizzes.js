@@ -5,7 +5,7 @@ const pako = require("pako");
 const path = require("path");
 const fs = require("fs");
 const app = require('express').Router();
-const {quizzesFolder} = require("../utils/file");
+const {quizzesFolder, brandingFolder} = require("../utils/file");
 const {generateQuizId} = require("../utils/random");
 
 const uploadFile = async (content) => {
@@ -60,7 +60,8 @@ app.get('/:quizId', (req, res) => {
 
 app.post("/validate-password", passwordLimiter, (req, res) => {
     const { password } = req.body;
-    const correctPassword = process.env.PASSWORD_PROTECTION;
+    const configPayload = require(path.join(brandingFolder, "config.json"));
+    const correctPassword = configPayload.password;
     
     if (!correctPassword) {
         return res.status(400).json({ message: "Password protection not enabled" });
@@ -80,7 +81,8 @@ app.post("/validate-password", passwordLimiter, (req, res) => {
 app.put("/", limiter, async (req, res) => {
     if (validateSchema(res, quizUpload, req.body)) return;
 
-    const passwordProtection = process.env.PASSWORD_PROTECTION;
+    const configPayload = require(path.join(brandingFolder, "config.json"));
+    const passwordProtection = configPayload.password;
     if (passwordProtection) {
         const password = req.headers['x-quiz-password'];
         

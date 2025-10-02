@@ -12,7 +12,6 @@ import {
     faExclamationTriangle,
     faFileDownload,
     faFileImport,
-    faLock,
     faGraduationCap
 } from "@fortawesome/free-solid-svg-icons";
 import QuestionPreview from "@/pages/QuizCreator/components/QuestionPreview";
@@ -280,9 +279,7 @@ export const QuizCreator = () => {
                                 onClick={handleUploadClick}
                                 title={passwordProtected && !isAuthenticated ? "Passwort erforderlich" : "Als Live-Quiz hochladen"}
                             >
-                                <FontAwesomeIcon 
-                                    icon={passwordProtected && !isAuthenticated ? faLock : faCloudUpload} 
-                                />
+                                <FontAwesomeIcon icon={faCloudUpload} />
                             </div>
                             <div 
                                 className={`action-button practice ${passwordProtected && !isAuthenticated ? 'locked' : ''}`}

@@ -23,8 +23,6 @@ services:
       - ./data:/quizzle/data
     environment:
       - TZ=Europe/Berlin
-      # Optional: Passwort für Quiz-Upload
-      # - PASSWORD_PROTECTION=ihr-sicheres-passwort
     restart: unless-stopped
 ```
 
@@ -76,11 +74,30 @@ Der Server läuft standardmäßig auf Port 6412. Sie können den Port über die 
 
 Folgende Umgebungsvariablen stehen zur Verfügung:
 
-| Variable              | Beschreibung                        | Standardwert |
-|-----------------------|-------------------------------------|--------------|
-| `PORT`                | Port für den Webserver              | 6412         |
-| `PASSWORD_PROTECTION` | Passwort für Quiz-Upload (optional) | -            |
-| `TZ`                  | Zeitzone                            | UTC          |
+| Variable | Beschreibung    | Standardwert |
+|----------|-----------------|--------------|
+| `PORT`   | Port für den Webserver | 6412         |
+| `TZ`     | Zeitzone        | UTC          |
+
+### Konfigurationsdatei
+
+Quizzle erstellt beim ersten Start automatisch eine `config.json` Datei im `data/branding/` Verzeichnis. Diese Datei enthält wichtige Konfigurationseinstellungen:
+
+```json
+{
+  "password": ""
+}
+```
+
+Um ein Lehrerpasswort zu setzen, bearbeiten Sie die `config.json` Datei:
+
+```json
+{
+  "password": "ihr-sicheres-passwort"
+}
+```
+
+Nach dem Speichern ist das Passwort sofort aktiv. Ein Neustart ist nicht erforderlich.
 
 
 ## Freigabe
@@ -96,5 +113,13 @@ Es wird stark empfohlen, ein Lehrerpasswort zu setzen. Hiermit lassen sich Quizz
 einfacher zu starten.
 
 Sie dienen ebenfalls dem Self-Practice-Modus, um Ergebnisse zu sehen.
+
+Um das Lehrerpasswort zu setzen, bearbeiten Sie die `data/branding/config.json` Datei und tragen Sie Ihr gewünschtes Passwort ein:
+
+```json
+{
+  "password": "ihr-sicheres-passwort"
+}
+```
 
 Das Lehrerpasswort sollte regelmäßig rotiert werden.

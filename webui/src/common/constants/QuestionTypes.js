@@ -13,7 +13,7 @@ export const QUESTION_TYPE_CONFIG = [
     {type: QUESTION_TYPES.MULTIPLE_CHOICE, icon: faListUl, name: 'Auswahlmöglichkeiten', description: 'Spieler wählen aus vorgegebenen Antwortmöglichkeiten'},
     {type: QUESTION_TYPES.TRUE_FALSE, icon: faToggleOn, name: 'Wahr/Falsch', description: 'Spieler wählen zwischen Wahr und Falsch'},
     {type: QUESTION_TYPES.TEXT, icon: faKeyboard, name: 'Text Eingabe', description: 'Spieler geben ihre Antwort als Text ein'},
-    {type: QUESTION_TYPES.SEQUENCE, icon: faSort, name: 'Reihenfolge', description: 'Spieler sortieren vorgegebene Antworten in die richtige Reihenfolge'}
+    {type: QUESTION_TYPES.SEQUENCE, icon: faSort, name: 'Reihenfolge', description: 'Spieler sortieren Antworten in die richtige Reihenfolge'}
 ];
 
 export const getQuestionTypeConfig = (type) => QUESTION_TYPE_CONFIG.find(config => config.type === type) || QUESTION_TYPE_CONFIG[0];

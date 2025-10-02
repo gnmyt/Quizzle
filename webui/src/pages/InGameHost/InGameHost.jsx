@@ -12,6 +12,7 @@ import Scoreboard from "@/pages/InGameHost/components/Scoreboard";
 import AnswerResults from "@/pages/InGameHost/components/AnswerResults";
 import {useSoundManager} from "@/common/utils/SoundManager.js";
 import SoundRenderer from "@/common/components/SoundRenderer";
+import {QUESTION_TYPES} from "@/common/constants/QuestionTypes.js";
 
 export const InGameHost = () => {
     const {isLoaded, pullNextQuestion, scoreboard, setScoreboard} = useContext(QuizContext);
@@ -170,14 +171,14 @@ export const InGameHost = () => {
                         </div>
                         <Question title={currentQuestion.title} image={currentQuestion.b64_image}/>
 
-                        {currentQuestion.type !== 'text' && (
+                        {currentQuestion.type !== QUESTION_TYPES.TEXT && (
                             <div className="answer-list">
                                 {currentQuestion.answers.map((answer, index) => <Answer key={index} answer={answer}
                                                                                         index={index}/>)}
                             </div>
                         )}
 
-                        {currentQuestion.type === 'text' && (
+                        {currentQuestion.type === QUESTION_TYPES.TEXT && (
                             <div className="text-question-indicator">
                                 <h2>Spieler geben ihre Antworten ein...</h2>
                                 <div className="text-input-animation">

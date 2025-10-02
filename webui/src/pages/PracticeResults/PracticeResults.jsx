@@ -10,6 +10,7 @@ import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import {faUser, faCheck, faTimes, faMinus, faChartBar, faDownload, faHome} from "@fortawesome/free-solid-svg-icons";
 import AnalyticsTabs from "@/common/components/AnalyticsTabs";
 import {exportPracticeResultsToExcel} from "@/common/utils/ExcelExport";
+import {QUESTION_TYPES} from "@/common/constants/QuestionTypes.js";
 import "./styles.sass";
 import toast from "react-hot-toast";
 
@@ -197,7 +198,7 @@ export const PracticeResults = () => {
     };
 
     const renderAnswerContent = (question, answer, result, correctAnswer) => {
-        if (question.type === 'text') {
+        if (question.type === QUESTION_TYPES.TEXT) {
             return (
                 <div className="text-answer">
                     <div className="answer-line">

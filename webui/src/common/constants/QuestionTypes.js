@@ -20,7 +20,7 @@ export const getQuestionTypeName = (type) => getQuestionTypeConfig(type).name;
 
 export const getDefaultAnswersForType = (type) => {
     switch (type) {
-        case QUESTION_TYPES.TRUE_FALSE: return [{type: 'text', content: 'Wahr', is_correct: false}, {type: 'text', content: 'Falsch', is_correct: false}];
+        case QUESTION_TYPES.TRUE_FALSE: return [{type: QUESTION_TYPES.TEXT, content: 'Wahr', is_correct: false}, {type: QUESTION_TYPES.TEXT, content: 'Falsch', is_correct: false}];
         case QUESTION_TYPES.TEXT: return [{content: ''}];
         case QUESTION_TYPES.MULTIPLE_CHOICE:
         default: return [];

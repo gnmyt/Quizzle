@@ -25,6 +25,7 @@ import {useInputValidation, validationRules} from "@/common/hooks/useInputValida
 import {prepareQuizData, prepareQuizDataForExport, cleanupQuestionImages, cleanupSingleQuestionImages} from "@/common/utils/QuizDataUtil.js";
 import {createFileInput, importQuizzleFile, downloadQuizzleFile} from "@/common/utils/FileOperationsUtil.js";
 import {QuizValidationUtil} from "@/common/utils/QuizValidationUtil.js";
+import {QUESTION_TYPES} from "@/common/constants/QuestionTypes.js";
 import {usePasswordAuthentication} from "@/common/hooks/usePasswordAuthentication.js";
 import {DEFAULT_QUESTION_TYPE} from "@/common/constants/QuestionTypes.js";
 
@@ -57,7 +58,7 @@ export const QuizCreator = () => {
                             const { b64_image: answerB64, ...cleanAnswer } = answer;
                             return {
                                 ...cleanAnswer,
-                                type: cleanAnswer.type || 'text'
+                                type: cleanAnswer.type || QUESTION_TYPES.TEXT
                             };
                         });
                     }

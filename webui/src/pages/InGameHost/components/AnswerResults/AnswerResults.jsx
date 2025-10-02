@@ -5,6 +5,7 @@ import {faForward, faCheck} from "@fortawesome/free-solid-svg-icons";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import {useSoundManager} from "@/common/utils/SoundManager.js";
 import {useEffect} from "react";
+import {QUESTION_TYPES} from "@/common/constants/QuestionTypes.js";
 
 export const AnswerResults = ({question, answerData, showScoreboard}) => {
     const soundManager = useSoundManager();
@@ -41,7 +42,7 @@ export const AnswerResults = ({question, answerData, showScoreboard}) => {
         }
     }
 
-    if (question.type === 'text') {
+    if (question.type === QUESTION_TYPES.TEXT) {
         return (
             <div className="answer-results">
                 <div className="top-area">

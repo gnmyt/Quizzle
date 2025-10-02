@@ -9,6 +9,7 @@ import {TrueFalseClient} from "./components/TrueFalseClient";
 import {TextInputClient} from "./components/TextInputClient";
 import {jsonRequest, postRequest} from "@/common/utils/RequestUtil.js";
 import {generateUuid} from "@/common/utils/UuidUtil.js";
+import {QUESTION_TYPES} from "@/common/constants/QuestionTypes.js";
 import toast from "react-hot-toast";
 
 export const InGameClient = () => {
@@ -177,7 +178,7 @@ export const InGameClient = () => {
         const question = practiceQuiz.questions[currentQuestionIndex];
         let answerToSubmit = answer;
 
-        if (question.type === 'text' && Array.isArray(answer)) {
+        if (question.type === QUESTION_TYPES.TEXT && Array.isArray(answer)) {
             answerToSubmit = answer[0] || '';
         }
 
@@ -241,14 +242,14 @@ export const InGameClient = () => {
 
     const renderQuestionTypeContent = (question) => {
         switch (question.type) {
-            case 'true-false':
+            case QUESTION_TYPES.TRUE_FALSE:
                 return (
                     <div className="ingame-content true-false-layout">
                         <TrueFalseClient onSubmit={submitAnswer} />
                     </div>
                 );
                 
-            case 'text':
+            case QUESTION_TYPES.TEXT:
                 return (
                     <div className="ingame-content text-layout">
                         <TextInputClient onSubmit={submitAnswer} maxLength={question.maxLength || 200} />
@@ -256,7 +257,7 @@ export const InGameClient = () => {
                 );
                 
             case 'single':
-            case 'single-choice':
+            case QUESTION_TYPES.MULTIPLE_CHOICE:
                 if (isPracticeMode) {
                     return (
                         <div className="ingame-content grid-layout">
@@ -278,7 +279,7 @@ export const InGameClient = () => {
                     </div>
                 );
                 
-            case 'multiple-choice':
+            case QUESTION_TYPES.MULTIPLE_CHOICE:
             case 'multiple':
                 if (isPracticeMode) {
                     return (
@@ -327,10 +328,10 @@ export const InGameClient = () => {
             return submitPracticeAnswer(answers);
         }
 
-        if (currentQuestion.type === 'text') {
+        if (currentQuestion.type === QUESTION_TYPES.TEXT) {
             setSelection([answers]);
             setUserSubmittedAnswer(answers);
-            setLastQuestionType('text');
+            setLastQuestionType(QUESTION_TYPES.TEXT);
             socket.emit("SUBMIT_ANSWER", {answers}, (success) => {
                 if (!success) {
                     console.error("Failed to submit answer");
@@ -355,7 +356,7 @@ export const InGameClient = () => {
     const getCorrectStatus = (selection, answers) => {
         const questionType = currentQuestion?.type || lastQuestionType;
         
-        if (questionType === 'text') {
+        if (questionType === QUESTION_TYPES.TEXT) {
             const userAnswer = userSubmittedAnswer || selection[0];
             
             if (Array.isArray(answers)) {

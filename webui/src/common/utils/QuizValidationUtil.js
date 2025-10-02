@@ -51,7 +51,7 @@ export class QuizValidationUtil {
     static validateMultipleChoiceAnswers(answers) {
         if (answers.filter(a => a.is_correct).length === 0) return { isValid: false, error: "Jede Multiple-Choice-Frage muss mindestens eine richtige Antwort haben." };
         if (answers.some(a => (!a.content || a.content.trim() === "") && a.imageId === undefined)) return { isValid: false, error: "Multiple-Choice-Antworten dürfen nicht leer sein." };
-        if (answers.some(a => a.content?.trim().length > this.LIMITS.MAX_ANSWER_LENGTH && a.type === 'text')) return { isValid: false, error: `Multiple-Choice-Antworten dürfen maximal ${this.LIMITS.MAX_ANSWER_LENGTH} Zeichen lang sein.` };
+        if (answers.some(a => a.content?.trim().length > this.LIMITS.MAX_ANSWER_LENGTH && a.type === QUESTION_TYPES.TEXT)) return { isValid: false, error: `Multiple-Choice-Antworten dürfen maximal ${this.LIMITS.MAX_ANSWER_LENGTH} Zeichen lang sein.` };
         return { isValid: true };
     }
 
@@ -85,14 +85,14 @@ export class QuizValidationUtil {
             if (!question.type) return false;
             const questionType = question.type;
             
-            if (questionType === 'text') {
+            if (questionType === QUESTION_TYPES.TEXT) {
                 if (!question.answers || question.answers.length === 0 || question.answers.length > 10) return false;
                 if (question.answers.some(a => !a.content || a.content.trim() === "")) return false;
-            } else if (questionType === 'true-false') {
+            } else if (questionType === QUESTION_TYPES.TRUE_FALSE) {
                 if (!question.answers || question.answers.length !== 2) return false;
                 if (question.answers.some(a => typeof a.is_correct !== 'boolean')) return false;
                 if (!question.answers.some(a => a.is_correct) || question.answers.filter(a => a.is_correct).length !== 1) return false;
-            } else if (questionType === 'multiple-choice') {
+            } else if (questionType === QUESTION_TYPES.MULTIPLE_CHOICE) {
                 if (!question.answers || question.answers.length < 2 || question.answers.length > 6) return false;
                 if (question.answers.some(a => typeof a.is_correct !== 'boolean')) return false;
                 if (question.answers.filter(a => a.is_correct).length === 0) return false;

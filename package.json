@@ -13,11 +13,14 @@
   "version": "2.0.0",
   "main": "index.js",
   "devDependencies": {
+    "concurrently": "^9.2.1",
     "nodemon": "^3.1.0"
   },
   "scripts": {
-    "start": "node server/index.js",
-    "dev": "nodemon server/index.js"
+    "start": "bun server/index.js",
+    "dev:server": "nodemon server/index.js",
+    "dev:client": "cd webui && bun run dev",
+    "dev": "concurrently \"bun run dev:server\" \"bun run dev:client\""
   },
   "author": "Mathias Wagner <germannewsmaker@gmail.com>",
   "license": "ISC",

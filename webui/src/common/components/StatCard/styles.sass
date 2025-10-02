@@ -15,6 +15,9 @@
     transform: translateY(-2px)
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1)
 
+  &.primary
+    border-left: 4px solid $primary
+
   &.blue
     border-left: 4px solid $blue
 
@@ -37,6 +40,9 @@
   font-size: 1.2rem
   color: $background
   font-weight: 700
+
+  .stat-card.primary &
+    background: linear-gradient(135deg, color-mix(in srgb, $primary 100%, white 20%), color-mix(in srgb, $primary 100%, black 10%))
 
   .stat-card.blue &
     background: linear-gradient(135deg, color-mix(in srgb, $blue 100%, white 20%), color-mix(in srgb, $blue 100%, black 10%))

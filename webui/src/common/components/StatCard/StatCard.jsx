@@ -2,7 +2,7 @@ import React from 'react';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import './styles.sass';
 
-const StatCard = ({icon, title, value, color = 'blue', subtitle}) => {
+const StatCard = ({icon, title, value, color = 'primary', subtitle}) => {
     return (
         <div className={`stat-card ${color}`}>
             <div className="stat-icon">

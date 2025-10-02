@@ -592,7 +592,7 @@ export const InGameClient = () => {
                 </div>
             )}
 
-            {!isPracticeMode && !answersReady && (
+            {!isPracticeMode && currentQuestion && !answersReady && (
                 <div className="answers-not-ready-overlay">
                     <div className="countdown-message">
                         <div className="countdown-spinner">

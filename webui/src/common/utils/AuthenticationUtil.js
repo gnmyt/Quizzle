@@ -36,12 +36,12 @@ export class AuthenticationUtil {
     }
 
     static getAuthHeaders() {
-        const password = this.getStoredPassword();
+        const password = AuthenticationUtil.getStoredPassword();
         return password ? {'X-Quiz-Password': password} : {};
     }
 
     static getAuthData() {
-        const password = this.getStoredPassword();
+        const password = AuthenticationUtil.getStoredPassword();
         return password ? {password} : {};
     }
 }

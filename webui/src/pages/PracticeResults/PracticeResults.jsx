@@ -3,7 +3,6 @@ import {useParams, useNavigate, useLocation} from "react-router-dom";
 import {BrandingContext} from "@/common/contexts/Branding";
 import {motion} from "framer-motion";
 import Button from "@/common/components/Button";
-import Input from "@/common/components/Input";
 import Dialog from "@/common/components/Dialog";
 import {postRequest} from "@/common/utils/RequestUtil.js";
 import {getCharacterEmoji} from "@/common/data/characters";
@@ -20,19 +19,15 @@ export const PracticeResults = () => {
     const location = useLocation();
     const {titleImg, passwordProtected} = useContext(BrandingContext);
 
-    const [password, setPassword] = useState("");
     const [results, setResults] = useState(null);
-    const [loading, setLoading] = useState(false);
-    const [authenticated, setAuthenticated] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [selectedStudent, setSelectedStudent] = useState(null);
     const [studentDetailsOpen, setStudentDetailsOpen] = useState(false);
     const [activeView, setActiveView] = useState('analytics');
 
     useEffect(() => {
-        if (location.state?.password || !passwordProtected) {
-            loadResultsWithPassword(location.state?.password || "");
-        }
-    }, [location.state, passwordProtected]);
+        loadResultsWithPassword(location.state?.password || "");
+    }, [location.state]);
 
     const loadResultsWithPassword = async (pwd) => {
         setLoading(true);
@@ -40,28 +35,21 @@ export const PracticeResults = () => {
             const requestBody = passwordProtected ? {password: pwd} : {};
             const response = await postRequest(`/practice/${code}/results`, requestBody);
             setResults(response);
-            setAuthenticated(true);
         } catch (error) {
             console.error('Error loading results:', error);
             if (error.message && error.message.includes('401')) {
                 toast.error('Ungültiges Passwort.');
+                navigate('/');
             } else if (error.message && error.message.includes('404')) {
                 toast.error('Übungsquiz nicht gefunden.');
+                navigate('/');
             } else {
                 toast.error('Fehler beim Laden der Ergebnisse.');
+                navigate('/');
             }
         } finally {
             setLoading(false);
         }
-    };
-
-    const loadResults = async () => {
-        if (passwordProtected && !password.trim()) {
-            toast.error('Bitte Passwort eingeben.');
-            return;
-        }
-
-        await loadResultsWithPassword(passwordProtected ? password : "");
     };
 
     const formatDate = (dateString) => {
@@ -266,71 +254,13 @@ export const PracticeResults = () => {
         }
     };
 
-    if (!authenticated) {
+    if (loading) {
         return (
             <div className="practice-results-page">
                 <div className="page-header">
                     <img src={titleImg} alt="logo" className="logo"/>
-                    <h1>Ergebnisse einsehen</h1>
-                    <div className="code-display">Code: <strong>{code}</strong></div>
+                    <h1>Ergebnisse werden geladen...</h1>
                 </div>
-
-                <motion.div
-                    className="auth-card"
-                    initial={{opacity: 0, y: 20}}
-                    animate={{opacity: 1, y: 0}}
-                >
-                    {passwordProtected ? (
-                        <>
-                            <h2>Passwort eingeben</h2>
-
-                            <div className="auth-form">
-                                <Input
-                                    type="password"
-                                    placeholder="Passwort eingeben"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    onKeyPress={(e) => e.key === 'Enter' && loadResults()}
-                                    disabled={loading}
-                                    autoFocus
-                                />
-
-                                <div className="auth-actions">
-                                    <Button
-                                        text="Zurück"
-                                        onClick={() => navigate('/')}
-                                        variant="secondary"
-                                        disabled={loading}
-                                    />
-                                    <Button
-                                        text={loading ? "Wird geladen..." : "Ergebnisse laden"}
-                                        onClick={loadResults}
-                                        disabled={loading || !password.trim()}
-                                    />
-                                </div>
-                            </div>
-                        </>
-                    ) : (
-                        <>
-                            <h2>Ergebnisse laden</h2>
-                            <p>Möchten Sie die Ergebnisse für das Übungsquiz <strong>{code}</strong> laden?</p>
-
-                            <div className="auth-actions">
-                                <Button
-                                    text="Zurück"
-                                    onClick={() => navigate('/')}
-                                    variant="secondary"
-                                    disabled={loading}
-                                />
-                                <Button
-                                    text={loading ? "Wird geladen..." : "Ergebnisse laden"}
-                                    onClick={loadResults}
-                                    disabled={loading}
-                                />
-                            </div>
-                        </>
-                    )}
-                </motion.div>
             </div>
         );
     }
@@ -340,8 +270,12 @@ export const PracticeResults = () => {
             <div className="practice-results-page">
                 <div className="page-header">
                     <img src={titleImg} alt="logo" className="logo"/>
-                    <h1>Ergebnisse werden geladen...</h1>
+                    <h1>Keine Ergebnisse gefunden</h1>
+                    <div className="code-display">Code: <strong>{code}</strong></div>
                 </div>
+                <motion.div className="auth-card" initial={{opacity: 0, y: 20}} animate={{opacity: 1, y: 0}}>
+                    <Button text="Zurück zur Startseite" onClick={() => navigate('/')} />
+                </motion.div>
             </div>
         );
     }

@@ -349,7 +349,7 @@ module.exports = (io, socket) => {
         socket.join(roomCode.toString());
         rooms[roomCode] = {
             host: socket.id, code: roomCode, state: 'waiting', players: {}, playerAnswers: [],
-            currentQuestion: {}, startTime: 0, questionHistory: []
+            currentQuestion: {}, startTime: 0, questionHistory: [], locked: false
         };
         currentRoomCode = roomCode;
 
@@ -407,6 +407,18 @@ module.exports = (io, socket) => {
         }
 
         callback(true);
+    });
+
+    socket.on('LOCK_ROOM', (data, callback) => {
+        if (!validateCallback(callback)) return;
+        if (!isHostAuthorized(socket, currentRoomCode) || !validateRoomState(currentRoomCode, 'waiting')) {
+            return callback({success: false, error: 'Nicht autorisiert'});
+        }
+
+        const room = rooms[currentRoomCode];
+        room.locked = !room.locked;
+        
+        callback({success: true, locked: room.locked});
     });
 
     socket.on('KICK_OFFLINE_PLAYER', (data, callback) => {
@@ -470,6 +482,10 @@ module.exports = (io, socket) => {
 
         const room = rooms[data.code];
         if (room && room.state === 'waiting' && !room.players[socket.id]) {
+            if (room.locked) {
+                return callback({success: false, error: 'Dieser Raum ist gesperrt'});
+            }
+            
             const {value} = joinRoom.validate(data);
             const sanitizedName = value.name;
 

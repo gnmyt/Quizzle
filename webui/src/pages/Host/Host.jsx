@@ -7,11 +7,13 @@ import Triangle from "@/pages/Host/assets/Triangle.jsx";
 import {BrandingContext} from "@/common/contexts/Branding";
 import {motion} from "framer-motion";
 import Button from "@/common/components/Button";
-import {faGamepad, faUser, faVolumeMute, faVolumeUp} from "@fortawesome/free-solid-svg-icons";
+import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
+import {faGamepad, faUser, faVolumeMute, faVolumeUp, faLock, faLockOpen} from "@fortawesome/free-solid-svg-icons";
 import {socket} from "@/common/utils/SocketUtil.js";
 import {getCharacterEmoji} from "@/common/data/characters";
 import {useSoundManager} from "@/common/utils/SoundManager.js";
 import SoundRenderer from "@/common/components/SoundRenderer";
+import toast from "react-hot-toast";
 
 export const Host = () => {
     const navigate = useNavigate();
@@ -24,6 +26,7 @@ export const Host = () => {
     const [roomCode, setRoomCode] = useState("0000");
     const [players, setPlayers] = useState([]);
     const [lobbyAmbientId, setLobbyAmbientId] = useState(null);
+    const [roomLocked, setRoomLocked] = useState(false);
 
     const getJoinUrl = () => {
         return window.location.href.split("/host")[0]
@@ -94,6 +97,17 @@ export const Host = () => {
         }
     }
 
+    const toggleRoomLock = () => {
+        socket.emit("LOCK_ROOM", {}, (response) => {
+            if (response?.success) {
+                setRoomLocked(response.locked);
+                toast.success(response.locked ? "Raum gesperrt" : "Raum entsperrt", {
+                    duration: 2000
+                });
+            }
+        });
+    }
+
     const startGame = () => {
         if (players.length === 0) return;
 
@@ -139,12 +153,25 @@ export const Host = () => {
                     </div>
 
                     <p>Verbinden über die Webseite <span>{location.host.split(":")[0]}</span> mit Code:</p>
-                    <h2>{roomCode}</h2>
+                    <div className="room-code-container">
+                        <h2>{roomCode}</h2>
+                        {roomLocked && <div className="lock-indicator">
+                            <FontAwesomeIcon icon={faLock} />
+                        </div>}
+                    </div>
 
                     <Triangle/>
                 </motion.div>
-                <Button text="Starten" icon={faGamepad} padding="0.5rem 1rem" onClick={startGame}
-                        disabled={players.length === 0}/>
+                <div className="host-actions">
+                    <Button 
+                        icon={roomLocked ? faLockOpen : faLock} 
+                        padding="0.5rem 0.8rem" 
+                        onClick={toggleRoomLock}
+                        variant={roomLocked ? "secondary" : "primary"}
+                    />
+                    <Button text="Starten" icon={faGamepad} padding="0.5rem 1rem" onClick={startGame}
+                            disabled={players.length === 0}/>
+                </div>
             </div>
 
 

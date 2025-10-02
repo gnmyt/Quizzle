@@ -23,6 +23,7 @@ export const InGameHost = () => {
     const [currentQuestion, setCurrentQuestion] = useState({});
     const [gameState, setGameState] = useState('question');
     const [answerData, setAnswerData] = useState(null);
+    const [questionAnimationState, setQuestionAnimationState] = useState('hidden');
 
     const skipQuestion = async () => {
         try {
@@ -61,6 +62,7 @@ export const InGameHost = () => {
             setCurrentQuestion(newQuestion);
             setGameState('question');
             setAnswerData(null);
+            setQuestionAnimationState('hidden');
 
             if (!inGameMusicRef.current && (gameState === 'answer-results' || gameState === 'scoreboard')) {
                 inGameMusicRef.current = soundManager.playAmbient('INGAME');
@@ -73,6 +75,14 @@ export const InGameHost = () => {
             for (let i = 0; i < newQuestion.answers.length; i++) {
                 delete newQuestion.answers[i].b64_image;
             }
+
+            setTimeout(() => {
+                setQuestionAnimationState('question-appear');
+            }, 100);
+
+            setTimeout(() => {
+                setQuestionAnimationState('answers-ready');
+            }, 5100);
 
             socket.emit("SHOW_QUESTION", newQuestionCopy, (success) => {
                 if (!success) toast.error("Fehler beim Anzeigen der Frage");
@@ -160,26 +170,26 @@ export const InGameHost = () => {
             )}
             
             {gameState === 'question' && (
-                <div>
-                    {Object.keys(currentQuestion).length !== 0 && <div style={{
-                        display: "flex", alignItems: "center",
-                        flexDirection: "column"
-                    }}>
+                <div className="ingame-question">
+                    {Object.keys(currentQuestion).length !== 0 && <div className="question-content-container">
                         <div className="top-area">
                             <Button onClick={skipQuestion} text="Frage überspringen"
                                     padding="1rem 1.5rem" icon={faForward} />
                         </div>
-                        <Question title={currentQuestion.title} image={currentQuestion.b64_image}/>
+                        
+                        <div className={`question-wrapper ${questionAnimationState}`}>
+                            <Question title={currentQuestion.title} image={currentQuestion.b64_image}/>
+                        </div>
 
-                        {currentQuestion.type !== QUESTION_TYPES.TEXT && (
-                            <div className="answer-list">
+                        {questionAnimationState === 'answers-ready' && currentQuestion.type !== QUESTION_TYPES.TEXT && (
+                            <div className={`answer-list ${questionAnimationState}`}>
                                 {currentQuestion.answers.map((answer, index) => <Answer key={index} answer={answer}
                                                                                         index={index}/>)}
                             </div>
                         )}
 
-                        {currentQuestion.type === QUESTION_TYPES.TEXT && (
-                            <div className="text-question-indicator">
+                        {questionAnimationState === 'answers-ready' && currentQuestion.type === QUESTION_TYPES.TEXT && (
+                            <div className={`text-question-indicator ${questionAnimationState}`}>
                                 <h2>Spieler geben ihre Antworten ein...</h2>
                                 <div className="text-input-animation">
                                     <div className="typing-dots">

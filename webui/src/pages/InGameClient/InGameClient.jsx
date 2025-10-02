@@ -10,12 +10,14 @@ import {TextInputClient} from "./components/TextInputClient";
 import {jsonRequest, postRequest} from "@/common/utils/RequestUtil.js";
 import {generateUuid} from "@/common/utils/UuidUtil.js";
 import {QUESTION_TYPES} from "@/common/constants/QuestionTypes.js";
+import {useSoundManager} from "@/common/utils/SoundManager.js";
 import toast from "react-hot-toast";
 
 export const InGameClient = () => {
     const navigate = useNavigate();
     const {username, roomCode, practiceUserData} = useContext(QuizContext);
     const {practiceCode} = useParams();
+    const soundManager = useSoundManager();
 
     const [isPracticeMode, setIsPracticeMode] = useState(false);
     const [practiceQuiz, setPracticeQuiz] = useState(null);
@@ -32,6 +34,8 @@ export const InGameClient = () => {
     const [userSubmittedAnswer, setUserSubmittedAnswer] = useState(null);
     const [isConnected, setIsConnected] = useState(socket.connected);
     const [isReconnecting, setIsReconnecting] = useState(false);
+    const [answersReady, setAnswersReady] = useState(false);
+    const [clientCountdown, setClientCountdown] = useState(5);
 
     useEffect(() => {
         if (practiceCode) {
@@ -63,6 +67,22 @@ export const InGameClient = () => {
             setUserSubmittedAnswer(null);
             setCurrentQuestion(question);
             setLastQuestionType(question?.type || null);
+            setAnswersReady(false);
+            setClientCountdown(5);
+
+            const countdownInterval = setInterval(() => {
+                setClientCountdown(prev => {
+                    const newValue = prev - 1;
+                    if (newValue <= 3 && newValue > 0) {
+                        soundManager.playFeedback('TIMER_TICK');
+                    }
+                    if (newValue <= 0) {
+                        clearInterval(countdownInterval);
+                        return 0;
+                    }
+                    return newValue;
+                });
+            }, 1000);
         }
 
         const onPoints = (points) => {
@@ -74,11 +94,16 @@ export const InGameClient = () => {
             setCurrentQuestion(null);
         }
 
+        const onAnswersReady = () => {
+            setAnswersReady(true);
+        }
+
         const gameEnded = () => {
             clearCurrentSession();
             socket.off("QUESTION_RECEIVED", onQuestion);
             socket.off("POINTS_RECEIVED", onPoints);
             socket.off("ANSWER_RECEIVED", onAnswer);
+            socket.off("ANSWERS_READY", onAnswersReady);
             socket.off("GAME_ENDED", gameEnded);
             socket.off("disconnect", handleDisconnect);
             
@@ -140,6 +165,7 @@ export const InGameClient = () => {
         socket.on("QUESTION_RECEIVED", onQuestion);
         socket.on("POINTS_RECEIVED", onPoints);
         socket.on("ANSWER_RECEIVED", onAnswer);
+        socket.on("ANSWERS_READY", onAnswersReady);
         socket.on("GAME_ENDED", gameEnded);
         socket.on("disconnect", handleDisconnect);
         socket.on('connect', handleConnect);
@@ -149,6 +175,7 @@ export const InGameClient = () => {
             socket.off("QUESTION_RECEIVED", onQuestion);
             socket.off("POINTS_RECEIVED", onPoints);
             socket.off("ANSWER_RECEIVED", onAnswer);
+            socket.off("ANSWERS_READY", onAnswersReady);
             socket.off("GAME_ENDED", gameEnded);
             socket.off("disconnect", handleDisconnect);
             socket.off('connect', handleConnect);
@@ -256,6 +283,17 @@ export const InGameClient = () => {
                 return (
                     <div className="ingame-content text-layout">
                         <TextInputClient onSubmit={submitAnswer} maxLength={question.maxLength || 200} />
+                        {!answersReady && (
+                            <div className="answers-not-ready-overlay">
+                                <div className="countdown-message">
+                                    <div className="countdown-spinner">
+                                        <div className="countdown-number">{clientCountdown > 0 ? clientCountdown : '✓'}</div>
+                                        <div className="countdown-circle"></div>
+                                        <div className="spinner-background"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 );
                 
@@ -283,6 +321,17 @@ export const InGameClient = () => {
                                 <FontAwesomeIcon icon={faCheckCircle} className={"ingame-icon"}/>
                             </div>
                         ))}
+                        {!answersReady && (
+                            <div className="answers-not-ready-overlay">
+                                <div className="countdown-message">
+                                    <div className="countdown-spinner">
+                                        <div className="countdown-number">{clientCountdown > 0 ? clientCountdown : '✓'}</div>
+                                        <div className="countdown-circle"></div>
+                                        <div className="spinner-background"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 );
                 
@@ -326,6 +375,17 @@ export const InGameClient = () => {
                                 <FontAwesomeIcon icon={faPaperPlane}/>
                             </button>
                         </div>
+                        {!answersReady && (
+                            <div className="answers-not-ready-overlay">
+                                <div className="countdown-message">
+                                    <div className="countdown-spinner">
+                                        <div className="countdown-number">{clientCountdown > 0 ? clientCountdown : '✓'}</div>
+                                        <div className="countdown-circle"></div>
+                                        <div className="spinner-background"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 );
                 
@@ -339,13 +399,18 @@ export const InGameClient = () => {
             return submitPracticeAnswer(answers);
         }
 
+        if (!answersReady) {
+            toast.error("Antworten sind noch nicht bereit!");
+            return;
+        }
+
         if (currentQuestion.type === QUESTION_TYPES.TEXT) {
             setSelection([answers]);
             setUserSubmittedAnswer(answers);
             setLastQuestionType(QUESTION_TYPES.TEXT);
-            socket.emit("SUBMIT_ANSWER", {answers}, (success) => {
-                if (!success) {
-                    console.error("Failed to submit answer");
+            socket.emit("SUBMIT_ANSWER", {answers}, (response) => {
+                if (!response.success) {
+                    toast.error(response.error || "Fehler beim Senden der Antwort");
                     return;
                 }
                 setCurrentQuestion(null);
@@ -354,9 +419,9 @@ export const InGameClient = () => {
             let selection = Array.from({length: currentQuestion.answers}, (_, index) => answers.includes(index));
             setSelection(selection);
             setLastQuestionType(currentQuestion.type);
-            socket.emit("SUBMIT_ANSWER", {answers}, (success) => {
-                if (!success) {
-                    console.error("Failed to submit answer");
+            socket.emit("SUBMIT_ANSWER", {answers}, (response) => {
+                if (!response.success) {
+                    toast.error(response.error || "Fehler beim Senden der Antwort");
                     return;
                 }
                 setCurrentQuestion(null);

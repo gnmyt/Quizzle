@@ -428,6 +428,10 @@ module.exports = (io, socket) => {
                 }
                 
                 socket.emit('QUESTION_RECEIVED', questionData);
+
+                if (room.currentQuestion.answersReady) {
+                    socket.emit('ANSWERS_READY', true);
+                }
             }
 
             socket.emit('GAME_STATE_RESTORED', gameState);
@@ -454,7 +458,8 @@ module.exports = (io, socket) => {
                 const {content, ...rest} = answer;
                 return rest;
             }),
-            isCompleted: false
+            isCompleted: false,
+            answersReady: false
         };
 
         room.questionHistory.push({
@@ -483,6 +488,14 @@ module.exports = (io, socket) => {
         }
 
         io.to(currentRoomCode.toString()).emit('QUESTION_RECEIVED', questionData);
+
+        setTimeout(() => {
+            if (rooms[currentRoomCode] && rooms[currentRoomCode].currentQuestion) {
+                rooms[currentRoomCode].currentQuestion.answersReady = true;
+                io.to(currentRoomCode.toString()).emit('ANSWERS_READY', true);
+            }
+        }, 5000);
+        
         room.startTime = Date.now();
         callback({success: true});
     });
@@ -496,6 +509,10 @@ module.exports = (io, socket) => {
         const room = rooms[currentRoomCode];
         if (room.currentQuestion.isCompleted) {
             return callback({success: false, error: 'Diese Frage wurde bereits abgeschlossen'});
+        }
+
+        if (!room.currentQuestion.answersReady) {
+            return callback({success: false, error: 'Antworten sind noch nicht bereit'});
         }
 
         const playerAnswers = room.playerAnswers;

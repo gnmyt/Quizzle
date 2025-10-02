@@ -1,15 +1,58 @@
 @use "@/common/styles/colors" as *
 
-.answer-list
+.ingame-question
+  display: flex
+  flex-direction: column
+  align-items: center
+  justify-content: center
+  min-height: 100vh
+  padding: 2rem
+  box-sizing: border-box
+  position: relative
+
+.question-content-container
+  display: flex
+  flex-direction: column
+  align-items: center
+  justify-content: center
+  width: 100%
+  max-width: 1200px
+  margin: 0 auto
+
+.ingame-question .answer-list
   display: grid
   grid-template-columns: repeat(2, 1fr)
   grid-gap: 1rem
   margin-top: 1rem
+  opacity: 0
+  transform: translateY(40px)
+  transition: all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94)
+
+  &.answers-ready
+    opacity: 1
+    transform: translateY(0)
+    animation: answersSlideIn 0.6s ease-out 0.2s both
 
 .top-area
   position: absolute
-  top: 3rem
-  right: 3rem
+  top: 2rem
+  right: 2rem
+  z-index: 100
+
+.question-wrapper
+  transition: all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94)
+
+  &.hidden
+    opacity: 0
+    transform: translateY(20px) scale(0.98)
+
+  &.question-appear,
+  &.answers-ready
+    opacity: 1
+    transform: translateY(0) scale(1)
+
+  &.question-appear
+    animation: questionReveal 0.6s ease-out
 
 .text-question-indicator
   display: flex
@@ -17,6 +60,14 @@
   align-items: center
   justify-content: center
   margin-top: 3rem
+  opacity: 0
+  transform: translateY(40px)
+  transition: all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94)
+
+  &.answers-ready
+    opacity: 1
+    transform: translateY(0)
+    animation: answersSlideIn 0.6s ease-out 0.2s both
 
   h2
     color: $text
@@ -46,6 +97,62 @@
 
         &:nth-child(3)
           animation-delay: 0s
+
+.text-question-indicator
+  display: flex
+  flex-direction: column
+  align-items: center
+  justify-content: center
+  margin-top: 3rem
+  opacity: 0
+  transform: translateY(40px)
+  transition: all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94)
+
+  &.answers-ready
+    opacity: 1
+    transform: translateY(0)
+    animation: answersSlideIn 0.6s ease-out 0.2s both
+
+
+@keyframes pulse
+  0%, 100%
+    transform: scale(1)
+  50%
+    transform: scale(1.05)
+
+@keyframes questionReveal
+  0%
+    opacity: 0
+    transform: translateY(20px) scale(0.98)
+  100%
+    opacity: 1
+    transform: translateY(0) scale(1)
+
+@keyframes answersSlideIn
+  0%
+    opacity: 0
+    transform: translateY(30px) scale(0.95)
+  60%
+    transform: translateY(-3px) scale(1.01)
+  100%
+    opacity: 1
+    transform: translateY(0) scale(1)
+
+
+@keyframes countdownSpin
+  0%
+    transform: rotate(0deg)
+    filter: hue-rotate(0deg) brightness(1)
+  25%
+    filter: hue-rotate(90deg) brightness(1.2)
+  50%
+    transform: rotate(180deg)
+    filter: hue-rotate(180deg) brightness(1.4)
+  75%
+    filter: hue-rotate(270deg) brightness(1.2)
+  100%
+    transform: rotate(360deg)
+    filter: hue-rotate(360deg) brightness(1)
 
 @keyframes typing
   0%, 80%, 100%

@@ -329,17 +329,6 @@ export const InGameClient = () => {
                 return (
                     <div className="ingame-content text-layout">
                         <TextInputClient onSubmit={submitAnswer} maxLength={question.maxLength || 200} />
-                        {!isPracticeMode && !answersReady && (
-                            <div className="answers-not-ready-overlay">
-                                <div className="countdown-message">
-                                    <div className="countdown-spinner">
-                                        <div className="countdown-number">{clientCountdown > 0 ? clientCountdown : '✓'}</div>
-                                        <div className="countdown-circle"></div>
-                                        <div className="spinner-background"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
                     </div>
                 );
 
@@ -347,17 +336,6 @@ export const InGameClient = () => {
                 return (
                     <div className="ingame-content sequence-layout">
                         <SequenceClient question={question} onSubmit={submitAnswer} />
-                        {!isPracticeMode && !answersReady && (
-                            <div className="answers-not-ready-overlay">
-                                <div className="countdown-message">
-                                    <div className="countdown-spinner">
-                                        <div className="countdown-number">{clientCountdown > 0 ? clientCountdown : '✓'}</div>
-                                        <div className="countdown-circle"></div>
-                                        <div className="spinner-background"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
                     </div>
                 );
                 
@@ -385,17 +363,6 @@ export const InGameClient = () => {
                                 <FontAwesomeIcon icon={faCheckCircle} className={"ingame-icon"}/>
                             </div>
                         ))}
-                        {!isPracticeMode && !answersReady && (
-                            <div className="answers-not-ready-overlay">
-                                <div className="countdown-message">
-                                    <div className="countdown-spinner">
-                                        <div className="countdown-number">{clientCountdown > 0 ? clientCountdown : '✓'}</div>
-                                        <div className="countdown-circle"></div>
-                                        <div className="spinner-background"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
                     </div>
                 );
                 
@@ -439,17 +406,6 @@ export const InGameClient = () => {
                                 <FontAwesomeIcon icon={faPaperPlane}/>
                             </button>
                         </div>
-                        {!isPracticeMode && !answersReady && (
-                            <div className="answers-not-ready-overlay">
-                                <div className="countdown-message">
-                                    <div className="countdown-spinner">
-                                        <div className="countdown-number">{clientCountdown > 0 ? clientCountdown : '✓'}</div>
-                                        <div className="countdown-circle"></div>
-                                        <div className="spinner-background"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
                     </div>
                 );
                 
@@ -633,6 +589,18 @@ export const InGameClient = () => {
                     )}
                     
                     {renderAnswerContent()}
+
+                    {!isPracticeMode && !answersReady && (
+                        <div className="answers-not-ready-overlay">
+                            <div className="countdown-message">
+                                <div className="countdown-spinner">
+                                    <div className="countdown-number">{clientCountdown > 0 ? clientCountdown : '✓'}</div>
+                                    <div className="countdown-circle"></div>
+                                    <div className="spinner-background"></div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
 

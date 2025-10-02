@@ -7,6 +7,7 @@ import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import {faCheck, faCheckCircle, faMinus, faPaperPlane, faX, faWifi, faExclamationTriangle} from "@fortawesome/free-solid-svg-icons";
 import {TrueFalseClient} from "./components/TrueFalseClient";
 import {TextInputClient} from "./components/TextInputClient";
+import {SequenceClient} from "./components/SequenceClient";
 import {jsonRequest, postRequest} from "@/common/utils/RequestUtil.js";
 import {generateUuid} from "@/common/utils/UuidUtil.js";
 import {QUESTION_TYPES} from "@/common/constants/QuestionTypes.js";
@@ -213,6 +214,8 @@ export const InGameClient = () => {
 
         if (question.type === QUESTION_TYPES.TEXT && Array.isArray(answer)) {
             answerToSubmit = answer[0] || '';
+        } else if (question.type === QUESTION_TYPES.SEQUENCE && Array.isArray(answer)) {
+            answerToSubmit = answer;
         }
 
         try {
@@ -283,6 +286,24 @@ export const InGameClient = () => {
                 return (
                     <div className="ingame-content text-layout">
                         <TextInputClient onSubmit={submitAnswer} maxLength={question.maxLength || 200} />
+                        {!answersReady && (
+                            <div className="answers-not-ready-overlay">
+                                <div className="countdown-message">
+                                    <div className="countdown-spinner">
+                                        <div className="countdown-number">{clientCountdown > 0 ? clientCountdown : '✓'}</div>
+                                        <div className="countdown-circle"></div>
+                                        <div className="spinner-background"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                );
+
+            case QUESTION_TYPES.SEQUENCE:
+                return (
+                    <div className="ingame-content sequence-layout">
+                        <SequenceClient question={question} onSubmit={submitAnswer} />
                         {!answersReady && (
                             <div className="answers-not-ready-overlay">
                                 <div className="countdown-message">
@@ -415,6 +436,17 @@ export const InGameClient = () => {
                 }
                 setCurrentQuestion(null);
             });
+        } else if (currentQuestion.type === QUESTION_TYPES.SEQUENCE) {
+            setSelection(answers);
+            setUserSubmittedAnswer(answers);
+            setLastQuestionType(QUESTION_TYPES.SEQUENCE);
+            socket.emit("SUBMIT_ANSWER", {answers}, (response) => {
+                if (!response.success) {
+                    toast.error(response.error || "Fehler beim Senden der Antwort");
+                    return;
+                }
+                setCurrentQuestion(null);
+            });
         } else {
             let selection = Array.from({length: currentQuestion.answers}, (_, index) => answers.includes(index));
             setSelection(selection);
@@ -439,6 +471,39 @@ export const InGameClient = () => {
                 return answers.some(correctAnswer => 
                     correctAnswer.toLowerCase().trim() === userAnswer?.toLowerCase().trim()
                 ) ? 1 : -1;
+            }
+            return -1;
+        }
+
+        if (questionType === QUESTION_TYPES.SEQUENCE) {
+            const userOrder = userSubmittedAnswer || selection;
+            const correctOrder = Array.from({length: userOrder.length}, (_, i) => i);
+
+            if (userOrder.length === correctOrder.length) {
+                let isCompletelyCorrect = true;
+                for (let i = 0; i < userOrder.length; i++) {
+                    if (userOrder[i] !== correctOrder[i]) {
+                        isCompletelyCorrect = false;
+                        break;
+                    }
+                }
+                
+                if (isCompletelyCorrect) {
+                    return 1;
+                } else {
+                    let correctPositions = 0;
+                    for (let i = 0; i < userOrder.length; i++) {
+                        if (userOrder[i] === correctOrder[i]) {
+                            correctPositions++;
+                        }
+                    }
+                    
+                    if (correctPositions > 0) {
+                        return 0;
+                    } else {
+                        return -1;
+                    }
+                }
             }
             return -1;
         }

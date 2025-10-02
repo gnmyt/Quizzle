@@ -181,7 +181,7 @@ export const InGameHost = () => {
                             <Question title={currentQuestion.title} image={currentQuestion.b64_image}/>
                         </div>
 
-                        {questionAnimationState === 'answers-ready' && currentQuestion.type !== QUESTION_TYPES.TEXT && (
+                        {questionAnimationState === 'answers-ready' && currentQuestion.type !== QUESTION_TYPES.TEXT && currentQuestion.type !== QUESTION_TYPES.SEQUENCE && (
                             <div className={`answer-list ${questionAnimationState}`}>
                                 {currentQuestion.answers.map((answer, index) => <Answer key={index} answer={answer}
                                                                                         index={index}/>)}
@@ -191,6 +191,19 @@ export const InGameHost = () => {
                         {questionAnimationState === 'answers-ready' && currentQuestion.type === QUESTION_TYPES.TEXT && (
                             <div className={`text-question-indicator ${questionAnimationState}`}>
                                 <h2>Spieler geben ihre Antworten ein...</h2>
+                                <div className="text-input-animation">
+                                    <div className="typing-dots">
+                                        <span></span>
+                                        <span></span>
+                                        <span></span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {questionAnimationState === 'answers-ready' && currentQuestion.type === QUESTION_TYPES.SEQUENCE && (
+                            <div className={`text-question-indicator ${questionAnimationState}`}>
+                                <h2>Spieler sortieren ihre Antworten...</h2>
                                 <div className="text-input-animation">
                                     <div className="typing-dots">
                                         <span></span>

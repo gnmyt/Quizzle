@@ -20,6 +20,11 @@ export const prepareQuizData = async (questions, title, includeImageData = false
 
         if (cleanQuestion.type === QUESTION_TYPES.TEXT) {
             cleanQuestion.answers = rest.answers.map(a => ({content: a.content.trim()}));
+        } else if (cleanQuestion.type === QUESTION_TYPES.SEQUENCE) {
+            cleanQuestion.answers = rest.answers.map(a => ({
+                content: a.content.trim(),
+                order: a.order || 1
+            }));
         } else {
             cleanQuestion.answers = await Promise.all(rest.answers.map(async (a) => {
                 const cleanAnswer = {...a, content: a.content ? a.content.trim() : "", is_correct: a.is_correct || false};

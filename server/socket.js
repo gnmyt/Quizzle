@@ -13,6 +13,50 @@ const {
 
 const rooms = {};
 
+const getCorrectSequenceOrder = (question) => {
+    return question.answers.map((_, index) => index);
+};
+
+const isSequenceCompletelyCorrect = (userOrder, correctOrder) => {
+    if (userOrder.length !== correctOrder.length) {
+        return false;
+    }
+    
+    for (let i = 0; i < userOrder.length; i++) {
+        if (userOrder[i] !== correctOrder[i]) {
+            return false;
+        }
+    }
+    
+    return true;
+};
+
+const calculateSequencePartialScore = (userOrder, correctOrder) => {
+    let correctPositions = 0;
+    for (let i = 0; i < Math.min(userOrder.length, correctOrder.length); i++) {
+        if (userOrder[i] === correctOrder[i]) {
+            correctPositions++;
+        }
+    }
+    return correctPositions / correctOrder.length;
+};
+
+const validateSequenceAnswer = (userOrder, question) => {
+    const correctOrder = getCorrectSequenceOrder(question);
+    const isCompletelyCorrect = isSequenceCompletelyCorrect(userOrder, correctOrder);
+    
+    if (isCompletelyCorrect) {
+        return { isCorrect: true, score: 1 };
+    } else {
+        const partialScore = calculateSequencePartialScore(userOrder, correctOrder);
+        return { 
+            isCorrect: false, 
+            score: partialScore >= 0.99 ? 1 : Math.max(0.1, partialScore),
+            isPartial: partialScore > 0
+        };
+    }
+};
+
 const calculatePoints = (correctAnswers, room) => {
     const basePoints = 100;
     const maxTime = 30000;
@@ -44,10 +88,16 @@ const handleValidationError = (callback, schema, data) => {
     return false;
 };
 
-const generateAnswerData = (currentQuestion, currentAnswers) => {
+const generateAnswerData = (currentQuestion, currentAnswers, room) => {
     if (currentQuestion.type === 'text') {
         return {
             answers: currentQuestion.answers.map(a => a.content)
+        };
+    } else if (currentQuestion.type === 'sequence') {
+        const originalQuestion = room.questionHistory[room.questionHistory.length - 1];
+        return {
+            answers: originalQuestion ? originalQuestion.answers : currentQuestion.answers,
+            correctOrder: (originalQuestion ? originalQuestion.answers : currentQuestion.answers).map((_, index) => index)
         };
     } else {
         const voteCounts = new Array(currentQuestion.answers.length).fill(0);
@@ -109,6 +159,16 @@ const generateAnalyticsData = (room) => {
                 );
                 if (isCorrect) correctCount++;
                 else incorrectCount++;
+            } else if (question.type === 'sequence') {
+                const sequenceResult = validateSequenceAnswer(playerAnswer, question);
+                
+                if (sequenceResult.isCorrect) {
+                    correctCount++;
+                } else if (sequenceResult.isPartial) {
+                    partialCount++;
+                } else {
+                    incorrectCount++;
+                }
             } else {
                 let correctSelected = 0;
                 let incorrectSelected = 0;
@@ -171,6 +231,16 @@ const generateAnalyticsData = (room) => {
                     );
                     if (isCorrect) correctAnswers++;
                     else incorrectAnswers++;
+                } else if (question.type === 'sequence') {
+                    const sequenceResult = validateSequenceAnswer(answer, question);
+                    
+                    if (sequenceResult.isCorrect) {
+                        correctAnswers++;
+                    } else if (sequenceResult.isPartial) {
+                        partialAnswers++;
+                    } else {
+                        incorrectAnswers++;
+                    }
                 } else {
                     let correctSelected = 0;
                     let incorrectSelected = 0;
@@ -423,6 +493,16 @@ module.exports = (io, socket) => {
 
                 if (room.currentQuestion.type === 'text') {
                     questionData.maxLength = 200;
+                } else if (room.currentQuestion.type === 'sequence') {
+                    const originalQuestion = room.questionHistory[room.questionHistory.length - 1];
+                    if (originalQuestion && originalQuestion.answers) {
+                        questionData.answers = originalQuestion.answers.map(answer => ({
+                            content: answer.content,
+                            type: answer.type || 'text'
+                        }));
+                    } else {
+                        questionData.answers = room.currentQuestion.answers.length;
+                    }
                 } else {
                     questionData.answers = room.currentQuestion.answers.length;
                 }
@@ -483,6 +563,11 @@ module.exports = (io, socket) => {
 
         if (data.type === 'text') {
             questionData.maxLength = 200;
+        } else if (data.type === 'sequence') {
+            questionData.answers = data.answers.map(answer => ({
+                content: answer.content,
+                type: answer.type || 'text'
+            }));
         } else {
             questionData.answers = data.answers.length;
         }
@@ -531,6 +616,8 @@ module.exports = (io, socket) => {
             const userAnswer = data.answers.toLowerCase().trim();
             const correctTextAnswers = currentQuestion.answers.map(a => a.content.toLowerCase().trim());
             correctAnswers = correctTextAnswers.includes(userAnswer) ? 1 : 0;
+        } else if (currentQuestion.type === 'sequence') {
+            correctAnswers = validateSequenceAnswer(data.answers, currentQuestion);
         } else {
             let correctSelected = 0;
             let incorrectSelected = 0;
@@ -555,7 +642,7 @@ module.exports = (io, socket) => {
 
         const currentAnswers = playerAnswers[playerAnswers.length - 1];
         if (Object.keys(currentAnswers).length === Object.keys(room.players).length) {
-            const answerData = generateAnswerData(currentQuestion, currentAnswers);
+            const answerData = generateAnswerData(currentQuestion, currentAnswers, room);
             room.currentQuestion.isCompleted = true;
 
             broadcastAnswerResults(io, currentRoomCode, answerData, room);
@@ -580,7 +667,7 @@ module.exports = (io, socket) => {
         room.currentQuestion.isCompleted = true;
 
         const currentAnswers = room.playerAnswers[room.playerAnswers.length - 1];
-        const answerData = generateAnswerData(room.currentQuestion, currentAnswers);
+        const answerData = generateAnswerData(room.currentQuestion, currentAnswers, room);
 
         broadcastAnswerResults(io, currentRoomCode, answerData, room);
 

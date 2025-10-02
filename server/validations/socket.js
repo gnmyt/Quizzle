@@ -35,7 +35,7 @@ module.exports.joinRoom = Joi.object({
 
 module.exports.answerQuestion = Joi.object({
     answers: Joi.alternatives().try(
-        Joi.array().items(Joi.number().required()).min(0).max(3),
+        Joi.array().items(Joi.number().required()).min(0).max(8),
         Joi.string().max(200).allow('')
     )
 });

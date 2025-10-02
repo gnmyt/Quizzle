@@ -13,7 +13,7 @@ module.exports.questionValidation = Joi.object({
             'string.min': 'Fragetitel darf nicht leer sein',
             'string.max': 'Fragetitel darf maximal 200 Zeichen lang sein'
         }),
-    type: Joi.string().valid('multiple-choice', 'true-false', 'text').required(),
+    type: Joi.string().valid('multiple-choice', 'true-false', 'text', 'sequence').required(),
     b64_image: Joi.string().max(10000000),
     answers: Joi.when('type', {
         is: 'text',
@@ -32,8 +32,25 @@ module.exports.questionValidation = Joi.object({
                 })
         })).min(1).max(10),
         otherwise: Joi.when('type', {
-            is: 'true-false',
+            is: 'sequence',
             then: Joi.array().items(Joi.object({
+                content: Joi.string().required().min(1).max(150)
+                    .custom((value, helpers) => {
+                        const trimmed = value.trim();
+                        if (trimmed.length === 0) {
+                            return helpers.error('string.min');
+                        }
+                        return trimmed;
+                    })
+                    .messages({
+                        'string.min': 'Antwort darf nicht leer sein',
+                        'string.max': 'Antwort darf maximal 150 Zeichen lang sein'
+                    }),
+                order: Joi.number().integer().min(1).optional()
+            })).min(2).max(8),
+            otherwise: Joi.when('type', {
+                is: 'true-false',
+                then: Joi.array().items(Joi.object({
                 type: Joi.string().valid('text', 'image').required(),
                 content: Joi.string().required().min(1).max(150)
                     .custom((value, helpers) => {
@@ -66,6 +83,7 @@ module.exports.questionValidation = Joi.object({
                     }),
                 is_correct: Joi.boolean().required()
             })).min(2).max(6)
+            })
         })
     })
 });

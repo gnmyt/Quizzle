@@ -32,6 +32,7 @@ export class QuizValidationUtil {
         switch (questionType) {
             case QUESTION_TYPES.TEXT: return this.validateTextAnswers(answers);
             case QUESTION_TYPES.TRUE_FALSE: return this.validateTrueFalseAnswers(answers);
+            case QUESTION_TYPES.SEQUENCE: return this.validateSequenceAnswers(answers);
             case QUESTION_TYPES.MULTIPLE_CHOICE:
             default: return this.validateMultipleChoiceAnswers(answers);
         }
@@ -55,10 +56,17 @@ export class QuizValidationUtil {
         return { isValid: true };
     }
 
+    static validateSequenceAnswers(answers) {
+        if (answers.some(a => !a.content || a.content.trim() === "")) return { isValid: false, error: "Reihenfolge-Antworten dürfen nicht leer sein." };
+        if (answers.some(a => a.content?.trim().length > this.LIMITS.MAX_ANSWER_LENGTH)) return { isValid: false, error: `Reihenfolge-Antworten dürfen maximal ${this.LIMITS.MAX_ANSWER_LENGTH} Zeichen lang sein.` };
+        return { isValid: true };
+    }
+
     static getMinAnswersErrorMessage(questionType, minAnswers) {
         switch (questionType) {
             case QUESTION_TYPES.TEXT: return "Text-Fragen müssen mindestens eine akzeptierte Antwort haben.";
             case QUESTION_TYPES.TRUE_FALSE: return "Wahr/Falsch-Fragen müssen genau zwei Antworten haben.";
+            case QUESTION_TYPES.SEQUENCE: return "Reihenfolge-Fragen müssen mindestens zwei Antworten haben.";
             case QUESTION_TYPES.MULTIPLE_CHOICE:
             default: return "Multiple-Choice-Fragen müssen mindestens zwei Antworten haben.";
         }
@@ -68,6 +76,7 @@ export class QuizValidationUtil {
         switch (questionType) {
             case QUESTION_TYPES.TEXT: return `Text-Fragen dürfen maximal ${maxAnswers} akzeptierte Antworten haben.`;
             case QUESTION_TYPES.TRUE_FALSE: return "Wahr/Falsch-Fragen müssen genau zwei Antworten haben.";
+            case QUESTION_TYPES.SEQUENCE: return `Reihenfolge-Fragen dürfen maximal ${maxAnswers} Antworten haben.`;
             case QUESTION_TYPES.MULTIPLE_CHOICE:
             default: return `Multiple-Choice-Fragen dürfen maximal ${maxAnswers} Antworten haben.`;
         }
@@ -96,6 +105,9 @@ export class QuizValidationUtil {
                 if (!question.answers || question.answers.length < 2 || question.answers.length > 6) return false;
                 if (question.answers.some(a => typeof a.is_correct !== 'boolean')) return false;
                 if (question.answers.filter(a => a.is_correct).length === 0) return false;
+                if (question.answers.some(a => !a.content || a.content.trim() === "")) return false;
+            } else if (questionType === QUESTION_TYPES.SEQUENCE) {
+                if (!question.answers || question.answers.length < 2 || question.answers.length > 8) return false;
                 if (question.answers.some(a => !a.content || a.content.trim() === "")) return false;
             } else {
                 return false;

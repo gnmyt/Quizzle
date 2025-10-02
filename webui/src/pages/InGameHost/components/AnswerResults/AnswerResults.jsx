@@ -69,6 +69,34 @@ export const AnswerResults = ({question, answerData, showScoreboard}) => {
         );
     }
 
+    if (question.type === QUESTION_TYPES.SEQUENCE) {
+        return (
+            <div className="answer-results">
+                <div className="top-area">
+                    <Button onClick={showScoreboard} text="Scoreboard anzeigen"
+                            padding="1rem 1.5rem" icon={faForward}/>
+                </div>
+
+                <h1>Richtige Reihenfolge</h1>
+
+                <div className="sequence-correct-order">
+                    {answerData.answers.map((answer, index) => (
+                        <motion.div
+                            key={index}
+                            className="sequence-answer-item"
+                            initial={{scale: 0, opacity: 0}}
+                            animate={{scale: 1, opacity: 1}}
+                            transition={{duration: 0.4, delay: index * 0.2, type: "spring", stiffness: 200}}
+                        >
+                            <div className="sequence-position">{index + 1}</div>
+                            <div className="sequence-content">{answer.content}</div>
+                        </motion.div>
+                    ))}
+                </div>
+            </div>
+        );
+    }
+
     const maxVotes = Math.max(...(answerData.voteCounts || []), 1);
 
     return (

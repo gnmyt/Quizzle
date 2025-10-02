@@ -1,6 +1,8 @@
 @use "@/common/styles/colors" as *
+@use "sass:color"
+
 .question-editor
-  width: 65vw
+  width: 60vw
   border: 2px solid $border
   border-radius: 1rem
   padding: 1rem
@@ -42,6 +44,7 @@
 
         svg
           font-size: 1rem
+          color: $primary
 
         span
           font-weight: 500
@@ -52,7 +55,7 @@
         left: 0
         right: 0
         background-color: $background
-        border: 2px solid $border
+        border: 2px solid $primary
         border-radius: 0.8rem
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15)
         z-index: 1000
@@ -64,7 +67,7 @@
           padding: 1rem
           cursor: pointer
           transition: all 0.3s ease
-          border-bottom: 1px solid $border
+          border-bottom: 1px solid color.adjust($border, $alpha: -0.5)
 
           &:last-child
             border-bottom: none
@@ -74,7 +77,6 @@
 
           &.active
             background-color: $selected-bg
-            border-color: $primary
 
           .type-option-header
             display: flex

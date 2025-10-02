@@ -14,6 +14,11 @@ module.exports.questionValidation = Joi.object({
             'string.max': 'Fragetitel darf maximal 200 Zeichen lang sein'
         }),
     type: Joi.string().valid('multiple-choice', 'true-false', 'text', 'sequence').required(),
+    timer: Joi.number().integer().min(-1).max(3600).optional()
+        .messages({
+            'number.min': 'Timer muss -1 (unbegrenzt) oder eine positive Zahl sein',
+            'number.max': 'Timer darf maximal 3600 Sekunden (1 Stunde) betragen'
+        }),
     b64_image: Joi.string().max(10000000),
     answers: Joi.when('type', {
         is: 'text',

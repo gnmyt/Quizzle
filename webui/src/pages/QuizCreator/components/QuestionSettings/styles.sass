@@ -1,0 +1,44 @@
+@use "@/common/styles/colors" as *
+
+.question-settings
+  width: 20rem
+  border: 2px solid $border
+  border-radius: 1rem
+  padding: 1.5rem
+  background-color: $background
+  box-sizing: border-box
+  height: fit-content
+
+  .settings-header
+    margin-bottom: 1.5rem
+    padding-bottom: 1rem
+    border-bottom: 2px solid $border
+
+    h3
+      margin: 0
+      color: $text
+      font-size: 1.3rem
+      font-weight: 600
+
+  .setting-group
+    margin-bottom: 1.5rem
+
+    .setting-label
+      display: flex
+      align-items: center
+      gap: 0.5rem
+      margin-bottom: 0.75rem
+      color: $text
+      font-weight: 500
+
+      svg
+        color: $primary
+
+@media screen and (max-width: 1300px)
+  .question-settings
+    width: 18rem
+
+@media screen and (max-width: 915px)
+  .question-settings
+    width: 100%
+    margin-top: 2rem

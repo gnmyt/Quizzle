@@ -17,6 +17,7 @@ import {
 import QuestionPreview from "@/pages/QuizCreator/components/QuestionPreview";
 import QuestionEditor from "@/pages/QuizCreator/components/QuestionEditor";
 import AddQuestion from "@/pages/QuizCreator/components/AddQuestion";
+import QuestionSettings from "@/pages/QuizCreator/components/QuestionSettings";
 import PasswordDialog from "@/common/components/PasswordDialog";
 import toast from "react-hot-toast";
 import {putRequest} from "@/common/utils/RequestUtil.js";
@@ -331,6 +332,8 @@ export const QuizCreator = () => {
 
                 <QuestionEditor key={activeQuestion} question={questions.find(q => q.uuid === activeQuestion)}
                     onChange={onChange} deleteQuestion={deleteQuestion} duplicateQuestion={duplicateQuestion} />
+                    
+                <QuestionSettings key={`settings-${activeQuestion}`} question={questions.find(q => q.uuid === activeQuestion)} onChange={onChange} />
             </div>
 
             <PasswordDialog

@@ -1,0 +1,134 @@
+@use "@/common/styles/colors" as *
+
+.countdown-timer
+  position: fixed
+  top: 2rem
+  left: 2rem
+  z-index: 200
+  user-select: none
+
+  .timer-card
+    background: $background
+    border: 1px solid $border
+    border-radius: 1rem
+    padding: 1.25rem
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05)
+    min-width: 140px
+    transition: all 0.3s ease
+
+    &:hover
+      transform: translateY(-2px)
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1)
+
+  .timer-header
+    display: flex
+    align-items: center
+    gap: 0.75rem
+    margin-bottom: 1rem
+
+  .timer-icon-container
+    width: 2.5rem
+    height: 2.5rem
+    border-radius: 0.75rem
+    display: flex
+    align-items: center
+    justify-content: center
+    background: linear-gradient(135deg, color-mix(in srgb, $primary 100%, white 20%), color-mix(in srgb, $primary 100%, black 10%))
+
+    .timer-icon
+      color: $background
+      font-size: 1rem
+      font-weight: 600
+
+  .timer-progress-container
+    flex: 1
+    height: 6px
+    background: color-mix(in srgb, $border 100%, white 50%)
+    border-radius: 3px
+    overflow: hidden
+
+    .timer-progress-bar
+      height: 100%
+      background: linear-gradient(90deg, $primary, color-mix(in srgb, $primary 80%, white 20%))
+      border-radius: 3px
+
+  .timer-content
+    text-align: center
+
+  .timer-time
+    font-size: 1.5rem
+    font-weight: 700
+    color: $text
+    line-height: 1.2
+    margin-bottom: 0.25rem
+
+  .timer-label
+    font-size: 0.75rem
+    font-weight: 600
+    color: $gray
+    text-transform: uppercase
+    letter-spacing: 0.5px
+
+.countdown-timer.warning
+  .timer-card
+    background: color-mix(in srgb, $orange 5%, $background 95%)
+
+  .timer-icon-container
+    background: linear-gradient(135deg, color-mix(in srgb, $orange 100%, white 20%), color-mix(in srgb, $orange 100%, black 10%))
+
+  .timer-progress-bar
+    background: linear-gradient(90deg, $orange, color-mix(in srgb, $orange 80%, white 20%))
+
+  .timer-time
+    color: $orange
+
+  .timer-label
+    color: color-mix(in srgb, $orange 100%, black 20%)
+
+.countdown-timer.critical
+  animation: criticalPulse 0.8s ease-in-out infinite alternate
+
+  .timer-card
+    background: color-mix(in srgb, $red 5%, $background 95%)
+    box-shadow: 0 4px 12px color-mix(in srgb, $red 30%, transparent 70%)
+
+  .timer-icon-container
+    background: linear-gradient(135deg, color-mix(in srgb, $red 100%, white 20%), color-mix(in srgb, $red 100%, black 10%))
+
+  .timer-progress-bar
+    background: linear-gradient(90deg, $red, color-mix(in srgb, $red 80%, white 20%))
+
+  .timer-time
+    color: $red
+    font-weight: 800
+
+  .timer-label
+    color: color-mix(in srgb, $red 100%, black 20%)
+
+@keyframes criticalPulse
+  0%
+    transform: scale(1)
+  100%
+    transform: scale(1.02)
+
+@media screen and (max-width: 915px)
+  .countdown-timer
+    top: 1rem
+    left: 1rem
+
+    .timer-card
+      padding: 1rem
+      min-width: 120px
+
+    .timer-icon-container
+      width: 2rem
+      height: 2rem
+
+      .timer-icon
+        font-size: 0.9rem
+
+    .timer-time
+      font-size: 1.25rem
+
+    .timer-label
+      font-size: 0.7rem

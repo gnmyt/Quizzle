@@ -1,0 +1,119 @@
+@use "@/common/styles/colors" as *
+@use "sass:color"
+
+.select-box
+  position: relative
+  width: 100%
+
+  &.disabled
+    opacity: 0.6
+    pointer-events: none
+
+  .select-trigger
+    display: flex
+    align-items: center
+    justify-content: space-between
+    padding: 0.75rem 1rem
+    border: 2px solid $border
+    border-radius: 0.5rem
+    background-color: $background
+    cursor: pointer
+    transition: all 0.2s ease
+    min-height: 2.5rem
+    box-sizing: border-box
+
+    &:hover
+      border-color: $primary
+
+    &.open
+      border-color: $primary
+      border-bottom-left-radius: 0
+      border-bottom-right-radius: 0
+
+    .select-content
+      display: flex
+      align-items: center
+      flex: 1
+
+      .selected-option
+        display: flex
+        align-items: center
+        gap: 0.5rem
+
+        .option-icon
+          color: $primary
+          font-size: 0.9rem
+
+        .option-label
+          color: $text
+          font-weight: 500
+
+      .placeholder
+        color: $gray
+        font-style: italic
+
+    .select-arrow
+      color: $gray
+      font-size: 0.8rem
+      transition: transform 0.2s ease
+
+      &.rotated
+        transform: rotate(180deg)
+
+  .select-dropdown
+    position: absolute
+    top: 100%
+    left: 0
+    right: 0
+    background-color: $background
+    border: 2px solid $primary
+    border-top: none
+    border-bottom-left-radius: 0.5rem
+    border-bottom-right-radius: 0.5rem
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1)
+    z-index: 1000
+    max-height: 12rem
+    overflow-y: auto
+
+    .select-option
+      display: flex
+      align-items: center
+      gap: 0.75rem
+      padding: 0.75rem 1rem
+      cursor: pointer
+      transition: all 0.2s ease
+      border-bottom: 1px solid color.adjust($border, $alpha: -0.5)
+
+      &:last-child
+        border-bottom: none
+
+      &:hover
+        background-color: $hover-bg
+
+      &.selected
+        background-color: $selected-bg
+        
+        .option-label
+          font-weight: 600
+          color: $text
+
+      .option-icon
+        color: $primary
+        font-size: 0.9rem
+        flex-shrink: 0
+
+      .option-content
+        display: flex
+        flex-direction: column
+        gap: 0.25rem
+        flex: 1
+
+        .option-label
+          color: $text
+          font-size: 0.9rem
+          line-height: 1.2
+
+        .option-description
+          color: $gray
+          font-size: 0.8rem
+          line-height: 1.3

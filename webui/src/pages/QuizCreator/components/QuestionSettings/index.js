@@ -1,0 +1,1 @@
+export {QuestionSettings as default} from "./QuestionSettings.jsx";

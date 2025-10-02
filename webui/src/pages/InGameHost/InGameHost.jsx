@@ -10,6 +10,7 @@ import Button from "@/common/components/Button";
 import {faForward} from "@fortawesome/free-solid-svg-icons";
 import Scoreboard from "@/pages/InGameHost/components/Scoreboard";
 import AnswerResults from "@/pages/InGameHost/components/AnswerResults";
+import CountdownTimer from "@/pages/InGameHost/components/CountdownTimer";
 import {useSoundManager} from "@/common/utils/SoundManager.js";
 import SoundRenderer from "@/common/components/SoundRenderer";
 import {QUESTION_TYPES} from "@/common/constants/QuestionTypes.js";
@@ -24,9 +25,11 @@ export const InGameHost = () => {
     const [gameState, setGameState] = useState('question');
     const [answerData, setAnswerData] = useState(null);
     const [questionAnimationState, setQuestionAnimationState] = useState('hidden');
+    const [timerActive, setTimerActive] = useState(false);
 
     const skipQuestion = async () => {
         try {
+            setTimerActive(false); // Stop the timer when manually skipping
             socket.emit("SKIP_QUESTION", null, (data) => {
                 if (!data) {
                     toast.error("Fehler beim Überspringen der Frage");
@@ -63,6 +66,7 @@ export const InGameHost = () => {
             setGameState('question');
             setAnswerData(null);
             setQuestionAnimationState('hidden');
+            setTimerActive(false);
 
             if (!inGameMusicRef.current && (gameState === 'answer-results' || gameState === 'scoreboard')) {
                 inGameMusicRef.current = soundManager.playAmbient('INGAME');
@@ -82,6 +86,9 @@ export const InGameHost = () => {
 
             setTimeout(() => {
                 setQuestionAnimationState('answers-ready');
+                if (newQuestion.timer !== -1) {
+                    setTimerActive(true);
+                }
             }, 5100);
 
             socket.emit("SHOW_QUESTION", newQuestionCopy, (success) => {
@@ -125,6 +132,7 @@ export const InGameHost = () => {
         });
 
         socket.on("ANSWERS_RECEIVED", (data) => {
+            setTimerActive(false);
             setScoreboard(data.scoreboard);
             setAnswerData(data.answerData);
             setGameState('answer-results');
@@ -153,6 +161,15 @@ export const InGameHost = () => {
     return (
         <div>
             <SoundRenderer />
+
+            {gameState === 'question' && questionAnimationState === 'answers-ready' && currentQuestion && (
+                <CountdownTimer
+                    duration={currentQuestion.timer === undefined || currentQuestion.timer === null ? 60 : 
+                             currentQuestion.timer === -1 ? 0 : currentQuestion.timer}
+                    onTimeUp={skipQuestion}
+                    isActive={timerActive}
+                />
+            )}
             
             {gameState === 'answer-results' && answerData && (
                 <AnswerResults 

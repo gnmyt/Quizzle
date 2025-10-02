@@ -14,6 +14,7 @@ export const QuizProvider = ({children}) => {
     const [roomCode, setRoomCode] = useState(null);
     const [username, setUsername] = useState("");
     const [soundEnabled, setSoundEnabled] = useState(() => soundManager.getSoundEnabled());
+    const [practiceUserData, setPracticeUserData] = useState(null);
 
     useEffect(() => {
         const sessionData = getSessionData();
@@ -109,7 +110,8 @@ export const QuizProvider = ({children}) => {
 
     return (
         <QuizContext.Provider value={{isLoaded, loadQuizById, loadQuizByContent, quizRaw: quiz, pullNextQuestion,
-            scoreboard, setScoreboard, roomCode, setRoomCode, username, setUsername, soundEnabled, setSoundEnabled, toggleSound}}>
+            scoreboard, setScoreboard, roomCode, setRoomCode, username, setUsername, soundEnabled, setSoundEnabled, toggleSound,
+            practiceUserData, setPracticeUserData}}>
             {children}
         </QuizContext.Provider>
     );

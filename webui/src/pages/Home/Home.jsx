@@ -16,7 +16,7 @@ import {jsonRequest} from "@/common/utils/RequestUtil.js";
 
 export const Home = () => {
     const {titleImg, imprint, privacy, version} = useContext(BrandingContext);
-    const {setRoomCode, setUsername} = useContext(QuizContext);
+    const {setRoomCode, setUsername, setPracticeUserData} = useContext(QuizContext);
     const {setCirclePosition} = useOutletContext();
     const [code, setCode] = useState(window.location.search.includes("code=") ? window.location.search.split("=")[1] : null);
     const [scannerShown, setScannerShown] = useState(false);
@@ -127,6 +127,7 @@ export const Home = () => {
 
         return new Promise((resolve, reject) => {
             if (isPracticeMode) {
+                setPracticeUserData({ name, character });
                 setCirclePosition("-30rem 0 0 -30rem");
                 setTimeout(() => {
                     navigate(`/practice/${code}`);

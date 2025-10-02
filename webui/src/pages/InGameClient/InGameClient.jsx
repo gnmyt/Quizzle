@@ -1,7 +1,7 @@
 import "./styles.sass";
 import {QuizContext} from "@/common/contexts/Quiz";
 import {useContext, useEffect, useState} from "react";
-import {useNavigate, useParams, useSearchParams} from "react-router-dom";
+import {useNavigate, useParams} from "react-router-dom";
 import {socket, addReconnectionCallback, removeReconnectionCallback, clearCurrentSession, getSessionManager} from "@/common/utils/SocketUtil.js";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import {faCheck, faCheckCircle, faMinus, faPaperPlane, faX, faWifi, faExclamationTriangle} from "@fortawesome/free-solid-svg-icons";
@@ -14,9 +14,8 @@ import toast from "react-hot-toast";
 
 export const InGameClient = () => {
     const navigate = useNavigate();
-    const {username, roomCode} = useContext(QuizContext);
+    const {username, roomCode, practiceUserData} = useContext(QuizContext);
     const {practiceCode} = useParams();
-    const [searchParams] = useSearchParams();
 
     const [isPracticeMode, setIsPracticeMode] = useState(false);
     const [practiceQuiz, setPracticeQuiz] = useState(null);
@@ -37,6 +36,13 @@ export const InGameClient = () => {
     useEffect(() => {
         if (practiceCode) {
             setIsPracticeMode(true);
+
+            if (!practiceUserData || !practiceUserData.name) {
+                toast.error('Bitte wähle zuerst einen Namen und Charakter.');
+                navigate(`/?code=${practiceCode}`);
+                return;
+            }
+            
             loadPracticeQuiz();
             return;
         }
@@ -183,15 +189,12 @@ export const InGameClient = () => {
         }
 
         try {
-            const name = searchParams.get('name');
-            const character = searchParams.get('character');
-            
             const response = await postRequest(`/practice/${practiceCode}/submit-answer`, {
                 attemptId,
                 questionIndex: currentQuestionIndex,
                 answer: answerToSubmit,
-                name: name || username || 'Anonymous',
-                character: character || 'wizard'
+                name: practiceUserData?.name || username || 'Anonymous',
+                character: practiceUserData?.character || 'wizard'
             });
 
             if (response.isLastQuestion) {
@@ -520,7 +523,7 @@ export const InGameClient = () => {
             )}
 
             <div className="ingame-footer">
-                <h2>{isPracticeMode ? searchParams.get('name') : username}</h2>
+                <h2>{isPracticeMode ? (practiceUserData?.name || 'Anonymous') : username}</h2>
                 {!isPracticeMode && (
                     <div className="footer-points">
                         <h2>{points}</h2>

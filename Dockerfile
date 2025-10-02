@@ -26,6 +26,7 @@ WORKDIR /quizzle
 
 COPY --from=build /quizzle/dist /quizzle/dist
 COPY --from=build /quizzle/server /quizzle/server
+COPY --from=build /quizzle/content /quizzle/content
 COPY --from=build /quizzle/package.json /quizzle/package.json
 
 RUN bun install --production --frozen-lockfile

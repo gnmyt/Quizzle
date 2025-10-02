@@ -16,6 +16,12 @@ jobs:
       version: ${{ steps.version.outputs.version }}
       version_number: ${{ steps.version.outputs.version_number }}
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
       - name: Extract version
         id: version
         run: |
@@ -26,12 +32,57 @@ jobs:
           echo "Version: $VERSION"
           echo "Version Number: $VERSION_NUMBER"
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Update package.json version
+        run: |
+          npm version ${{ steps.version.outputs.version_number }} --no-git-tag-version --allow-same-version
+          
+          if [ -f "webui/package.json" ] && grep -q '"version"' webui/package.json; then
+            cd webui
+            npm version ${{ steps.version.outputs.version_number }} --no-git-tag-version --allow-same-version
+            cd ..
+          fi
+          
+          if [ -f "docs/package.json" ] && grep -q '"version"' docs/package.json; then
+            cd docs
+            npm version ${{ steps.version.outputs.version_number }} --no-git-tag-version --allow-same-version
+            cd ..
+          fi
+
+      - name: Configure Git
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+
+      - name: Commit version updates
+        run: |
+          git add package.json
+          [ -f "webui/package.json" ] && git add webui/package.json || true
+          [ -f "docs/package.json" ] && git add docs/package.json || true
+          
+          if ! git diff --staged --quiet; then
+            git commit -m "chore: bump version to ${{ steps.version.outputs.version_number }}"
+            git push origin HEAD:main
+            echo "Version bumped and pushed to main branch"
+            
+            sleep 10
+          else
+            echo "No version changes to commit"
+          fi
+
   docker:
     needs: prepare
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -75,6 +126,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
 
       - name: Install Rust
         uses: actions-rs/toolchain@v1
@@ -134,6 +188,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
@@ -175,6 +232,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
@@ -313,6 +373,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
+          ref: main
           fetch-depth: 0
 
       - name: Download all artifacts

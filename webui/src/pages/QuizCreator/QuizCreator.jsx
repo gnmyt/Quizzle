@@ -18,22 +18,30 @@ import {
 import QuestionPreview from "@/pages/QuizCreator/components/QuestionPreview";
 import QuestionEditor from "@/pages/QuizCreator/components/QuestionEditor";
 import AddQuestion from "@/pages/QuizCreator/components/AddQuestion";
-import PasswordDialog from "@/pages/QuizCreator/components/PasswordDialog";
-import pako from "pako";
+import PasswordDialog from "@/common/components/PasswordDialog";
 import toast from "react-hot-toast";
-import {postRequest, putRequest} from "@/common/utils/RequestUtil.js";
+import {putRequest} from "@/common/utils/RequestUtil.js";
 import {useInputValidation, validationRules} from "@/common/hooks/useInputValidation";
+import {prepareQuizData, prepareQuizDataForExport, cleanupQuestionImages, cleanupSingleQuestionImages} from "@/common/utils/QuizDataUtil.js";
+import {createFileInput, importQuizzleFile, downloadQuizzleFile} from "@/common/utils/FileOperationsUtil.js";
+import {QuizValidationUtil} from "@/common/utils/QuizValidationUtil.js";
+import {usePasswordAuthentication} from "@/common/hooks/usePasswordAuthentication.js";
+import {DEFAULT_QUESTION_TYPE} from "@/common/constants/QuestionTypes.js";
 
 export const QuizCreator = () => {
     const {setCirclePosition} = useOutletContext();
-    const {titleImg, passwordProtected} = useContext(BrandingContext);
+    const {titleImg} = useContext(BrandingContext);
     const titleValidation = useInputValidation(localStorage.getItem("qq_title") || "", validationRules.quizTitle);
-
-    const [showPasswordDialog, setShowPasswordDialog] = useState(false);
-    const [pendingAction, setPendingAction] = useState(null);
-    const [isAuthenticated, setIsAuthenticated] = useState(() => {
-        return sessionStorage.getItem('quiz_password') !== null;
-    });
+    const {
+        isAuthenticated,
+        passwordProtected,
+        showPasswordDialog,
+        requireAuthentication,
+        handlePasswordSubmit,
+        closePasswordDialog,
+        getAuthHeaders,
+        getAuthData
+    } = usePasswordAuthentication();
 
     const [errorToastId, setErrorToastId] = useState(null);
     const [questions, setQuestions] = useState(() => {
@@ -41,21 +49,40 @@ export const QuizCreator = () => {
         if (stored) {
             try {
                 const parsed = JSON.parse(stored);
-                return parsed.map(q => ({
-                    ...q,
-                    type: q.type || 'single-choice'
-                }));
+                return parsed.map(q => {
+                    const { b64_image, ...cleanQuestion } = q;
+
+                    if (cleanQuestion.answers) {
+                        cleanQuestion.answers = cleanQuestion.answers.map(answer => {
+                            const { b64_image: answerB64, ...cleanAnswer } = answer;
+                            return {
+                                ...cleanAnswer,
+                                type: cleanAnswer.type || 'text'
+                            };
+                        });
+                    }
+                    
+                    return {
+                        ...cleanQuestion,
+                        type: cleanQuestion.type || DEFAULT_QUESTION_TYPE
+                    };
+                });
             } catch (e) {
                 console.error("Error parsing stored questions:", e);
             }
         }
-        return [{uuid: generateUuid(), title: "", type: "multiple-choice", answers: []}];
+        return [{uuid: generateUuid(), title: "", type: DEFAULT_QUESTION_TYPE, answers: []}];
     });
     const [activeQuestion, setActiveQuestion] = useState(questions[0].uuid);
 
-    const deleteQuestion = (uuid) => {
+    const deleteQuestion = async (uuid) => {
+        const questionToDelete = questions.find(q => q.uuid === uuid);
         const questionIndex = questions.findIndex(q => q.uuid === uuid);
         const newQuestions = questions.filter(q => q.uuid !== uuid);
+
+        if (questionToDelete) {
+            await cleanupSingleQuestionImages(questionToDelete);
+        }
 
         if (questions.length === 1) {
             clearQuiz();
@@ -68,163 +95,48 @@ export const QuizCreator = () => {
     }
 
     const importQuiz = () => {
-        const input = document.createElement("input");
-        input.type = "file";
-        input.accept = ".quizzle";
-        input.onchange = (e) => {
-            const file = e.target.files[0];
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                try {
-                    const data = pako.inflate(e.target.result, {to: "string"});
-                    const parsedData = JSON.parse(data);
-
-                    if (parsedData.__type !== "QUIZZLE2") throw "Ungültiges Dateiformat.";
-
-                    const questions = parsedData.questions.map(q => {
-                        const newUuid = generateUuid();
-                        return {
-                            uuid: newUuid,
-                            ...q,
-                            type: q.type || 'multiple-choice'
-                        };
-                    });
-
-                    titleValidation.setValue(parsedData.title);
-                    setQuestions(questions);
-                    setActiveQuestion(questions[0].uuid);
-                } catch (e) {
-                    toast.error("Ungültiges Dateiformat.");
-                }
+        createFileInput(".quizzle", async (file) => {
+            try {
+                const importedData = await importQuizzleFile(file);
+                titleValidation.setValue(importedData.title);
+                setQuestions(importedData.questions);
+                setActiveQuestion(importedData.questions[0].uuid);
+                toast.success("Quiz erfolgreich importiert!");
+            } catch (error) {
+                toast.error(error.message || "Ungültiges Dateiformat.");
             }
-            reader.readAsArrayBuffer(file);
-        }
-        input.click();
+        });
     }
 
     const duplicateQuestion = (uuid) => {
         const question = questions.find(q => q.uuid === uuid);
         const newUuid = generateUuid();
-        const newQuestion = {...question, uuid: newUuid};
-        const questionIndex = questions.findIndex(q => q.uuid === uuid);
+        const { imageId, b64_image, ...questionWithoutImage } = question;
 
+        const cleanAnswers = questionWithoutImage.answers ? questionWithoutImage.answers.map(answer => {
+            const { imageId, ...answerWithoutImage } = answer;
+            return answerWithoutImage.type === "image" ? { ...answerWithoutImage, type: "text", content: "" } : answerWithoutImage;
+        }) : [];
+        
+        const newQuestion = {...questionWithoutImage, uuid: newUuid, answers: cleanAnswers};
+        const questionIndex = questions.findIndex(q => q.uuid === uuid);
         const newQuestions = [...questions];
         newQuestions.splice(questionIndex + 1, 0, newQuestion);
-
         setActiveQuestion(newUuid);
         setQuestions(newQuestions);
     }
 
     const validateQuestions = () => {
-        if (questions.length === 0) {
-            toast.error("Es muss mindestens eine Frage vorhanden sein.");
+        const validation = QuizValidationUtil.validateQuiz(questions, titleValidation.value);
+        if (!validation.isValid) {
+            toast.error(validation.error);
             return false;
         }
-
-        if (questions.length > 50) {
-            toast.error("Quiz darf maximal 50 Fragen enthalten.");
-            return false;
-        }
-
-        if (questions.some(q => !q.title || q.title.trim() === "")) {
-            toast.error("Fragen dürfen nicht leer sein.");
-            return false;
-        }
-
-        for (const question of questions) {
-            const questionType = question.type || 'multiple-choice';
-
-            if (questionType === 'text') {
-                if (!question.answers || question.answers.length === 0) {
-                    toast.error("Text-Fragen müssen mindestens eine akzeptierte Antwort haben.");
-                    return false;
-                }
-                if (question.answers.some(a => !a.content || a.content.trim() === "")) {
-                    toast.error("Text-Antworten dürfen nicht leer sein.");
-                    return false;
-                }
-                if (question.answers.length > 10) {
-                    toast.error("Text-Fragen dürfen maximal 10 akzeptierte Antworten haben.");
-                    return false;
-                }
-            } else if (questionType === 'true-false') {
-                if (!question.answers || question.answers.length !== 2) {
-                    toast.error("Wahr/Falsch-Fragen müssen genau zwei Antworten haben.");
-                    return false;
-                }
-                if (!question.answers.some(a => a.is_correct)) {
-                    toast.error("Wahr/Falsch-Fragen müssen mindestens eine richtige Antwort haben.");
-                    return false;
-                }
-            } else {
-                if (!question.answers || question.answers.length < 2) {
-                    toast.error("Multiple-Choice-Fragen müssen mindestens zwei Antworten haben.");
-                    return false;
-                }
-                if (question.answers.length > 6) {
-                    toast.error("Multiple-Choice-Fragen dürfen maximal sechs Antworten haben.");
-                    return false;
-                }
-                if (question.answers.filter(a => a.is_correct).length === 0) {
-                    toast.error("Jede Multiple-Choice-Frage muss mindestens eine richtige Antwort haben.");
-                    return false;
-                }
-                if (question.answers.some(a => !a.content || a.content.trim() === "")) {
-                    toast.error("Multiple-Choice-Antworten dürfen nicht leer sein.");
-                    return false;
-                }
-                if (question.answers.some(a => a.content?.trim().length > 150)) {
-                    toast.error("Multiple-Choice-Antworten dürfen maximal 150 Zeichen lang sein.");
-                    return false;
-                }
-            }
-        }
-
-        if (!titleValidation.validate()) {
-            toast.error("Quiz-Titel ist ungültig.");
-            return false;
-        }
-
-        if (questions.some(q => q.title.trim().length > 200)) {
-            toast.error("Fragen dürfen maximal 200 Zeichen lang sein.");
-            return false;
-        }
-
         return true;
     }
 
-    const handlePasswordSubmit = async (password) => {
-        try {
-            const response = await postRequest("/quizzes/validate-password", {password});
-            if (response.valid) {
-                sessionStorage.setItem('quiz_password', password);
-                setIsAuthenticated(true);
-                setShowPasswordDialog(false);
-                toast.success("Authentifizierung erfolgreich.");
-
-                if (pendingAction === 'practice') {
-                    publishPracticeQuiz();
-                } else {
-                    uploadQuiz();
-                }
-                setPendingAction(null);
-            } else {
-                toast.error("Ungültiges Passwort.");
-            }
-        } catch (error) {
-            const errorMessage = error.message || "Ungültiges Passwort.";
-            toast.error(errorMessage);
-            console.error("Password validation error:", error);
-        }
-    };
-
     const handleUploadClick = () => {
-        if (passwordProtected && !isAuthenticated) {
-            setShowPasswordDialog(true);
-            setPendingAction('upload');
-            return;
-        }
-        uploadQuiz();
+        requireAuthentication(uploadQuiz, 'upload');
     };
 
     const handlePracticeUploadClick = () => {
@@ -232,47 +144,15 @@ export const QuizCreator = () => {
             toast.error("Quiz-Titel darf nicht leer sein.");
             return;
         }
-
         if (!validateQuestions()) return;
-
-        if (passwordProtected && !isAuthenticated) {
-            setShowPasswordDialog(true);
-            setPendingAction('practice');
-            return;
-        }
-
-        publishPracticeQuiz();
+        requireAuthentication(publishPracticeQuiz, 'practice');
     };
 
     const publishPracticeQuiz = async () => {
-        const teacherPassword = sessionStorage.getItem('quiz_password');
-        const quizData = {
-            title: titleValidation.value.trim(), questions: questions.map(q => {
-                const {uuid, ...rest} = q;
-                const cleanQuestion = {
-                    ...rest,
-                    title: rest.title.trim(),
-                    type: rest.type || 'single-choice'
-                };
-
-                if (cleanQuestion.type === 'text') {
-                    cleanQuestion.answers = rest.answers.map(a => ({
-                        content: a.content.trim()
-                    }));
-                } else {
-                    cleanQuestion.answers = rest.answers.map(a => ({
-                        ...a,
-                        content: a.content.trim(),
-                        is_correct: a.is_correct || false
-                    }));
-                }
-
-                return cleanQuestion;
-            })
-        };
-
+        const quizData = await prepareQuizData(questions, titleValidation.value, true);
         try {
-            const response = await putRequest("/practice", quizData, {password: teacherPassword});
+            const authData = getAuthData();
+            const response = await putRequest("/practice", quizData, authData);
             if (response.practiceCode) {
                 toast.success("Übungsquiz erfolgreich erstellt!");
                 toast.success(`Übungscode: ${response.practiceCode}`, {duration: 10000});
@@ -284,49 +164,20 @@ export const QuizCreator = () => {
         }
     };
 
-    const uploadQuiz = () => {
+    const uploadQuiz = async () => {
         if (!titleValidation.validate()) {
             toast.error("Quiz-Titel darf nicht leer sein.");
             return;
         }
-
         if (!validateQuestions()) return;
 
-        const quizData = {
-            title: titleValidation.value.trim(), questions: questions.map(q => {
-                const {uuid, ...rest} = q;
-                const cleanQuestion = {
-                    ...rest,
-                    title: rest.title.trim(),
-                    type: rest.type || 'single-choice'
-                };
-
-                if (cleanQuestion.type === 'text') {
-                    cleanQuestion.answers = rest.answers.map(a => ({
-                        content: a.content.trim()
-                    }));
-                } else {
-                    cleanQuestion.answers = rest.answers.map(a => ({
-                        ...a,
-                        content: a.content.trim(),
-                        is_correct: a.is_correct || false
-                    }));
-                }
-
-                return cleanQuestion;
-            })
-        };
-
-        const headers = {};
-        if (passwordProtected) {
-            headers['X-Quiz-Password'] = sessionStorage.getItem('quiz_password');
-        }
+        const quizData = await prepareQuizData(questions, titleValidation.value, true);
+        const headers = getAuthHeaders();
 
         putRequest("/quizzes", quizData, headers).then((r) => {
             if (r.quizId === undefined) throw {ce: "Dein Quiz übersteigt die Speicherkapazität des Servers. Bitte lade es lokal herunter."};
             toast.success("Quiz erfolgreich hochgeladen.");
             toast.success("Quiz-ID: " + r.quizId, {duration: 10000});
-
             navigator.clipboard?.writeText(r.quizId);
         }).catch((e) => {
             console.log(e)
@@ -334,76 +185,38 @@ export const QuizCreator = () => {
         });
     }
 
-    const downloadQuiz = () => {
+    const downloadQuiz = async () => {
         if (!titleValidation.validate()) {
             toast.error("Quiz-Titel darf nicht leer sein.");
             return;
         }
-
         if (!validateQuestions()) return;
 
-        const quizData = JSON.stringify({
-            __type: "QUIZZLE2", title: titleValidation.value.trim(), questions: questions.map(q => {
-                const {uuid, ...rest} = q;
-                const cleanQuestion = {
-                    ...rest,
-                    title: rest.title.trim(),
-                    type: rest.type || 'single-choice'
-                };
-
-                if (cleanQuestion.type === 'text') {
-                    cleanQuestion.answers = rest.answers.map(a => ({
-                        content: a.content.trim()
-                    }));
-                } else {
-                    cleanQuestion.answers = rest.answers.map(a => ({
-                        ...a,
-                        content: a.content.trim(),
-                        is_correct: a.is_correct || false
-                    }));
-                }
-
-                return cleanQuestion;
-            })
-        });
-
-        const compressedData = pako.deflate(quizData, {to: "string"});
-        const blob = new Blob([compressedData], {type: "application/octet-stream"});
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = titleValidation.value.trim() + ".quizzle";
-        a.click();
-        URL.revokeObjectURL(url);
+        const quizData = await prepareQuizDataForExport(questions, titleValidation.value);
+        downloadQuizzleFile(quizData, titleValidation.value.trim());
     }
 
     const addQuestion = () => {
         const uuid = generateUuid();
-        setQuestions([...questions, {uuid: uuid, title: "", type: "multiple-choice", answers: []}]);
+        setQuestions([...questions, {uuid: uuid, title: "", type: DEFAULT_QUESTION_TYPE, answers: []}]);
         setActiveQuestion(uuid);
     }
 
-    const onChange = (newQuestion) => {
-        setQuestions(questions.map(q => q.uuid === activeQuestion ? newQuestion : q));
-    }
+    const onChange = (newQuestion) => setQuestions(questions.map(q => q.uuid === activeQuestion ? newQuestion : q));
 
-    const clearQuiz = () => {
+    const clearQuiz = async () => {
+        await cleanupQuestionImages(questions);
         const newUuid = generateUuid();
         titleValidation.reset();
-        setQuestions([{uuid: newUuid, title: "", type: "multiple-choice", answers: []}]);
+        setQuestions([{uuid: newUuid, title: "", type: DEFAULT_QUESTION_TYPE, answers: []}]);
         setActiveQuestion(newUuid);
-
         localStorage.removeItem("qq_title");
         localStorage.removeItem("qq_questions");
     }
 
     useEffect(() => {
         setCirclePosition(["-25rem -25rem auto auto", "-15rem -7rem auto auto"]);
-
-        if (passwordProtected && sessionStorage.getItem('quiz_password')) {
-            setIsAuthenticated(true);
-        }
-    }, [passwordProtected]);
+    }, []);
 
     useEffect(() => {
         try {
@@ -489,13 +302,13 @@ export const QuizCreator = () => {
                     <AddQuestion onClick={addQuestion}/>
                 </motion.div>
 
-                <QuestionEditor question={questions.find(q => q.uuid === activeQuestion)} onChange={onChange}
-                                deleteQuestion={deleteQuestion} duplicateQuestion={duplicateQuestion}/>
+                <QuestionEditor key={activeQuestion} question={questions.find(q => q.uuid === activeQuestion)}
+                    onChange={onChange} deleteQuestion={deleteQuestion} duplicateQuestion={duplicateQuestion} />
             </div>
 
             <PasswordDialog
                 isOpen={showPasswordDialog}
-                onClose={() => setShowPasswordDialog(false)}
+                onClose={closePasswordDialog}
                 onConfirm={handlePasswordSubmit}
             />
         </div>

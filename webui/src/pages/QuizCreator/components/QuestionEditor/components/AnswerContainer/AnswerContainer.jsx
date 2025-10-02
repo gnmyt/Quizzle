@@ -2,6 +2,7 @@ import "./styles.sass";
 import Answer from "./components/Answer";
 import {TrueFalseAnswers} from "./components/TrueFalseAnswers";
 import {TextAnswers} from "./components/TextAnswers";
+import {QUESTION_TYPES, DEFAULT_QUESTION_TYPE} from "@/common/constants/QuestionTypes.js";
 
 export const AnswerContainer = ({onChange, question}) => {
 
@@ -20,9 +21,9 @@ export const AnswerContainer = ({onChange, question}) => {
         onChange({...question, answers: newAnswers});
     }
 
-    const questionType = question.type || 'multiple-choice';
+    const questionType = question.type || DEFAULT_QUESTION_TYPE;
 
-    if (questionType === 'true-false') {
+    if (questionType === QUESTION_TYPES.TRUE_FALSE) {
         return (
             <div className="answer-container full-layout">
                 <TrueFalseAnswers answers={question.answers || []} onChange={updateAnswers}/>
@@ -30,7 +31,7 @@ export const AnswerContainer = ({onChange, question}) => {
         );
     }
 
-    if (questionType === 'text') {
+    if (questionType === QUESTION_TYPES.TEXT) {
         return (
             <div className="answer-container full-layout">
                 <TextAnswers answers={question.answers || []} onChange={updateAnswers}/>
@@ -43,7 +44,7 @@ export const AnswerContainer = ({onChange, question}) => {
             {["orange", "blue", "green", "red"].map((color, index) => (
                 <Answer key={index} color={color} answer={question.answers[index]}
                         onChange={(answer) => updateAnswer(answer, index)} index={index}
-                        removeAnswer={() => removeAnswer(index)}/>
+                        removeAnswer={() => removeAnswer(index)} questionUuid={question.uuid}/>
             ))}
         </div>
     )

@@ -15,7 +15,7 @@ firstStart();
 
 startCleanupTask();
 
-app.use(express.json({limit: '50kb'}));
+app.use(express.json({limit: '100mb'}));
 
 app.use("/api/branding", require("./routes/branding"));
 app.use("/api/quizzes", require("./routes/quizzes"));

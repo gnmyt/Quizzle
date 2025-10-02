@@ -2,54 +2,90 @@ import "./styles.sass";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import {faImage, faUpload} from "@fortawesome/free-solid-svg-icons";
 import {useEffect, useState} from "react";
+import {createFileInput} from "@/common/utils/FileOperationsUtil.js";
+import {imageCache} from "@/common/utils/ImageCacheUtil.js";
 
 export const ImagePresenter = ({question, onChange}) => {
     const [isDragging, setIsDragging] = useState(false);
-    const uploadImage = () => {
-        const input = document.createElement("input");
-        input.type = "file";
-        input.accept = "image/*";
-        input.onchange = (e) => {
-            const file = e.target.files[0];
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                onChange({...question, b64_image: e.target.result});
+    const [imageDataUrl, setImageDataUrl] = useState(null);
+    const [isLoading, setIsLoading] = useState(false);
+
+    useEffect(() => {
+        const loadImage = async () => {
+            if (question.imageId) {
+                setIsLoading(true);
+                try {
+                    const dataUrl = await imageCache.getImage(question.imageId);
+                    setImageDataUrl(dataUrl);
+                } catch (error) {
+                    console.error("Error loading image from cache:", error);
+                    onChange({...question, imageId: undefined});
+                } finally {
+                    setIsLoading(false);
+                }
+            } else {
+                setImageDataUrl(null);
+                setIsLoading(false);
             }
-            reader.readAsDataURL(file);
+        };
+
+        loadImage();
+    }, [question.imageId, question.uuid]);
+
+    const storeImageFile = async (file) => {
+        if (!file || !file.type.startsWith('image/')) {
+            console.error("Invalid file type");
+            return;
         }
-        input.click();
+
+        setIsLoading(true);
+        try {
+            if (question.imageId) {
+                await imageCache.deleteImage(question.imageId);
+            }
+
+            const imageId = await imageCache.storeImage(question.uuid, file);
+            onChange({...question, imageId: imageId});
+        } catch (error) {
+            console.error("Error storing image:", error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+    
+    const uploadImage = () => {
+        createFileInput("image/*", (file) => {
+            storeImageFile(file);
+        });
     }
 
     const onDrop = (e) => {
         e.preventDefault();
         setIsDragging(false);
-        try {
-            const file = e.dataTransfer.files[0];
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                onChange({...question, b64_image: e.target.result});
-            }
-            reader.readAsDataURL(file);
-        } catch (e) {
-
+        const file = e.dataTransfer.files[0];
+        if (file) {
+            storeImageFile(file);
         }
-
     }
-
-
-    const removeImage = () => {
-        onChange({...question, b64_image: undefined});
+    const removeImage = async () => {
+        if (question.imageId) {
+            try {
+                await imageCache.deleteImage(question.imageId);
+            } catch (error) {
+                console.error("Error deleting image from cache:", error);
+            }
+        }
+        onChange({...question, imageId: undefined});
+        setImageDataUrl(null);
     }
 
     useEffect(() => {
         const handlePaste = (e) => {
             if (e.clipboardData.files.length > 0) {
                 const file = e.clipboardData.files[0];
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    onChange({...question, b64_image: e.target.result});
+                if (file.type.startsWith('image/')) {
+                    storeImageFile(file);
                 }
-                reader.readAsDataURL(file);
             }
         }
 
@@ -58,16 +94,29 @@ export const ImagePresenter = ({question, onChange}) => {
         return () => {
             document.removeEventListener("paste", handlePaste);
         }
-    }, [question]);
+    }, [question, onChange]);
+
+    const hasImage = imageDataUrl;
 
     return (
         <div className="image-presenter-edit">
-            <div className="image-container" onClick={question.b64_image ? removeImage : uploadImage} onDrop={onDrop}
-                 onDragOver={(e) => {e.preventDefault();
-                     setIsDragging(true);}}
-                 onDragLeave={() => setIsDragging(false)}>
-                {question.b64_image && <img src={question.b64_image} alt="question"/>}
-                {!question.b64_image && <FontAwesomeIcon icon={isDragging ? faUpload : faImage}/>}
+            <div 
+                className="image-container" 
+                onClick={hasImage ? removeImage : uploadImage} 
+                onDrop={onDrop}
+                onDragOver={(e) => {
+                    e.preventDefault();
+                    setIsDragging(true);
+                }}
+                onDragLeave={() => setIsDragging(false)}
+                style={{ opacity: isLoading ? 0.7 : 1 }}
+            >
+                {hasImage && !isLoading && (
+                    <img src={imageDataUrl} alt="question"/>
+                )}
+                {!hasImage && !isLoading && (
+                    <FontAwesomeIcon icon={isDragging ? faUpload : faImage}/>
+                )}
             </div>
         </div>
     )

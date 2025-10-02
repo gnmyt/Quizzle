@@ -31,7 +31,7 @@ import {DEFAULT_QUESTION_TYPE} from "@/common/constants/QuestionTypes.js";
 
 export const QuizCreator = () => {
     const {setCirclePosition} = useOutletContext();
-    const {titleImg} = useContext(BrandingContext);
+    const {logoImg} = useContext(BrandingContext);
     const titleValidation = useInputValidation(localStorage.getItem("qq_title") || "", validationRules.quizTitle);
     const {
         isAuthenticated,
@@ -242,10 +242,11 @@ export const QuizCreator = () => {
     return (
         <div className="quiz-creator">
             <div className="quiz-header-area">
-                <Link to="/">
-                    <motion.img src={titleImg} alt="logo" initial={{opacity: 0, y: -50}} animate={{opacity: 1, y: 0}}/>
-                </Link>
                 <motion.div initial={{opacity: 0, x: -50}} animate={{opacity: 1, x: 0}} className="quiz-title-area">
+                    <Link to="/">
+                        <motion.img src={logoImg} alt="logo" initial={{opacity: 0, y: -50}} animate={{opacity: 1, y: 0}}/>
+                    </Link>
+
                     <Input
                         className="quiz-title-input"
                         placeholder="Quiz-Titel eingeben"

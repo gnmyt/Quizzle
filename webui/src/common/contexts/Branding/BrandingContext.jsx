@@ -33,7 +33,8 @@ export const BrandingProvider = ({children}) => {
     }, [branding]);
 
     return (
-        <BrandingContext.Provider value={{...branding, titleImg: "data:image/png;base64," + branding.title}}>
+        <BrandingContext.Provider value={{...branding, titleImg: "data:image/png;base64," + branding.title,
+            logoImg: "data:image/png;base64," + branding.logo}}>
             {Object.keys(branding).length < 1 && <Loading />}
             {Object.keys(branding).length >= 1 && children}
         </BrandingContext.Provider>

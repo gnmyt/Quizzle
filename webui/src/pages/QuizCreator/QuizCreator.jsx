@@ -181,7 +181,6 @@ export const QuizCreator = () => {
             toast.success("Quiz-ID: " + r.quizId, {duration: 10000});
             navigator.clipboard?.writeText(r.quizId);
         }).catch((e) => {
-            console.log(e)
             toast.error(e?.ce ? e.ce : "Fehler beim Hochladen des Quiz.");
         });
     }
@@ -248,6 +247,7 @@ export const QuizCreator = () => {
                 </Link>
                 <motion.div initial={{opacity: 0, x: -50}} animate={{opacity: 1, x: 0}} className="quiz-title-area">
                     <Input
+                        className="quiz-title-input"
                         placeholder="Quiz-Titel eingeben"
                         value={titleValidation.value}
                         onChange={(e) => titleValidation.setValue(e.target.value)}
@@ -257,23 +257,52 @@ export const QuizCreator = () => {
                         maxLength={validationRules.quizTitle.maxLength}
                     />
                     <div className="quiz-action-area">
-                        <FontAwesomeIcon icon={faFileImport} onClick={importQuiz} className="import-icon"/>
-                        <FontAwesomeIcon
-                            icon={passwordProtected && !isAuthenticated ? faLock : faCloudUpload}
-                            onClick={handleUploadClick}
-                            className={passwordProtected && !isAuthenticated ? "locked" : ""}
-                            title="Als Live-Quiz hochladen"
-                        />
-                        <FontAwesomeIcon
-                            icon={faGraduationCap}
-                            onClick={handlePracticeUploadClick}
-                            className={passwordProtected && !isAuthenticated ? "locked" : "practice-upload"}
-                            title="Als Übungsquiz veröffentlichen"
-                        />
-                        <FontAwesomeIcon icon={faFileDownload} onClick={downloadQuiz}/>
+                        <div className="action-group">
+                            <div 
+                                className="action-button import" 
+                                onClick={importQuiz}
+                                title="Quiz aus Datei importieren"
+                            >
+                                <FontAwesomeIcon icon={faFileImport} />
+                            </div>
+                            <div 
+                                className="action-button download" 
+                                onClick={downloadQuiz}
+                                title="Quiz als Datei herunterladen"
+                            >
+                                <FontAwesomeIcon icon={faFileDownload} />
+                            </div>
+                        </div>
+                        
+                        <div className="action-group">
+                            <div 
+                                className={`action-button upload ${passwordProtected && !isAuthenticated ? 'locked' : ''}`}
+                                onClick={handleUploadClick}
+                                title={passwordProtected && !isAuthenticated ? "Passwort erforderlich" : "Als Live-Quiz hochladen"}
+                            >
+                                <FontAwesomeIcon 
+                                    icon={passwordProtected && !isAuthenticated ? faLock : faCloudUpload} 
+                                />
+                            </div>
+                            <div 
+                                className={`action-button practice ${passwordProtected && !isAuthenticated ? 'locked' : ''}`}
+                                onClick={handlePracticeUploadClick}
+                                title={passwordProtected && !isAuthenticated ? "Passwort erforderlich" : "Als Übungsquiz veröffentlichen"}
+                            >
+                                <FontAwesomeIcon icon={faGraduationCap} />
+                            </div>
+                        </div>
+
                         {(titleValidation.value !== "" || questions.some(q => q.title !== "") || questions.length > 1 ||
-                                questions.some(q => q.answers.length > 0)) &&
-                            <FontAwesomeIcon icon={faEraser} onClick={clearQuiz}/>}
+                                questions.some(q => q.answers.length > 0)) && (
+                            <div 
+                                className="action-button clear" 
+                                onClick={clearQuiz}
+                                title="Quiz zurücksetzen"
+                            >
+                                <FontAwesomeIcon icon={faEraser} />
+                            </div>
+                        )}
                     </div>
                 </motion.div>
             </div>

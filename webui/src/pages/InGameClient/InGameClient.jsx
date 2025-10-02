@@ -263,7 +263,11 @@ export const InGameClient = () => {
                         <div className="ingame-content grid-layout">
                             {question.answers.map((answer, index) => (
                                 <div key={index} className="ingame-answer" onClick={() => submitAnswer([index])}>
-                                    <span className="practice-answer-text">{answer.content}</span>
+                                    {answer.type === "image" ? (
+                                        <img src={answer.content} alt={`Answer ${index + 1}`} className="practice-answer-image" />
+                                    ) : (
+                                        <span className="practice-answer-text">{answer.content}</span>
+                                    )}
                                 </div>
                             ))}
                         </div>
@@ -288,7 +292,11 @@ export const InGameClient = () => {
                                 <div key={index} 
                                      className={`ingame-answer ${selection[index] ? 'ingame-answer-selected' : ''}`}
                                      onClick={() => handleMultipleChoiceSelection(index)}>
-                                    <span className="practice-answer-text">{answer.content}</span>
+                                    {answer.type === "image" ? (
+                                        <img src={answer.content} alt={`Answer ${index + 1}`} className="practice-answer-image" />
+                                    ) : (
+                                        <span className="practice-answer-text">{answer.content}</span>
+                                    )}
                                 </div>
                             ))}
                             <div className="submit-container">
@@ -429,7 +437,7 @@ export const InGameClient = () => {
             )}
             
             {shouldShowQuestion() && (
-                <>
+                <div className="question-content-wrapper">
                     <div className="ingame-header">
                         {isPracticeMode && (
                             <div className="practice-progress">
@@ -441,8 +449,15 @@ export const InGameClient = () => {
                         )}
                         <h2>{getCurrentQuestion().title}</h2>
                     </div>
+                    
+                    {getCurrentQuestion().b64_image && (
+                        <div className="question-image-container">
+                            <img src={getCurrentQuestion().b64_image} alt={getCurrentQuestion().title} className="question-image" />
+                        </div>
+                    )}
+                    
                     {renderAnswerContent()}
-                </>
+                </div>
             )}
 
             {!isPracticeMode && currentQuestion === null && answers.length === 0 && (

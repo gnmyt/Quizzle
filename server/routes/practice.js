@@ -154,7 +154,8 @@ app.get('/:code', async (req, res) => {
                     practiceQuestion.answers = [];
                 } else {
                     practiceQuestion.answers = question.answers.map(answer => ({
-                        content: answer.content
+                        content: answer.content,
+                        type: answer.type || 'text'
                     }));
                 }
 

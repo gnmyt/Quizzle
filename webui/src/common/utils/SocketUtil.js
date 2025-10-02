@@ -2,50 +2,29 @@ import {io} from 'socket.io-client';
 
 class SessionManager {
     constructor() {
-        this.sessionToken = localStorage.getItem('quizzle_session_token');
-        this.roomCode = localStorage.getItem('quizzle_room_code');
-        this.playerData = null;
+        this.sessionId = localStorage.getItem('quizzle_session_id');
         this.reconnectionAttempts = 0;
-        this.maxReconnectionAttempts = 10;
+        this.maxReconnectionAttempts = 5;
         this.isReconnecting = false;
         this.reconnectionCallbacks = new Set();
     }
 
-    setSession(token, roomCode, playerData) {
-        this.sessionToken = token;
-        this.roomCode = roomCode;
-        this.playerData = playerData;
-        localStorage.setItem('quizzle_session_token', token);
-        localStorage.setItem('quizzle_room_code', roomCode);
-        localStorage.setItem('quizzle_player_data', JSON.stringify(playerData));
+    setSessionId(sessionId) {
+        this.sessionId = sessionId;
+        localStorage.setItem('quizzle_session_id', sessionId);
     }
 
-    getSession() {
-        if (!this.playerData && localStorage.getItem('quizzle_player_data')) {
-            try {
-                this.playerData = JSON.parse(localStorage.getItem('quizzle_player_data'));
-            } catch (e) {
-                console.warn('Failed to parse stored player data');
-            }
-        }
-        return {
-            token: this.sessionToken,
-            roomCode: this.roomCode,
-            playerData: this.playerData
-        };
+    getSessionId() {
+        return this.sessionId || localStorage.getItem('quizzle_session_id');
     }
 
     clearSession() {
-        this.sessionToken = null;
-        this.roomCode = null;
-        this.playerData = null;
-        localStorage.removeItem('quizzle_session_token');
-        localStorage.removeItem('quizzle_room_code');
-        localStorage.removeItem('quizzle_player_data');
+        this.sessionId = null;
+        localStorage.removeItem('quizzle_session_id');
     }
 
     hasValidSession() {
-        return !!(this.sessionToken && this.roomCode && this.playerData);
+        return !!(this.getSessionId());
     }
 
     addReconnectionCallback(callback) {
@@ -86,36 +65,28 @@ const handleReconnection = () => {
     }
 
     sessionManager.isReconnecting = true;
-    const session = sessionManager.getSession();
+    const sessionId = sessionManager.getSessionId();
 
-    console.log('Attempting to reconnect with session...', {
-        hasToken: !!session.token,
-        roomCode: session.roomCode,
-        playerName: session.playerData?.name
-    });
-
-    socket.emit('RECONNECT_SESSION', {
-        token: session.token,
-        roomCode: session.roomCode,
-        playerData: session.playerData
-    }, (response) => {
+    socket.emit('RECONNECT_WITH_SESSION', { sessionId }, (response) => {
         sessionManager.isReconnecting = false;
 
         if (response?.success) {
-            console.log('Successfully reconnected!', response);
             sessionManager.reconnectionAttempts = 0;
-            sessionManager.notifyReconnectionCallbacks(true);
+            sessionManager.notifyReconnectionCallbacks(true, response);
         } else {
-            console.warn('Failed to reconnect:', response?.error);
+            if (response?.shouldRedirect || response?.sessionInvalid) {
+                sessionManager.clearSession();
+                sessionManager.notifyReconnectionCallbacks(false, 'Session invalid - redirect required');
+                return;
+            }
+            
             sessionManager.reconnectionAttempts++;
             
             if (sessionManager.reconnectionAttempts >= sessionManager.maxReconnectionAttempts) {
-                console.error('Max reconnection attempts reached. Clearing session.');
                 sessionManager.clearSession();
                 sessionManager.notifyReconnectionCallbacks(false, 'Max reconnection attempts reached');
             } else {
-                const delay = Math.min(1000 * Math.pow(2, sessionManager.reconnectionAttempts), 30000);
-                console.log(`Retrying reconnection in ${delay}ms (attempt ${sessionManager.reconnectionAttempts})`);
+                const delay = Math.min(1000 * Math.pow(2, sessionManager.reconnectionAttempts), 10000);
                 setTimeout(() => {
                     if (socket.connected) {
                         handleReconnection();
@@ -127,36 +98,36 @@ const handleReconnection = () => {
 };
 
 socket.on('connect', () => {
-    console.log('Socket connected');
-    
     sessionManager.reconnectionAttempts = 0;
-    
     if (sessionManager.hasValidSession() && !sessionManager.isReconnecting) {
         setTimeout(handleReconnection, 100);
     }
 });
 
 socket.on('disconnect', (reason) => {
-    console.log('Socket disconnected:', reason);
-    
     if (reason === 'io client disconnect' || reason === 'io server disconnect') {
-        console.log('Deliberate disconnection, not attempting reconnection');
         return;
     }
-    
-    console.log('Network disconnection detected, will attempt reconnection...');
     sessionManager.notifyReconnectionCallbacks(false, reason);
 });
 
 socket.on('connect_error', (error) => {
-    console.error('Socket connection error:', error);
     sessionManager.notifyReconnectionCallbacks(false, error);
 });
 
 socket.on('SESSION_EXPIRED', () => {
-    console.warn('Session expired on server');
     sessionManager.clearSession();
     sessionManager.notifyReconnectionCallbacks(false, 'Session expired');
+});
+
+socket.on('HOST_DISCONNECTED', () => {
+    sessionManager.clearSession();
+    sessionManager.notifyReconnectionCallbacks(false, 'Host disconnected');
+});
+
+socket.on('KICKED_FROM_ROOM', () => {
+    sessionManager.clearSession();
+    sessionManager.notifyReconnectionCallbacks(false, 'Kicked from room');
 });
 
 export const ensureSocketConnection = (timeout = 10000) => {
@@ -199,8 +170,8 @@ export const joinRoomWithSession = (roomCode, name, character) => {
         ensureSocketConnection().then(() => {
             socket.emit("JOIN_ROOM", {code: parseInt(roomCode), name, character}, (response) => {
                 if (response?.success) {
-                    if (response.sessionToken) {
-                        sessionManager.setSession(response.sessionToken, roomCode, {name, character});
+                    if (response.sessionId) {
+                        sessionManager.setSessionId(response.sessionId);
                     }
                     resolve(response);
                 } else {
@@ -226,12 +197,27 @@ export const clearCurrentSession = () => {
 };
 
 export const getSessionData = () => {
-    if (sessionManager.hasValidSession()) {
-        const session = sessionManager.getSession();
-        return {
-            roomCode: session.roomCode,
-            playerData: session.playerData
-        };
-    }
-    return null;
+    const sessionId = sessionManager.getSessionId();
+    return sessionId ? { sessionId } : null;
+};
+
+export const getSessionState = () => {
+    return new Promise((resolve) => {
+        const sessionId = sessionManager.getSessionId();
+        if (!sessionId) {
+            resolve(null);
+            return;
+        }
+
+        socket.emit('GET_SESSION_STATE', { sessionId }, (response) => {
+            if (response?.success) {
+                resolve(response.sessionState);
+            } else {
+                if (response?.sessionInvalid) {
+                    sessionManager.clearSession();
+                }
+                resolve(null);
+            }
+        });
+    });
 };

@@ -2,7 +2,7 @@ import "./styles.sass";
 import {QuizContext} from "@/common/contexts/Quiz";
 import {useContext, useEffect, useState} from "react";
 import {useNavigate, useParams} from "react-router-dom";
-import {socket, addReconnectionCallback, removeReconnectionCallback, clearCurrentSession, getSessionManager} from "@/common/utils/SocketUtil.js";
+import {socket, addReconnectionCallback, removeReconnectionCallback, clearCurrentSession, getSessionManager, getSessionState} from "@/common/utils/SocketUtil.js";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import {faCheck, faCheckCircle, faMinus, faPaperPlane, faX, faWifi, faExclamationTriangle} from "@fortawesome/free-solid-svg-icons";
 import {TrueFalseClient} from "./components/TrueFalseClient";
@@ -53,13 +53,22 @@ export const InGameClient = () => {
         }
 
         const sessionManager = getSessionManager();
-        const session = sessionManager.getSession();
-        
-        if (!roomCode && session.roomCode && session.playerData) {
-            console.log('Restoring session after page refresh...');
-        } else if (!roomCode && !session.roomCode) {
+
+        if (!roomCode && !sessionManager.hasValidSession()) {
             navigate("/");
             return;
+        }
+        
+        if (!roomCode && sessionManager.hasValidSession()) {
+            getSessionState().then(sessionState => {
+                if (sessionState && sessionState.roomCode) {
+                } else {
+                    sessionManager.clearSession();
+                    navigate("/");
+                }
+            }).catch(() => {
+                navigate("/");
+            });
         }
 
         const onQuestion = (question) => {
@@ -107,8 +116,26 @@ export const InGameClient = () => {
             socket.off("ANSWERS_READY", onAnswersReady);
             socket.off("GAME_ENDED", gameEnded);
             socket.off("disconnect", handleDisconnect);
+            socket.off("HOST_DISCONNECTED", hostDisconnected);
+            socket.off("KICKED_FROM_ROOM", kickedFromRoom);
             
             navigate("/");
+        }
+
+        const hostDisconnected = () => {
+            clearCurrentSession();
+            toast.error("Der Host hat das Spiel verlassen.", {
+                duration: 3000
+            });
+            setTimeout(() => navigate("/"), 1000);
+        }
+
+        const kickedFromRoom = () => {
+            clearCurrentSession();
+            toast.error("Du wurdest aus dem Raum entfernt.", {
+                duration: 3000
+            });
+            setTimeout(() => navigate("/"), 1000);
         }
 
         const handleConnect = () => {
@@ -123,23 +150,38 @@ export const InGameClient = () => {
             }
         };
 
-        const handleReconnection = (success, error) => {
+        const handleReconnection = (success, error, gameState) => {
             if (success) {
                 setIsReconnecting(false);
-                toast.success("Erfolgreich wieder verbunden!", {
-                    duration: 3000
-                });
+                toast.success("Erfolgreich wieder verbunden!", { duration: 3000 });
+                
+                if (gameState) {
+                    if (gameState.playerPoints !== undefined) {
+                        setPoints(gameState.playerPoints);
+                    }
+                }
             } else {
                 setIsReconnecting(true);
-                if (error === 'Session expired' || error === 'Max reconnection attempts reached') {
-                    toast.error("Verbindung verloren. Zurück zur Startseite...", {
-                        duration: 3000
-                    });
-                    setTimeout(() => navigate("/"), 3000);
+                
+                if (error === 'Session expired' || 
+                    error === 'Max reconnection attempts reached' ||
+                    error === 'Session invalid - redirect required' ||
+                    error === 'Host disconnected' ||
+                    error === 'Kicked from room') {
+                    
+                    clearCurrentSession();
+                    
+                    let message = "Sitzung abgelaufen. Zurück zur Startseite...";
+                    if (error === 'Kicked from room') {
+                        message = "Du wurdest aus dem Raum entfernt. Zurück zur Startseite...";
+                    } else if (error === 'Host disconnected') {
+                        message = "Der Host hat das Spiel verlassen. Zurück zur Startseite...";
+                    }
+                    
+                    toast.error(message, { duration: 2000 });
+                    setTimeout(() => navigate("/"), 500);
                 } else {
-                    toast.error("Verbindung unterbrochen. Versuche wieder zu verbinden...", {
-                        duration: 2000
-                    });
+                    toast.error("Verbindung unterbrochen. Versuche wieder zu verbinden...", { duration: 2000 });
                 }
             }
         };
@@ -151,14 +193,11 @@ export const InGameClient = () => {
         });
 
         const handleSessionRestored = () => {
-            const sessionManager = getSessionManager();
-            const session = sessionManager.getSession();
-            
-            if (session.roomCode && session.playerData && !roomCode) {
-                setRoomCode(session.roomCode);
-                setUsername(session.playerData.name);
-                console.log('Session restored from storage');
-            }
+            getSessionState().then(sessionState => {
+                if (!sessionState && !roomCode) {
+                    navigate("/");
+                }
+            });
         };
 
         handleSessionRestored();
@@ -168,6 +207,8 @@ export const InGameClient = () => {
         socket.on("ANSWER_RECEIVED", onAnswer);
         socket.on("ANSWERS_READY", onAnswersReady);
         socket.on("GAME_ENDED", gameEnded);
+        socket.on("HOST_DISCONNECTED", hostDisconnected);
+        socket.on("KICKED_FROM_ROOM", kickedFromRoom);
         socket.on("disconnect", handleDisconnect);
         socket.on('connect', handleConnect);
         addReconnectionCallback(handleReconnection);
@@ -178,6 +219,8 @@ export const InGameClient = () => {
             socket.off("ANSWER_RECEIVED", onAnswer);
             socket.off("ANSWERS_READY", onAnswersReady);
             socket.off("GAME_ENDED", gameEnded);
+            socket.off("HOST_DISCONNECTED", hostDisconnected);
+            socket.off("KICKED_FROM_ROOM", kickedFromRoom);
             socket.off("disconnect", handleDisconnect);
             socket.off('connect', handleConnect);
             socket.off('GAME_STATE_RESTORED');

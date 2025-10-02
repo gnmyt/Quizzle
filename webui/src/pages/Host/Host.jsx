@@ -86,9 +86,12 @@ export const Host = () => {
         }
     }, [isLoaded]);
 
-    const kickPlayer = (id) => {
-        socket.emit("KICK_PLAYER", {id}, () => {
-        });
+    const kickPlayer = (player) => {
+        if (player.disconnected) {
+            socket.emit("KICK_PLAYER", {name: player.name}, () => {});
+        } else {
+            socket.emit("KICK_PLAYER", {id: player.id}, () => {});
+        }
     }
 
     const startGame = () => {
@@ -156,7 +159,7 @@ export const Host = () => {
                             className={`player ${player.disconnected ? 'disconnected' : ''}`}
                             initial={{scale: 0}}
                             animate={{scale: 1}}
-                            onClick={() => !player.disconnected && kickPlayer(player.id)}
+                            onClick={() => kickPlayer(player)}
                         >
                             <div className="player-character">{getCharacterEmoji(player.character)}</div>
                             <h3>{player.name}</h3>

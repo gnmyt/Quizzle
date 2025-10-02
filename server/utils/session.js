@@ -17,7 +17,10 @@ const createSession = (socketId, roomCode, playerData) => {
         playerData,
         createdAt: Date.now(),
         lastActivity: Date.now(),
-        isActive: true
+        isActive: true,
+        status: 'connected',
+        disconnectedAt: null,
+        reconnectCount: 0
     };
     
     sessions.set(token, session);
@@ -44,6 +47,9 @@ const updateSessionSocket = (token, newSocketId) => {
     if (session && session.isActive) {
         session.socketId = newSocketId;
         session.lastActivity = Date.now();
+        session.status = 'connected';
+        session.disconnectedAt = null;
+        session.reconnectCount += 1;
         return true;
     }
     return false;
@@ -53,6 +59,7 @@ const invalidateSession = (token) => {
     const session = sessions.get(token);
     if (session) {
         session.isActive = false;
+        session.status = 'invalid';
         sessions.delete(token);
 
         if (sessionsByRoom.has(session.roomCode)) {
@@ -61,6 +68,17 @@ const invalidateSession = (token) => {
                 sessionsByRoom.delete(session.roomCode);
             }
         }
+        return true;
+    }
+    return false;
+};
+
+const markSessionDisconnected = (token) => {
+    const session = sessions.get(token);
+    if (session && session.isActive) {
+        session.status = 'disconnected';
+        session.disconnectedAt = Date.now();
+        session.lastActivity = Date.now();
         return true;
     }
     return false;
@@ -76,29 +94,31 @@ const cleanupRoomSessions = (roomCode) => {
 
 const cleanupExpiredSessions = () => {
     const now = Date.now();
-    const expirationTime = 30 * 60 * 1000;
+    const sessionExpirationTime = 60 * 60 * 1000;
+    const disconnectedExpirationTime = 5 * 60 * 1000;
     
     const expiredSessions = [];
     sessions.forEach((session, token) => {
-        if (now - session.lastActivity > expirationTime) {
+        let shouldExpire = false;
+        
+        if (session.status === 'disconnected') {
+            if (session.disconnectedAt && (now - session.disconnectedAt > disconnectedExpirationTime)) {
+                shouldExpire = true;
+            }
+        } else {
+            if (now - session.createdAt > sessionExpirationTime) {
+                shouldExpire = true;
+            }
+        }
+        
+        if (shouldExpire) {
             expiredSessions.push({token, session});
         }
     });
 
-    expiredSessions.forEach(({token, session}) => {
-        const rooms = socket.rooms;
-        if (session.roomCode && rooms && rooms[session.roomCode]) {
-            const room = rooms[session.roomCode];
-            if (room.players[session.socketId]) {
-                console.log(`Removing expired player ${session.playerData.name} from room ${session.roomCode}`);
-                delete room.players[session.socketId];
-            }
-        }
-        
+    expiredSessions.forEach(({token}) => {
         invalidateSession(token);
     });
-    
-    console.log(`Cleaned up ${expiredSessions.length} expired sessions`);
 };
 
 const getSessionBySocketId = (socketId) => {
@@ -123,13 +143,28 @@ const findSessionForPlayer = (roomCode, playerName) => {
 
 setInterval(cleanupExpiredSessions, 5 * 60 * 1000);
 
+const getAllSessionsForRoom = (roomCode) => {
+    const roomSessions = [];
+    if (sessionsByRoom.has(roomCode)) {
+        sessionsByRoom.get(roomCode).forEach(token => {
+            const session = sessions.get(token);
+            if (session) {
+                roomSessions.push({ token, ...session });
+            }
+        });
+    }
+    return roomSessions;
+};
+
 module.exports = {
     createSession,
     getSession,
     updateSessionSocket,
     invalidateSession,
+    markSessionDisconnected,
     cleanupRoomSessions,
     getSessionBySocketId,
     findSessionForPlayer,
-    cleanupExpiredSessions
+    cleanupExpiredSessions,
+    getAllSessionsForRoom
 };

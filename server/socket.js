@@ -7,8 +7,10 @@ const {
     getSession,
     updateSessionSocket,
     invalidateSession,
+    markSessionDisconnected,
     cleanupRoomSessions,
-    getSessionBySocketId
+    getSessionBySocketId,
+    getAllSessionsForRoom
 } = require("./utils/session");
 
 const rooms = {};
@@ -69,6 +71,15 @@ const calculatePoints = (correctAnswers, room) => {
 
     return correctAnswers > 0 ? Math.round(basePoints * timeFactor + (correctAnswers * basePoints)) : 0;
 }
+
+const getActivePlayers = (room, io) => {
+    const activePlayers = {};
+    for (const [playerId, player] of Object.entries(room.players)) {
+        const playerSocket = io.sockets.sockets.get(playerId);
+        if (playerSocket?.connected) activePlayers[playerId] = player;
+    }
+    return activePlayers;
+};
 
 const validateCallback = (callback) => {
     if (!callback) return false;
@@ -312,9 +323,12 @@ const generateAnalyticsData = (room) => {
 const endGameForAllPlayers = (io, room, roomCode) => {
     for (const player of Object.keys(room.players)) {
         io.to(player).emit("GAME_ENDED", room.playerAnswers.filter(answer => answer[player]));
-        io.sockets.sockets.get(player)?.disconnect();
+        const playerSocket = io.sockets.sockets.get(player);
+        if (playerSocket) {
+            playerSocket.emit('SESSION_EXPIRED', 'Game ended');
+            playerSocket.disconnect(true);
+        }
     }
-
     cleanupRoomSessions(roomCode);
     delete rooms[roomCode];
 };
@@ -344,20 +358,99 @@ module.exports = (io, socket) => {
 
     socket.on('KICK_PLAYER', (data, callback) => {
         if (!validateCallback(callback)) return;
-        if (!data?.id || !isHostAuthorized(socket, currentRoomCode) ||
-            !rooms[currentRoomCode].players[data.id] || !validateRoomState(currentRoomCode, 'waiting')) {
+        if (!isHostAuthorized(socket, currentRoomCode) || !validateRoomState(currentRoomCode, 'waiting')) {
             return callback(false);
         }
 
         const room = rooms[currentRoomCode];
-        io.to(room.host).emit('PLAYER_LEFT', {
-            id: data.id,
-            name: room.players[data.id].name
-        });
-        io.sockets.sockets.get(data.id)?.disconnect();
+        let playerName, playerId;
 
-        delete room.players[data.id];
+        if (data?.id && room.players[data.id]) {
+            playerId = data.id;
+            playerName = room.players[data.id].name;
+        } else if (data?.name) {
+            for (const [id, player] of Object.entries(room.players)) {
+                if (player.name === data.name) {
+                    playerId = id;
+                    playerName = player.name;
+                    break;
+                }
+            }
+        }
+
+        if (!playerId || !playerName) return callback(false);
+
+        const roomSessions = getAllSessionsForRoom(currentRoomCode);
+        roomSessions.forEach(session => {
+            if (session.playerData.name === playerName) {
+                invalidateSession(session.token);
+            }
+        });
+
+        const playerSession = getSessionBySocketId(playerId);
+        if (playerSession) invalidateSession(playerSession.token);
+        
+        io.to(room.host).emit('PLAYER_LEFT', { id: playerId, name: playerName });
+        
+        const playerSocket = io.sockets.sockets.get(playerId);
+        if (playerSocket?.connected) {
+            playerSocket.emit('KICKED_FROM_ROOM', 'You have been kicked from the room');
+            playerSocket.disconnect(true);
+        }
+
+        delete room.players[playerId];
+        
+        if (room.playerAnswers?.length > 0) {
+            room.playerAnswers.forEach(questionAnswers => {
+                delete questionAnswers[playerId];
+            });
+        }
+
         callback(true);
+    });
+
+    socket.on('KICK_OFFLINE_PLAYER', (data, callback) => {
+        if (!validateCallback(callback)) return;
+        if (!data?.name || !isHostAuthorized(socket, currentRoomCode)) {
+            return callback({success: false, error: 'Nicht autorisiert'});
+        }
+
+        const room = rooms[currentRoomCode];
+        if (!room) return callback({success: false, error: 'Raum nicht gefunden'});
+
+        const roomSessions = getAllSessionsForRoom(currentRoomCode);
+        let removedSessions = 0;
+        let playerId = null;
+
+        roomSessions.forEach(session => {
+            if (session.playerData.name === data.name) {
+                invalidateSession(session.token);
+                removedSessions++;
+            }
+        });
+
+        for (const [id, player] of Object.entries(room.players)) {
+            if (player.name === data.name) {
+                playerId = id;
+                delete room.players[id];
+                if (room.playerAnswers?.length > 0) {
+                    room.playerAnswers.forEach(questionAnswers => {
+                        delete questionAnswers[id];
+                    });
+                }
+                break;
+            }
+        }
+
+        if (removedSessions > 0 || playerId) {
+            io.to(room.host).emit('PLAYER_PERMANENTLY_REMOVED', {
+                name: data.name,
+                playerId: playerId
+            });
+            callback({success: true, message: `Spieler ${data.name} wurde entfernt`});
+        } else {
+            callback({success: false, error: 'Spieler nicht gefunden'});
+        }
     });
 
     socket.on('CHECK_ROOM', (data, callback) => {
@@ -380,73 +473,84 @@ module.exports = (io, socket) => {
             const {value} = joinRoom.validate(data);
             const sanitizedName = value.name;
 
+            const roomSessions = getAllSessionsForRoom(data.code);
+            roomSessions.forEach(session => {
+                if (session.playerData.name.toLowerCase() === sanitizedName.toLowerCase() && 
+                    (session.status === 'disconnected' || !session.isActive)) {
+                    invalidateSession(session.token);
+                    for (const [playerId, player] of Object.entries(room.players)) {
+                        if (player.name.toLowerCase() === sanitizedName.toLowerCase()) {
+                            delete room.players[playerId];
+                            break;
+                        }
+                    }
+                }
+            });
             const existingNames = Object.values(room.players).map(p => p.name.toLowerCase());
             if (existingNames.includes(sanitizedName.toLowerCase())) {
-                callback({success: false, error: 'Dieser Name ist bereits vergeben'});
-                return;
+                return callback({success: false, error: 'Dieser Name ist bereits vergeben'});
             }
 
             socket.join(data.code.toString());
             room.players[socket.id] = {name: sanitizedName, character: data.character, points: 0};
             
-            const sessionToken = createSession(socket.id, data.code, {
+            const sessionId = createSession(socket.id, data.code, {
                 name: sanitizedName,
                 character: data.character
             });
             
             io.to(room.host).emit('PLAYER_JOINED', {id: socket.id, name: sanitizedName, character: data.character});
             currentRoomCode = data.code;
-            callback({success: true, sessionToken});
+            callback({success: true, sessionId});
         } else {
             callback({success: false, error: 'Raum existiert nicht oder Spiel hat bereits begonnen'});
         }
     });
 
-    socket.on('RECONNECT_SESSION', (data, callback) => {
+    socket.on('RECONNECT_WITH_SESSION', (data, callback) => {
         if (!validateCallback(callback)) return;
         
-        const {token, roomCode, playerData} = data;
+        const { sessionId } = data;
         
-        if (!token || !roomCode || !playerData) {
-            return callback({success: false, error: 'Ungültige Sitzungsdaten'});
+        if (!sessionId) {
+            return callback({success: false, error: 'Keine Session ID', sessionInvalid: true});
         }
         
-        const session = getSession(token);
+        const session = getSession(sessionId);
         if (!session) {
-            return callback({success: false, error: 'Sitzung abgelaufen oder ungültig'});
+            return callback({success: false, error: 'Session nicht gefunden', sessionInvalid: true});
         }
         
-        const room = rooms[roomCode];
+        const room = rooms[session.roomCode];
         if (!room) {
-            invalidateSession(token);
-            return callback({success: false, error: 'Raum nicht mehr verfügbar'});
+            invalidateSession(sessionId);
+            return callback({success: false, error: 'Raum nicht mehr verfügbar', sessionInvalid: true});
         }
 
-        let existingPlayerId = null;
-        let existingPlayerData = null;
-        
-        for (const [playerId, player] of Object.entries(room.players)) {
-            if (player.name === playerData.name) {
-                existingPlayerId = playerId;
-                existingPlayerData = player;
-                break;
-            }
-        }
-
-        if (updateSessionSocket(token, socket.id)) {
-            socket.join(roomCode.toString());
-            currentRoomCode = roomCode;
+        if (updateSessionSocket(sessionId, socket.id)) {
+            socket.join(session.roomCode.toString());
+            currentRoomCode = session.roomCode;
             
+            let existingPlayerId = null;
+            let existingPlayerData = null;
+            
+            for (const [playerId, player] of Object.entries(room.players)) {
+                if (player.name === session.playerData.name) {
+                    existingPlayerId = playerId;
+                    existingPlayerData = player;
+                    break;
+                }
+            }
+
             if (existingPlayerId && existingPlayerData) {
                 delete room.players[existingPlayerId];
-                
                 room.players[socket.id] = {
                     name: existingPlayerData.name,
                     character: existingPlayerData.character,
                     points: existingPlayerData.points
                 };
 
-                if (room.playerAnswers && room.playerAnswers.length > 0) {
+                if (room.playerAnswers?.length > 0) {
                     room.playerAnswers.forEach(questionAnswers => {
                         if (questionAnswers[existingPlayerId] !== undefined) {
                             questionAnswers[socket.id] = questionAnswers[existingPlayerId];
@@ -454,33 +558,40 @@ module.exports = (io, socket) => {
                         }
                     });
                 }
-                
-                console.log(`Player ${playerData.name} reconnected: ${existingPlayerId} -> ${socket.id}`);
 
                 io.to(room.host).emit('PLAYER_RECONNECTED', {
                     id: socket.id,
-                    name: playerData.name,
-                    character: playerData.character,
+                    name: session.playerData.name,
+                    character: session.playerData.character,
                     oldId: existingPlayerId
                 });
+                
+                if (room.state === 'ingame' && room.currentQuestion && !room.currentQuestion.isCompleted) {
+                    const activePlayers = getActivePlayers(room, io);
+                    io.to(room.host).emit('ACTIVE_PLAYER_COUNT', {
+                        active: Object.keys(activePlayers).length,
+                        total: Object.keys(room.players).length,
+                        expectedAnswers: Object.keys(activePlayers).length
+                    });
+                }
             } else {
                 room.players[socket.id] = {
-                    name: playerData.name,
-                    character: playerData.character,
+                    name: session.playerData.name,
+                    character: session.playerData.character,
                     points: session.playerData.points || 0
                 };
                 
                 io.to(room.host).emit('PLAYER_JOINED', {
                     id: socket.id,
-                    name: playerData.name,
-                    character: playerData.character
+                    name: session.playerData.name,
+                    character: session.playerData.character
                 });
-            }
-
-            const gameState = {
+            }            const gameState = {
                 roomState: room.state,
                 currentQuestion: room.currentQuestion,
-                playerPoints: room.players[socket.id].points
+                playerPoints: room.players[socket.id].points,
+                roomCode: session.roomCode,
+                playerData: session.playerData
             };
             
             if (room.state === 'ingame' && room.currentQuestion && !room.currentQuestion.isCompleted) {
@@ -490,37 +601,57 @@ module.exports = (io, socket) => {
                     questionType = isMultipleChoice ? 'multiple' : 'single';
                 }
 
-                const questionData = {
-                    type: questionType,
-                    title: room.currentQuestion.title
-                };
+                const questionData = { type: questionType, title: room.currentQuestion.title };
 
                 if (room.currentQuestion.type === 'text') {
                     questionData.maxLength = 200;
                 } else if (room.currentQuestion.type === 'sequence') {
                     const originalQuestion = room.questionHistory[room.questionHistory.length - 1];
-                    if (originalQuestion && originalQuestion.shuffledAnswers) {
-                        questionData.answers = originalQuestion.shuffledAnswers;
-                    } else {
-                        questionData.answers = room.currentQuestion.answers.length;
-                    }
+                    questionData.answers = originalQuestion?.shuffledAnswers || room.currentQuestion.answers.length;
                 } else {
                     questionData.answers = room.currentQuestion.answers.length;
                 }
                 
                 socket.emit('QUESTION_RECEIVED', questionData);
-
-                if (room.currentQuestion.answersReady) {
-                    socket.emit('ANSWERS_READY', true);
-                }
+                if (room.currentQuestion.answersReady) socket.emit('ANSWERS_READY', true);
             }
 
             socket.emit('GAME_STATE_RESTORED', gameState);
             
             callback({success: true, gameState});
         } else {
-            callback({success: false, error: 'Fehler beim Wiederherstellen der Sitzung'});
+            callback({success: false, error: 'Fehler beim Wiederherstellen der Session'});
         }
+    });
+
+    socket.on('GET_SESSION_STATE', (data, callback) => {
+        if (!validateCallback(callback)) return;
+        
+        const { sessionId } = data;
+        
+        if (!sessionId) {
+            return callback({success: false, sessionInvalid: true});
+        }
+        
+        const session = getSession(sessionId);
+        if (!session) {
+            return callback({success: false, sessionInvalid: true});
+        }
+        
+        const room = rooms[session.roomCode];
+        if (!room) {
+            invalidateSession(sessionId);
+            return callback({success: false, sessionInvalid: true});
+        }
+
+        const sessionState = {
+            roomCode: session.roomCode,
+            playerData: session.playerData,
+            roomState: room.state,
+            status: session.status
+        };
+        
+        callback({success: true, sessionState});
     });
 
     socket.on('SHOW_QUESTION', (data, callback) => {
@@ -566,10 +697,7 @@ module.exports = (io, socket) => {
             questionType = isMultipleChoice ? 'multiple' : 'single';
         }
 
-        const questionData = {
-            type: questionType,
-            title: data.title
-        };
+        const questionData = { type: questionType, title: data.title };
 
         if (data.type === 'text') {
             questionData.maxLength = 200;
@@ -582,8 +710,15 @@ module.exports = (io, socket) => {
 
         io.to(currentRoomCode.toString()).emit('QUESTION_RECEIVED', questionData);
 
+        const activePlayers = getActivePlayers(room, io);
+        io.to(room.host).emit('ACTIVE_PLAYER_COUNT', {
+            active: Object.keys(activePlayers).length,
+            total: Object.keys(room.players).length,
+            expectedAnswers: Object.keys(activePlayers).length
+        });
+
         setTimeout(() => {
-            if (rooms[currentRoomCode] && rooms[currentRoomCode].currentQuestion) {
+            if (rooms[currentRoomCode]?.currentQuestion) {
                 rooms[currentRoomCode].currentQuestion.answersReady = true;
                 io.to(currentRoomCode.toString()).emit('ANSWERS_READY', true);
             }
@@ -650,7 +785,9 @@ module.exports = (io, socket) => {
         room.players[socket.id].points += points;
 
         const currentAnswers = playerAnswers[playerAnswers.length - 1];
-        if (Object.keys(currentAnswers).length === Object.keys(room.players).length) {
+        const activePlayers = getActivePlayers(room, io);
+        
+        if (Object.keys(currentAnswers).length === Object.keys(activePlayers).length) {
             const answerData = generateAnswerData(currentQuestion, currentAnswers, room);
             room.currentQuestion.isCompleted = true;
 
@@ -659,7 +796,16 @@ module.exports = (io, socket) => {
             io.to(room.host).emit('ANSWERS_RECEIVED', {
                 answers: currentAnswers,
                 scoreboard: room.players,
-                answerData: answerData
+                answerData: answerData,
+                activePlayerCount: Object.keys(activePlayers).length,
+                totalPlayerCount: Object.keys(room.players).length,
+                allActiveAnswered: true
+            });
+        } else {
+            io.to(room.host).emit('ANSWER_PROGRESS', {
+                answeredCount: Object.keys(currentAnswers).length,
+                activePlayerCount: Object.keys(activePlayers).length,
+                totalPlayerCount: Object.keys(room.players).length
             });
         }
 
@@ -677,13 +823,17 @@ module.exports = (io, socket) => {
 
         const currentAnswers = room.playerAnswers[room.playerAnswers.length - 1];
         const answerData = generateAnswerData(room.currentQuestion, currentAnswers, room);
+        const activePlayers = getActivePlayers(room, io);
 
         broadcastAnswerResults(io, currentRoomCode, answerData, room);
 
         callback({
             answers: currentAnswers,
             scoreboard: room.players,
-            answerData: answerData
+            answerData: answerData,
+            activePlayerCount: Object.keys(activePlayers).length,
+            totalPlayerCount: Object.keys(room.players).length,
+            skipped: true
         });
     });
 
@@ -708,7 +858,7 @@ module.exports = (io, socket) => {
         if (!currentRoomCode || !rooms[currentRoomCode]) {
             const session = getSessionBySocketId(socket.id);
             if (session) {
-                invalidateSession(session.token);
+                markSessionDisconnected(session.token);
             }
             return;
         }
@@ -716,6 +866,7 @@ module.exports = (io, socket) => {
         const room = rooms[currentRoomCode];
 
         if (room.host === socket.id) {
+            io.to(currentRoomCode.toString()).emit('HOST_DISCONNECTED', 'Host has left the game');
             endGameForAllPlayers(io, room, currentRoomCode);
             return;
         }
@@ -723,19 +874,43 @@ module.exports = (io, socket) => {
         if (room.players[socket.id]) {
             const session = getSessionBySocketId(socket.id);
             if (session) {
+                markSessionDisconnected(session.token);
                 session.playerData.points = room.players[socket.id].points;
                 session.playerData.name = room.players[socket.id].name;
                 session.playerData.character = room.players[socket.id].character;
-                console.log(`Player ${room.players[socket.id].name} disconnected but session preserved for reconnection`);
             }
 
             const playerName = room.players[socket.id].name;
-
             io.to(room.host).emit('PLAYER_DISCONNECTED', {
                 id: socket.id,
                 name: playerName,
                 temporary: true
             });
+            
+            if (room.state === 'ingame' && room.currentQuestion && !room.currentQuestion.isCompleted) {
+                const activePlayers = getActivePlayers(room, io);
+                const currentAnswers = room.playerAnswers[room.playerAnswers.length - 1];
+                
+                io.to(room.host).emit('ACTIVE_PLAYER_COUNT', {
+                    active: Object.keys(activePlayers).length,
+                    total: Object.keys(room.players).length,
+                    expectedAnswers: Object.keys(activePlayers).length
+                });
+                
+                if (Object.keys(currentAnswers).length === Object.keys(activePlayers).length && Object.keys(activePlayers).length > 0) {
+                    const answerData = generateAnswerData(room.currentQuestion, currentAnswers, room);
+                    room.currentQuestion.isCompleted = true;
+                    broadcastAnswerResults(io, currentRoomCode, answerData, room);
+                    io.to(room.host).emit('ANSWERS_RECEIVED', {
+                        answers: currentAnswers,
+                        scoreboard: room.players,
+                        answerData: answerData,
+                        activePlayerCount: Object.keys(activePlayers).length,
+                        totalPlayerCount: Object.keys(room.players).length,
+                        allActiveAnswered: true
+                    });
+                }
+            }
         }
     });
 };

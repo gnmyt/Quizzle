@@ -3,7 +3,7 @@ import "./styles.sass";
 import Background from "@/common/components/Background";
 import {useEffect, useState} from "react";
 import {Toaster} from "react-hot-toast";
-import {socket, getSessionManager} from "@/common/utils/SocketUtil.js";
+import {socket, getSessionManager, getSessionState} from "@/common/utils/SocketUtil.js";
 
 export const Root = () => {
     const [circlePosition, setCirclePosition] = useState(["-25rem 0 0 -25rem", "-8rem 0 0 -8rem"]);
@@ -14,12 +14,27 @@ export const Root = () => {
 
         const sessionManager = getSessionManager();
         if (sessionManager.hasValidSession()) {
-            const session = sessionManager.getSession();
             const currentPath = window.location.pathname;
             
-            if (currentPath === '/' && session.roomCode && session.playerData) {
-                console.log('Found existing session, redirecting to game...');
-                navigate('/client');
+            if (currentPath === '/') {
+                const validateAndRedirect = () => {
+                    if (socket.connected) {
+                        getSessionState().then(sessionState => {
+                            if (sessionState && sessionState.roomCode) {
+                                navigate('/client');
+                            } else {
+                                sessionManager.clearSession();
+                            }
+                        });
+                    } else {
+                        setTimeout(() => {
+                            if (socket.connected) {
+                                validateAndRedirect();
+                            }
+                        }, 2000);
+                    }
+                };
+                setTimeout(validateAndRedirect, 100);
             }
         }
 

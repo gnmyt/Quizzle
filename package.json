@@ -4,8 +4,6 @@
     "express-rate-limit": "^7.2.0",
     "joi": "^17.12.3",
     "pako": "^2.1.0",
-    "qrcode.react": "^3.1.0",
-    "react-sound": "^1.2.0",
     "socket.io": "^4.7.5"
   },
   "name": "quizzle",

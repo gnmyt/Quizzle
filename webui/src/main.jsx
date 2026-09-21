@@ -20,6 +20,7 @@ import EndingHost from "@/pages/EndingHost";
 import InGameClient from "@/pages/InGameClient";
 import PracticeResults from "@/pages/PracticeResults";
 import Admin from "@/pages/Admin";
+import Manage from "@/pages/Manage";
 import Credits from "@/pages/Credits";
 
 const router = createBrowserRouter([
@@ -38,6 +39,7 @@ const router = createBrowserRouter([
             {path: '/practice/:practiceCode', element: <InGameClient />},
             {path: '/results/:code', element: <PracticeResults />},
             {path: '/admin', element: <Admin />},
+            {path: '/manage', element: <Manage />},
             {path: '/credits', element: <Credits />}
         ]
     },

@@ -3,7 +3,7 @@ import {useContext, useEffect, useRef, useState} from "react";
 import "./styles.sass";
 import {motion} from "framer-motion";
 import Button from "@/common/components/Button";
-import {faShareFromSquare, faSwatchbook, faChartBar, faGear, faRightToBracket, faRightFromBracket} from "@fortawesome/free-solid-svg-icons";
+import {faShareFromSquare, faSwatchbook, faChartBar, faGear, faRightToBracket, faRightFromBracket, faFolderOpen} from "@fortawesome/free-solid-svg-icons";
 import {useNavigate, useOutletContext} from "react-router-dom";
 import {socket, ensureSocketConnection, joinRoomWithSession, addReconnectionCallback, removeReconnectionCallback} from "@/common/utils/SocketUtil.js";
 import CodeInput from "@/pages/Home/components/CodeInput";
@@ -251,6 +251,14 @@ export const Home = () => {
                                 setCirclePosition("-30rem 0 0 -30rem");
                                 setTimeout(() => navigate("/load"), 500);
                             }}/>
+                    {isAuthenticated && (
+                        <Button text="Verwaltung" icon={faFolderOpen} padding={"0.8rem 2.5rem"} type="secondary"
+                                disabled={code !== null}
+                                onClick={() => {
+                                    setCirclePosition("-30rem 0 0 -30rem");
+                                    setTimeout(() => navigate("/manage"), 500);
+                                }}/>
+                    )}
                     {isAdmin && (
                         <Button text="Admin" icon={faGear} padding={"0.8rem 2.5rem"} type="secondary"
                                 disabled={code !== null}

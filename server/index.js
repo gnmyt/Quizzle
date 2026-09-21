@@ -11,6 +11,12 @@ const io = socketIo(server, {path: '/api/ws', cors: {origin: '*'}, connectionSta
 
 const PORT = process.env.PORT || 6412;
 
+// Exactly one reverse proxy (Zoraxy) sits in front of the app, so trust a single hop.
+// A numeric value is used instead of `true` to avoid trusting arbitrary client-supplied
+// X-Forwarded-For chains. Direct LAN access on PORT is unaffected because Express then
+// falls back to the socket address.
+app.set('trust proxy', 1);
+
 firstStart();
 
 startCleanupTask();
@@ -19,6 +25,7 @@ app.use(express.json({limit: '100mb'}));
 
 app.use("/api/auth", require("./routes/auth"));
 app.use("/api/admin", require("./routes/admin"));
+app.use("/api/admin", require("./routes/adminManagement"));
 app.use("/api/branding", require("./routes/branding"));
 app.use("/api/quizzes", require("./routes/quizzes"));
 app.use("/api/practice", require("./routes/practice"));

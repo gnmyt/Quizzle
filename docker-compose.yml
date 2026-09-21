@@ -1,0 +1,14 @@
+services:
+  quizzle:
+    image: ghcr.io/dejowebdesign/quizzle:latest
+    ports:
+      - "6412:6412"
+    volumes:
+      - quizzle_data:/quizzle/data
+    environment:
+      - TZ=Europe/Berlin
+    restart: unless-stopped
+
+volumes:
+  quizzle_data:
+    name: quizzle_data

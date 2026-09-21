@@ -6,11 +6,13 @@ const {config} = require("../validations/config");
 
 const dataFolder = path.join(process.cwd(), 'data');
 const quizzesFolder = path.join(dataFolder, 'quizzes');
+const practiceQuizzesFolder = path.join(dataFolder, 'practice-quizzes');
 const brandingFolder = path.join(dataFolder, 'branding');
 
 const createFolders = () => {
     if (!fs.existsSync(dataFolder)) fs.mkdirSync(dataFolder);
     if (!fs.existsSync(quizzesFolder)) fs.mkdirSync(quizzesFolder);
+    if (!fs.existsSync(practiceQuizzesFolder)) fs.mkdirSync(practiceQuizzesFolder);
     if (!fs.existsSync(brandingFolder)) fs.mkdirSync(brandingFolder);
 }
 
@@ -53,6 +55,7 @@ module.exports.firstStart = () => {
 
 module.exports.dataFolder = dataFolder;
 module.exports.quizzesFolder = quizzesFolder;
+module.exports.practiceQuizzesFolder = practiceQuizzesFolder;
 module.exports.brandingFolder = brandingFolder;
 
 module.exports.getConfig = () => {

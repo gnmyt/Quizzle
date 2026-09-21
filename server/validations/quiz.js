@@ -138,3 +138,17 @@ module.exports.quizUpload = Joi.object({
             'array.max': 'Quiz darf maximal 50 Fragen enthalten'
         })
 });
+
+// Optional validity for practice quizzes: a future ISO date/time, or null for "never expires".
+module.exports.practiceExpiryValidation = Joi.alternatives().try(
+    Joi.date().iso().greater('now')
+        .messages({
+            'date.greater': 'Das Ablaufdatum muss in der Zukunft liegen.',
+            'date.format': 'Ungültiges Ablaufdatum.'
+        }),
+    Joi.valid(null)
+).optional();
+
+module.exports.practiceUpload = module.exports.quizUpload.keys({
+    expiry: module.exports.practiceExpiryValidation
+});

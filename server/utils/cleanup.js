@@ -1,66 +1,14 @@
-const fs = require("fs").promises;
-const path = require("path");
-
-const practiceQuizzesDir = path.join(process.cwd(), 'data', 'practice-quizzes');
-
-const isAlphabeticCode = (code) => {
-    return /^[A-Z]{4}$/i.test(code);
-};
-
-const isPracticeQuizExpired = async (code) => {
-    try {
-        const metaPath = path.join(practiceQuizzesDir, code, 'meta.json');
-        const metaContent = await fs.readFile(metaPath, 'utf8');
-        const meta = JSON.parse(metaContent);
-        return new Date(meta.expiry) < new Date();
-    } catch {
-        return true;
-    }
-};
-
-const cleanupExpiredPracticeQuizzes = async () => {
-    try {
-        try {
-            await fs.access(practiceQuizzesDir);
-        } catch {
-            return 0;
-        }
-
-        const codes = await fs.readdir(practiceQuizzesDir);
-        let cleanedCount = 0;
-
-        for (const code of codes) {
-            if (isAlphabeticCode(code)) {
-                if (await isPracticeQuizExpired(code)) {
-                    const quizDir = path.join(practiceQuizzesDir, code);
-                    await fs.rm(quizDir, { recursive: true, force: true });
-                    cleanedCount++;
-                }
-            }
-        }
-
-        if (cleanedCount > 0) {
-            console.log(`Cleanup completed: removed ${cleanedCount} expired practice quizzes`);
-        }
-        
-        return cleanedCount;
-    } catch (error) {
-        console.error('Error during practice quiz cleanup:', error);
-        return 0;
-    }
-};
+/**
+ * Practice quizzes are deliberately never removed automatically.
+ *
+ * Expired tests stay visible for admins, keep their stored results, and can only be
+ * deleted manually through DELETE /api/admin/practice/:code. The previous periodic
+ * cleanup job was removed on purpose.
+ */
 
 const startCleanupTask = () => {
-    setTimeout(() => {
-        cleanupExpiredPracticeQuizzes();
-    }, 30000);
-
-    setInterval(() => {
-        cleanupExpiredPracticeQuizzes();
-    }, 6 * 60 * 60 * 1000);
 };
 
 module.exports = {
-    cleanupExpiredPracticeQuizzes,
     startCleanupTask
 };

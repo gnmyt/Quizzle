@@ -1,55 +1,32 @@
 const rateLimit = require('express-rate-limit');
 const {validateSchema} = require("../utils/error");
-const {quizUpload} = require("../validations/quiz");
+const {practiceUpload} = require("../validations/quiz");
 const path = require("path");
 const fs = require("fs").promises;
 const {generatePracticeCode, isAlphabeticCode} = require("../utils/random");
 const app = require('express').Router();
 const {requireAuth} = require("../middleware/auth");
-const {decompressQuiz, compressQuiz, resolveQuestionType, shuffleSequenceAnswers, stripAnswerCorrectness} = require("../utils/quiz");
+const {compressQuiz, resolveQuestionType, shuffleSequenceAnswers, stripAnswerCorrectness} = require("../utils/quiz");
 const {evaluateTextAnswer, evaluateSequenceAnswer, evaluateChoiceAnswer, evaluateSliderAnswer} = require("../utils/scoring");
-
-const practiceQuizzesDir = path.join(process.cwd(), 'data', 'practice-quizzes');
-
-const ensurePracticeQuizzesDir = async () => {
-    try {
-        await fs.access(practiceQuizzesDir);
-    } catch {
-        await fs.mkdir(practiceQuizzesDir, {recursive: true});
-    }
-};
+const {canManage} = require("../utils/ownership");
+const {
+    normalizePracticeCode,
+    isSafePracticeCode,
+    resolvePracticeDir,
+    practiceQuizExists,
+    loadPracticeQuiz,
+    readPracticeMeta,
+    readPracticeResults,
+    writePracticeMeta,
+    isPracticeExpired,
+} = require("../utils/practice");
 
 const createLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     limit: 5,
 });
 
-const practiceQuizExists = async (code) => {
-    try {
-        const quizPath = path.join(practiceQuizzesDir, code);
-        await fs.access(quizPath);
-        return true;
-    } catch {
-        return false;
-    }
-};
-
-const isPracticeQuizExpired = async (code) => {
-    try {
-        const metaPath = path.join(practiceQuizzesDir, code, 'meta.json');
-        const metaContent = await fs.readFile(metaPath, 'utf8');
-        const meta = JSON.parse(metaContent);
-        return new Date(meta.expiry) < new Date();
-    } catch {
-        return true;
-    }
-};
-
-const loadPracticeQuiz = async (code) => {
-    const quizPath = path.join(practiceQuizzesDir, code, 'quiz.quizzle');
-    const quizData = await fs.readFile(quizPath);
-    return decompressQuiz(quizData);
-};
+const isPracticeQuizExpired = async (code) => isPracticeExpired(await readPracticeMeta(code));
 
 const validatePracticeCode = async (code, res) => {
     if (!isAlphabeticCode(code)) {
@@ -69,34 +46,34 @@ const validatePracticeCode = async (code, res) => {
 
 app.put("/", createLimiter, requireAuth, async (req, res) => {
     try {
-        if (validateSchema(res, quizUpload, req.body)) return;
+        if (validateSchema(res, practiceUpload, req.body)) return;
 
-        await ensurePracticeQuizzesDir();
+        const {expiry, ...quizPayload} = req.body;
 
         let practiceCode = generatePracticeCode();
         while (await practiceQuizExists(practiceCode)) {
             practiceCode = generatePracticeCode();
         }
 
-        const quizDir = path.join(practiceQuizzesDir, practiceCode);
+        const quizDir = resolvePracticeDir(practiceCode);
         const resultsDir = path.join(quizDir, 'results');
 
         await fs.mkdir(quizDir, {recursive: true});
         await fs.mkdir(resultsDir, {recursive: true});
 
-        const compressed = compressQuiz({__type: "QUIZZLE2", ...req.body});
+        const compressed = compressQuiz({__type: "QUIZZLE2", ...quizPayload});
         await fs.writeFile(path.join(quizDir, 'quiz.quizzle'), compressed);
 
-        const now = new Date();
-        const expiry = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
         const meta = {
-            created: now.toISOString(),
-            expiry: expiry.toISOString()
+            created: new Date().toISOString(),
+            expiry: expiry ? new Date(expiry).toISOString() : null,
+            owner: req.user?.id || null,
+            ownerName: req.user?.username || null
         };
 
-        await fs.writeFile(path.join(quizDir, 'meta.json'), JSON.stringify(meta, null, 2));
+        await writePracticeMeta(practiceCode, meta);
 
-        res.json({practiceCode});
+        res.json({practiceCode, expiry: meta.expiry});
     } catch (error) {
         console.error('Error creating practice quiz:', error);
         res.status(500).json({message: "Error creating practice quiz"});
@@ -105,9 +82,9 @@ app.put("/", createLimiter, requireAuth, async (req, res) => {
 
 app.get('/:code/exists', async (req, res) => {
     try {
-        const code = req.params.code.replace(/[^A-Z]/gi, '').toUpperCase();
+        const code = normalizePracticeCode(req.params.code);
 
-        if (!isAlphabeticCode(code)) {
+        if (!isSafePracticeCode(code)) {
             return res.status(400).json({exists: false, message: "Invalid practice code format"});
         }
 
@@ -130,7 +107,7 @@ app.get('/:code/exists', async (req, res) => {
 
 app.get('/:code', async (req, res) => {
     try {
-        const code = req.params.code.replace(/[^A-Z]/gi, '').toUpperCase();
+        const code = normalizePracticeCode(req.params.code);
         if (!await validatePracticeCode(code, res)) return;
 
         const quiz = await loadPracticeQuiz(code);
@@ -176,10 +153,10 @@ app.get('/:code', async (req, res) => {
 
 app.post('/:code/submit-answer', async (req, res) => {
     try {
-        const code = req.params.code.replace(/[^A-Z]/gi, '').toUpperCase();
+        const code = normalizePracticeCode(req.params.code);
         const {attemptId, questionIndex, answer, name, character} = req.body;
 
-        if (!isAlphabeticCode(code)) {
+        if (!isSafePracticeCode(code)) {
             return res.status(400).json({message: "Invalid practice code format"});
         }
 
@@ -237,7 +214,7 @@ app.post('/:code/submit-answer', async (req, res) => {
             answerScore = answerResult === 'correct' ? 1 : answerResult === 'partial' ? 0.5 : 0;
         }
 
-        const resultsDir = path.join(practiceQuizzesDir, code, 'results');
+        const resultsDir = path.join(resolvePracticeDir(code), 'results');
         await fs.mkdir(resultsDir, {recursive: true});
         const resultPath = path.join(resultsDir, `${attemptId}.json`);
 
@@ -388,9 +365,9 @@ const generatePracticeAnalytics = (quiz, results, studentResults, averageScore, 
 
 app.post('/:code/results', requireAuth, async (req, res) => {
     try {
-        const code = req.params.code.replace(/[^A-Z]/gi, '').toUpperCase();
+        const code = normalizePracticeCode(req.params.code);
 
-        if (!isAlphabeticCode(code)) {
+        if (!isSafePracticeCode(code)) {
             return res.status(400).json({message: "Invalid practice code format"});
         }
 
@@ -398,20 +375,13 @@ app.post('/:code/results', requireAuth, async (req, res) => {
             return res.status(404).json({message: "Practice quiz not found"});
         }
 
-        const metaPath = path.join(practiceQuizzesDir, code, 'meta.json');
-        const metaContent = await fs.readFile(metaPath, 'utf8');
-        const meta = JSON.parse(metaContent);
+        const meta = await readPracticeMeta(code) || {};
 
-        const resultsDir = path.join(practiceQuizzesDir, code, 'results');
-        const resultFiles = await fs.readdir(resultsDir);
-
-        const results = [];
-        for (const file of resultFiles) {
-            if (file.endsWith('.json')) {
-                const resultContent = await fs.readFile(path.join(resultsDir, file), 'utf8');
-                results.push(JSON.parse(resultContent));
-            }
+        if (!canManage(meta.owner, req.user)) {
+            return res.status(403).json({message: "Keine Berechtigung für diese Ergebnisse."});
         }
+
+        const results = await readPracticeResults(code);
 
         const totalAttempts = results.length;
         const averageScore = totalAttempts > 0
@@ -435,7 +405,7 @@ app.post('/:code/results', requireAuth, async (req, res) => {
         res.json({
             meta: {
                 created: meta.created,
-                expiry: meta.expiry,
+                expiry: meta.expiry || null,
                 totalAttempts,
                 averageScore: Math.round(averageScore * 100) / 100,
                 maxScore,

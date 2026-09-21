@@ -8,6 +8,7 @@ const {quizzesFolder} = require("../utils/file");
 const {generateQuizId} = require("../utils/random");
 const {requireAuth} = require("../middleware/auth");
 const {compressQuiz} = require("../utils/quiz");
+const {resolveQuizPath, writeSavedQuizMeta} = require("../utils/savedQuizzes");
 
 const uploadFile = async (content) => {
     let random = generateQuizId();
@@ -41,9 +42,14 @@ const limiter = rateLimit({
 });
 
 app.get('/:quizId', (req, res) => {
-    const escaped = req.params.quizId.replace(/[^a-z0-9]/gi, '');
+    const quizPath = resolveQuizPath(req.params.quizId);
 
-    fs.readFile(path.join(quizzesFolder, `${escaped}.quizzle`), (err, data) => {
+    if (!quizPath) {
+        res.status(404).json({message: "Quiz not found"});
+        return;
+    }
+
+    fs.readFile(quizPath, (err, data) => {
         if (err) {
             res.status(404).json({message: "Quiz not found"});
             return;
@@ -57,6 +63,15 @@ app.put("/", limiter, requireAuth, async (req, res) => {
     if (validateSchema(res, quizUpload, req.body)) return;
 
     const quizId = await uploadFile(req.body);
+
+    if (req.user?.id) {
+        await writeSavedQuizMeta(quizId, {
+            owner: req.user.id,
+            ownerName: req.user.username,
+            created: new Date().toISOString()
+        });
+    }
+
     res.json({quizId});
 });
 

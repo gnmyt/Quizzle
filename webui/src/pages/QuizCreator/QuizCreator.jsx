@@ -37,6 +37,17 @@ import {useAIGeneration} from "@/common/hooks/useAIGeneration.jsx";
 import {AuthContext} from "@/common/contexts/Auth";
 import {DEFAULT_QUIZ_SETTINGS} from "@/common/constants/QuizSettings.js";
 import QuizSettingsPanel from "@/pages/QuizCreator/components/QuizSettingsPanel";
+import Dialog from "@/common/components/Dialog";
+import SelectBox from "@/common/components/SelectBox";
+
+const PRACTICE_EXPIRY_PRESETS = [
+    {value: 'never', label: 'Kein Ablaufdatum'},
+    {value: '1', label: '1 Tag'},
+    {value: '7', label: '7 Tage'},
+    {value: '14', label: '14 Tage (Standard)'},
+    {value: '30', label: '30 Tage'},
+    {value: 'custom', label: 'Benutzerdefiniert'}
+];
 
 export const QuizCreator = () => {
     const {setCirclePosition} = useOutletContext();
@@ -47,8 +58,33 @@ export const QuizCreator = () => {
     const [aiAvailable, setAIAvailable] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
     const [showAIAdvanced, setShowAIAdvanced] = useState(false);
+    const [showPracticeDialog, setShowPracticeDialog] = useState(false);
+    const [practicePreset, setPracticePreset] = useState('14');
+    const [practiceCustom, setPracticeCustom] = useState('');
 
     const initialQuizState = () => {
+        const editRequest = localStorage.getItem("qq_edit_quiz");
+        if (editRequest) {
+            try {
+                const parsed = JSON.parse(editRequest);
+                const questions = (parsed.questions || []).map(q => ({
+                    ...q,
+                    uuid: q.uuid || generateUuid()
+                }));
+
+                if (questions.length > 0) {
+                    return {
+                        questions,
+                        activeQuestion: questions[0].uuid,
+                        title: parsed.title || "",
+                        settings: {...DEFAULT_QUIZ_SETTINGS, ...(parsed.settings || {})}
+                    };
+                }
+            } catch (e) {
+                console.error("Error loading stored edit request:", e);
+            }
+        }
+
         const stored = localStorage.getItem("qq_questions");
         if (stored) {
             try {
@@ -230,22 +266,41 @@ export const QuizCreator = () => {
             return;
         }
         if (!validateQuestions()) return;
-        requireAuth(publishPracticeQuiz);
+        requireAuth(() => setShowPracticeDialog(true));
+    };
+
+    const resolvePracticeExpiry = () => {
+        if (practicePreset === 'never') return null;
+        if (practicePreset === 'custom') {
+            const parsed = new Date(practiceCustom);
+            if (!practiceCustom || Number.isNaN(parsed.getTime()) || parsed.getTime() <= Date.now()) return undefined;
+            return parsed.toISOString();
+        }
+        return new Date(Date.now() + Number(practicePreset) * 24 * 60 * 60 * 1000).toISOString();
     };
 
     const publishPracticeQuiz = async () => {
+        const expiry = resolvePracticeExpiry();
+        if (expiry === undefined) {
+            toast.error("Bitte ein gültiges Ablaufdatum in der Zukunft wählen.");
+            return;
+        }
+
         const quizData = await prepareQuizData(questions, titleValidation.value, true);
         quizData.settings = quizSettings;
+        quizData.expiry = expiry;
+
         try {
             const response = await putRequest("/practice", quizData);
             if (response.practiceCode) {
-                toast.success("Übungsquiz erfolgreich erstellt!");
-                toast.success(`Übungscode: ${response.practiceCode}`, {duration: 10000});
+                setShowPracticeDialog(false);
+                toast.success("Test erfolgreich erstellt!");
+                toast.success(`Practice-Code: ${response.practiceCode}`, {duration: 10000});
                 navigator.clipboard?.writeText(response.practiceCode);
             }
         } catch (error) {
             console.error('Practice quiz creation error:', error);
-            toast.error("Fehler beim Erstellen des Übungsquiz.");
+            toast.error(error.message || "Fehler beim Erstellen des Tests.");
         }
     };
 
@@ -341,6 +396,7 @@ export const QuizCreator = () => {
 
     useEffect(() => {
         setCirclePosition(["-25rem -25rem auto auto", "-15rem -7rem auto auto"]);
+        localStorage.removeItem("qq_edit_quiz");
     }, []);
 
     useEffect(() => {
@@ -506,6 +562,36 @@ export const QuizCreator = () => {
                     <QuestionSettings key={`settings-${activeQuestion}`} question={questions.find(q => q.uuid === activeQuestion)} onChange={onChange} onCommit={onChangeWithSnapshot} defaultTimer={quizSettings.defaultTimer} />
                 )}
             </div>
+
+            <Dialog
+                isOpen={showPracticeDialog}
+                onClose={() => setShowPracticeDialog(false)}
+                onConfirm={publishPracticeQuiz}
+                title="Test veröffentlichen"
+                confirmText="Test erstellen"
+                cancelText="Abbrechen"
+            >
+                <div className="practice-dialog-form">
+                    <div className="form-group">
+                        <label>Gültigkeit des Tests</label>
+                        <SelectBox value={practicePreset} onChange={setPracticePreset} options={PRACTICE_EXPIRY_PRESETS}/>
+                    </div>
+                    {practicePreset === 'custom' && (
+                        <div className="form-group">
+                            <label>Ablaufdatum und Uhrzeit</label>
+                            <Input type="datetime-local" value={practiceCustom}
+                                   onChange={(e) => setPracticeCustom(e.target.value)}/>
+                        </div>
+                    )}
+                    {practicePreset === 'never' && (
+                        <p className="practice-hint">Der Test läuft ohne Ablaufdatum und kann unbegrenzt gestartet werden.</p>
+                    )}
+                    <p className="practice-hint">
+                        Abgelaufene Tests werden nicht gelöscht. Teilnehmer können sie nicht mehr starten, du kannst
+                        Ergebnisse aber weiterhin einsehen und den Test in der Verwaltung löschen.
+                    </p>
+                </div>
+            </Dialog>
 
             <AIAdvancedDialog
                 isOpen={showAIAdvanced}

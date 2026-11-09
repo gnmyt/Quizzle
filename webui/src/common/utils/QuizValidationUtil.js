@@ -23,8 +23,11 @@ export class QuizValidationUtil {
     }
 
     static validateAnswers(answers, questionType) {
-        const minAnswers = MINIMUM_ANSWERS[questionType] || 1;
-        const maxAnswers = ANSWER_LIMITS[questionType] || 6;
+        if (questionType === QUESTION_TYPES.WORD_CLOUD) {
+            return answers.length === 0 ? {isValid: true} : {isValid: false, error: 'Wortwolken benötigen keine vorgegebenen Antworten.'};
+        }
+        const minAnswers = MINIMUM_ANSWERS[questionType] ?? 1;
+        const maxAnswers = ANSWER_LIMITS[questionType] ?? 6;
 
         if (answers.length < minAnswers) return { isValid: false, error: this.getMinAnswersErrorMessage(questionType, minAnswers) };
         if (answers.length > maxAnswers) return { isValid: false, error: this.getMaxAnswersErrorMessage(questionType, maxAnswers) };
@@ -108,7 +111,9 @@ export class QuizValidationUtil {
             if (!question.type) return false;
             const questionType = question.type;
             
-            if (questionType === QUESTION_TYPES.TEXT) {
+            if (questionType === QUESTION_TYPES.WORD_CLOUD) {
+                if (!Array.isArray(question.answers) || question.answers.length !== 0) return false;
+            } else if (questionType === QUESTION_TYPES.TEXT) {
                 if (!question.answers || question.answers.length === 0 || question.answers.length > 10) return false;
                 if (question.answers.some(a => !a.content || a.content.trim() === "")) return false;
             } else if (questionType === QUESTION_TYPES.TRUE_FALSE) {

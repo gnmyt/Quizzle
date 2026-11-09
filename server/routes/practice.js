@@ -8,6 +8,8 @@ const app = require('express').Router();
 const {requireAuth} = require("../middleware/auth");
 const {decompressQuiz, compressQuiz, resolveQuestionType, shuffleSequenceAnswers, stripAnswerCorrectness} = require("../utils/quiz");
 const {evaluateTextAnswer, evaluateSequenceAnswer, evaluateChoiceAnswer, evaluateSliderAnswer} = require("../utils/scoring");
+const {WORD_CLOUD_MAX_LENGTH, normalizeWordCloudAnswer, buildWordCloud} = require('../utils/wordCloud');
+const {buildWordCloudAnalytics} = require('../utils/analytics');
 
 const practiceQuizzesDir = path.join(process.cwd(), 'data', 'practice-quizzes');
 
@@ -140,7 +142,10 @@ app.get('/:code', async (req, res) => {
             questions: quiz.questions.map(question => {
                 const practiceQuestion = {...question};
 
-                if (question.type === 'text') {
+                if (question.type === 'word-cloud') {
+                    practiceQuestion.answers = [];
+                    practiceQuestion.maxLength = WORD_CLOUD_MAX_LENGTH;
+                } else if (question.type === 'text') {
                     practiceQuestion.answers = [];
                 } else if (question.type === 'slider') {
                     const config = question.answers[0];
@@ -200,7 +205,13 @@ app.post('/:code/submit-answer', async (req, res) => {
         let normalizedAnswer = answer;
         let answerScore = 0;
 
-        if (question.type === 'text') {
+        if (question.type === 'word-cloud') {
+            normalizedAnswer = normalizeWordCloudAnswer(answer);
+            if (normalizedAnswer === null) {
+                return res.status(400).json({message: 'Bitte gib einen Begriff mit maximal 40 Zeichen ein.'});
+            }
+            answerResult = 'ungraded';
+        } else if (question.type === 'text') {
             answerResult = evaluateTextAnswer(answer, question.answers) ? 'correct' : 'incorrect';
             correctAnswer = question.answers[0]?.content;
             answerScore = answerResult === 'correct' ? 1 : 0;
@@ -246,7 +257,7 @@ app.post('/:code/submit-answer', async (req, res) => {
             character: character || 'wizard',
             answers: [],
             score: 0,
-            total: quiz.questions.length,
+            total: quiz.questions.filter(q => q.type !== 'word-cloud').length,
             timestamp: new Date().toISOString()
         };
 
@@ -283,13 +294,14 @@ app.post('/:code/submit-answer', async (req, res) => {
         if (isLastQuestion) {
             finalResults = {
                 score: result.score,
-                total: quiz.questions.length,
+                total: result.total,
                 results: result.answers
             };
         }
 
         res.json({
             result: answerResult, isLastQuestion,
+            wordCloud: question.type === 'word-cloud' ? buildWordCloud([normalizedAnswer]) : undefined,
             finalResults
         });
     } catch (error) {
@@ -301,8 +313,13 @@ app.post('/:code/submit-answer', async (req, res) => {
 const generatePracticeAnalytics = (quiz, results, studentResults, averageScore, totalAttempts) => {
     const totalStudents = Object.keys(studentResults).length;
     const totalQuestions = quiz.questions.length;
+    const gradedQuestions = quiz.questions.filter(q => q.type !== 'word-cloud').length;
 
     const questionAnalytics = quiz.questions.map((question, questionIndex) => {
+        if (question.type === 'word-cloud') {
+            return buildWordCloudAnalytics(question,
+                results.map(result => result.answers?.[questionIndex]?.userAnswer), questionIndex);
+        }
         let correctCount = 0;
         let partialCount = 0;
         let incorrectCount = 0;
@@ -341,7 +358,7 @@ const generatePracticeAnalytics = (quiz, results, studentResults, averageScore, 
 
         const totalStudentAttempts = attempts.length;
         const avgScore = attempts.reduce((sum, attempt) => sum + attempt.score, 0) / totalStudentAttempts;
-        const avgAccuracy = Math.round((avgScore / totalQuestions) * 100);
+        const avgAccuracy = gradedQuestions > 0 ? Math.round((avgScore / gradedQuestions) * 100) : 0;
 
         let correctAnswers = 0;
         let partialAnswers = 0;
@@ -351,7 +368,7 @@ const generatePracticeAnalytics = (quiz, results, studentResults, averageScore, 
             bestAttempt.answers.forEach(answer => {
                 if (answer.result === 'correct') correctAnswers++;
                 else if (answer.result === 'partial') partialAnswers++;
-                else incorrectAnswers++;
+                else if (answer.result !== 'ungraded') incorrectAnswers++;
             });
         }
 
@@ -364,8 +381,9 @@ const generatePracticeAnalytics = (quiz, results, studentResults, averageScore, 
             partialAnswers,
             incorrectAnswers,
             totalAnswered: totalQuestions,
+            ungraded: gradedQuestions === 0,
             accuracy: avgAccuracy,
-            needsAttention: avgAccuracy < 60,
+            needsAttention: gradedQuestions > 0 && avgAccuracy < 60,
             attempts: totalStudentAttempts,
             avgScore: Math.round(avgScore * 100) / 100
         };
@@ -374,6 +392,7 @@ const generatePracticeAnalytics = (quiz, results, studentResults, averageScore, 
     const classAnalytics = {
         totalStudents,
         totalQuestions,
+        ungraded: gradedQuestions === 0,
         averageScore: Math.round(averageScore * 100) / 100,
         averageAccuracy: studentAnalytics.length > 0 ?
             Math.round((studentAnalytics.reduce((sum, student) => sum + student.accuracy, 0) / studentAnalytics.length) * 100) / 100 : 0,

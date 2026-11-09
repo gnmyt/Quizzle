@@ -18,6 +18,7 @@ import {useSoundManager} from "@/common/utils/SoundManager.js";
 import SoundRenderer from "@/common/components/SoundRenderer";
 import SoundControl from "@/common/components/SoundControl";
 import {QUESTION_TYPES} from "@/common/constants/QuestionTypes.js";
+import WordCloud from '@/common/components/WordCloud';
 
 export const InGameHost = () => {
     const {isLoaded, pullNextQuestion, scoreboard, setScoreboard, playerCount, setPlayerCount} = useContext(QuizContext);
@@ -29,6 +30,7 @@ export const InGameHost = () => {
     const [currentQuestion, setCurrentQuestion] = useState({});
     const [gameState, setGameState] = useState('question');
     const [answerData, setAnswerData] = useState(null);
+    const [wordCloud, setWordCloud] = useState({words: [], totalResponses: 0});
     const [questionAnimationState, setQuestionAnimationState] = useState('hidden');
     const [timerActive, setTimerActive] = useState(false);
     const [showDoublePointsAnimation, setShowDoublePointsAnimation] = useState(false);
@@ -77,6 +79,7 @@ export const InGameHost = () => {
             setCurrentQuestion(newQuestion);
             setGameState('question');
             setAnswerData(null);
+            setWordCloud({words: [], totalResponses: 0});
             setQuestionAnimationState('hidden');
             setTimerActive(false);
             setShowQuestionCountdown(false);
@@ -96,7 +99,7 @@ export const InGameHost = () => {
                 delete newQuestion.answers[i].b64_image;
             }
 
-            if (newQuestion.pointMultiplier === 'double') {
+            if (newQuestion.pointMultiplier === 'double' && newQuestion.type !== QUESTION_TYPES.WORD_CLOUD) {
                 setShowDoublePointsAnimation(true);
 
                 setTimeout(() => {
@@ -201,12 +204,15 @@ export const InGameHost = () => {
             });
         });
 
+        socket.on('WORD_CLOUD_UPDATED', setWordCloud);
+
         const timeout = setTimeout(() => nextQuestion(), 500);
 
         return () => {
             socket.off("PLAYER_LEFT");
             socket.off("ANSWERS_RECEIVED");
             socket.off("ANSWER_PROGRESS");
+            socket.off('WORD_CLOUD_UPDATED', setWordCloud);
             clearTimeout(timeout);
 
             if (inGameMusicRef.current) {
@@ -278,11 +284,15 @@ export const InGameHost = () => {
                             </div>
                         )}
 
-                        {questionAnimationState === 'answers-ready' && currentQuestion.type !== QUESTION_TYPES.TEXT && currentQuestion.type !== QUESTION_TYPES.SEQUENCE && currentQuestion.type !== QUESTION_TYPES.SLIDER && (
+                        {questionAnimationState === 'answers-ready' && currentQuestion.type !== QUESTION_TYPES.TEXT && currentQuestion.type !== QUESTION_TYPES.SEQUENCE && currentQuestion.type !== QUESTION_TYPES.SLIDER && currentQuestion.type !== QUESTION_TYPES.WORD_CLOUD && (
                             <div className={`answer-list ${questionAnimationState}`}>
                                 {currentQuestion.answers.map((answer, index) => <Answer key={index} answer={answer}
                                                                                         index={index} questionType={currentQuestion.type}/>)}
                             </div>
+                        )}
+
+                        {questionAnimationState === 'answers-ready' && currentQuestion.type === QUESTION_TYPES.WORD_CLOUD && (
+                            <WordCloud {...wordCloud}/>
                         )}
 
                         {questionAnimationState === 'answers-ready' && currentQuestion.type === QUESTION_TYPES.SLIDER && (

@@ -1,0 +1,68 @@
+.word-cloud
+  box-sizing: border-box
+  width: 100%
+  max-width: 64rem
+  min-width: 0
+  margin: 1rem auto
+  padding: clamp(1rem, 3vw, 2rem)
+  border-radius: 1.5rem
+  border: 1px solid rgba(101, 71, 238, 0.18)
+  background: radial-gradient(ellipse at center, #f1edff, #fff 75%)
+  color: #40374f
+  box-shadow: 0 8px 30px rgba(36, 21, 70, 0.08)
+  text-align: center
+
+.word-cloud-summary, .word-cloud-hint
+  margin: 0
+  color: #675f7b
+  font-size: 0.85rem
+  font-weight: 600
+
+.word-cloud-hint
+  margin-top: 1.25rem
+  font-weight: 400
+
+.word-cloud-empty
+  display: grid
+  place-items: center
+  min-height: 12rem
+  margin: 0
+  color: #675f7b
+
+.word-cloud-words
+  display: flex
+  flex-wrap: wrap
+  align-items: center
+  justify-content: center
+  align-content: center
+  gap: 0.8rem 1.5rem
+  min-height: 14rem
+  padding: 1.25rem 0
+  margin: 0
+  list-style: none
+
+.word-cloud-group
+  display: inline-flex
+  flex-wrap: wrap
+  align-items: baseline
+  justify-content: center
+  gap: 0.4rem 0.8rem
+  max-width: 100%
+
+.word-cloud-word
+  max-width: 100%
+  line-height: 1.25
+  font-weight: 800
+  overflow-wrap: anywhere
+
+.word-cloud-count
+  display: inline-block
+  margin-left: 0.25rem
+  vertical-align: super
+  font-size: 0.7rem
+  font-weight: 600
+
+@media (max-width: 620px)
+  .word-cloud-words
+    gap: 0.75rem
+    min-height: 10rem

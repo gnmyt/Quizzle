@@ -44,6 +44,13 @@
     align-items: center
     height: 100%
 
+    &.word-cloud-waiting
+      flex-direction: column
+      padding: 1.5rem
+      box-sizing: border-box
+      text-align: center
+      overflow-wrap: anywhere
+
 @keyframes pulse
   0%, 100%
     opacity: 1
@@ -339,6 +346,15 @@
   justify-content: center
   flex: 1
   min-height: 0
+
+  &.word-cloud-results
+    justify-content: flex-start
+    overflow-y: auto
+    padding: 1rem
+    box-sizing: border-box
+
+    .word-cloud
+      flex-shrink: 0
 
   .practice-final-score
     display: flex

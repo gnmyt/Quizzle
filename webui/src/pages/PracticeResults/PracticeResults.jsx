@@ -193,6 +193,9 @@ export const PracticeResults = () => {
     };
 
     const renderAnswerContent = (question, answer, result, correctAnswer) => {
+        if (question.type === QUESTION_TYPES.WORD_CLOUD) {
+            return <div className="text-answer"><p>Dein Begriff: {answer}</p><p>Ohne Bewertung</p></div>;
+        }
         if (question.type === QUESTION_TYPES.TEXT) {
             return (
                 <div className="text-answer">
@@ -491,7 +494,7 @@ export const PracticeResults = () => {
                                                     <div className="stat">
                                                         <span className="label">Beste:</span>
                                                         <span
-                                                            className="value">{bestAttempt.score}/{bestAttempt.total}</span>
+                                                            className="value">{bestAttempt.total > 0 ? `${bestAttempt.score}/${bestAttempt.total}` : 'Ohne Bewertung'}</span>
                                                     </div>
                                                     <div className="stat">
                                                         <span className="label">Durchschnitt:</span>
@@ -547,13 +550,13 @@ export const PracticeResults = () => {
                             <h4>Versuch auswählen:</h4>
                             <div className="attempts-list">
                                 {selectedStudent.attempts.map((attempt, index) => {
-                                    const percentage = Math.round((attempt.score / attempt.total) * 100);
+                                    const percentage = attempt.total > 0 ? `${Math.round((attempt.score / attempt.total) * 100)}%` : 'Ohne Bewertung';
                                     return (
                                         <div key={index} className="attempt-item">
                                             <div className="attempt-header">
                                                 <strong>Versuch {index + 1}</strong>
                                                 <span className="attempt-score">
-                                                    {attempt.score}/{attempt.total} ({percentage}%)
+                                                    {attempt.total > 0 ? `${attempt.score}/${attempt.total} (${percentage})` : 'Ohne Bewertung'}
                                                 </span>
                                                 <span className="attempt-date">
                                                     {formatDate(attempt.timestamp)}
@@ -570,7 +573,7 @@ export const PracticeResults = () => {
                                                             <div className="question-header">
                                                                 <span
                                                                     className="question-number">Frage {qIndex + 1}:</span>
-                                                                <FontAwesomeIcon
+                                                                {answerData.result !== 'ungraded' && <FontAwesomeIcon
                                                                     icon={
                                                                         answerData.result === 'correct' ? faCheck :
                                                                             answerData.result === 'partial' ? faMinus : faTimes
@@ -579,7 +582,7 @@ export const PracticeResults = () => {
                                                                         answerData.result === 'correct' ? 'correct' :
                                                                             answerData.result === 'partial' ? 'partial' : 'incorrect'
                                                                     }`}
-                                                                />
+                                                                />}
                                                             </div>
                                                             <div className="question-text">{question.title}</div>
                                                             {renderAnswerContent(

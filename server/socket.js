@@ -15,6 +15,7 @@ const {
 const {shuffleSequenceAnswers, stripAnswerContent} = require("./utils/quiz");
 const {calculatePoints, calculateLiveScore} = require("./utils/scoring");
 const {generateAnalytics} = require("./utils/analytics");
+const {normalizeWordCloudAnswer} = require("./utils/wordCloud");
 const {
     getActivePlayers,
     buildQuestionPayload,
@@ -485,7 +486,12 @@ module.exports = (io, socket) => {
 
         if (handleValidationError(callback, answerQuestion, data)) return;
 
-        playerAnswers[playerAnswers.length - 1][socket.id] = data.answers;
+        const isWordCloud = room.currentQuestion.type === 'word-cloud';
+        const submittedAnswer = isWordCloud ? normalizeWordCloudAnswer(data.answers) : data.answers;
+        if (isWordCloud && submittedAnswer === null) {
+            return callback({success: false, error: 'Bitte gib einen Begriff mit maximal 40 Zeichen ein.'});
+        }
+        playerAnswers[playerAnswers.length - 1][socket.id] = submittedAnswer;
 
         const score = calculateLiveScore(room.currentQuestion, data.answers);
         const isFlatScoring = room.settings?.scoringMode === 'flat';
@@ -494,9 +500,15 @@ module.exports = (io, socket) => {
             : calculatePoints(score, room.startTime, room.currentQuestion.pointMultiplier);
         room.players[socket.id].points += points;
         room.players[socket.id].lastRoundPoints = points;
-        room.players[socket.id].streak = score >= 1
-            ? (room.players[socket.id].streak || 0) + 1
-            : 0;
+        if (!isWordCloud) {
+            room.players[socket.id].streak = score >= 1
+                ? (room.players[socket.id].streak || 0) + 1
+                : 0;
+        } else {
+            io.to(room.host).emit('WORD_CLOUD_UPDATED', generateAnswerData(
+                room.currentQuestion, playerAnswers[playerAnswers.length - 1], room
+            ));
+        }
 
         if (!handleAllAnswered(io, currentRoomCode, room)) {
             const activePlayers = getActivePlayers(room, io);

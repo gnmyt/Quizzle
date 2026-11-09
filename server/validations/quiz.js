@@ -13,7 +13,7 @@ module.exports.questionValidation = Joi.object({
             'string.min': 'Fragetitel darf nicht leer sein',
             'string.max': 'Fragetitel darf maximal 200 Zeichen lang sein'
         }),
-    type: Joi.string().valid('multiple-choice', 'true-false', 'text', 'sequence', 'slider').required(),
+    type: Joi.string().valid('multiple-choice', 'true-false', 'text', 'sequence', 'slider', 'word-cloud').required(),
     timer: Joi.number().integer().min(-1).max(3600).optional()
         .messages({
             'number.min': 'Timer muss -1 (unbegrenzt) oder eine positive Zahl sein',
@@ -25,6 +25,9 @@ module.exports.questionValidation = Joi.object({
         }),
     b64_image: Joi.string().max(10000000),
     answers: Joi.when('type', {
+        is: 'word-cloud',
+        then: Joi.array().length(0).required(),
+        otherwise: Joi.when('type', {
         is: 'slider',
         then: Joi.array().items(Joi.object({
             correctValue: Joi.number().required(),
@@ -104,6 +107,7 @@ module.exports.questionValidation = Joi.object({
             })).min(2).max(6)
             })
         })
+    })
     })
     })
 });

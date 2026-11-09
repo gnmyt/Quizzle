@@ -1,6 +1,15 @@
 const { evaluateSequenceAnswer, evaluateTextAnswer, evaluateChoiceAnswer, evaluateSliderAnswer } = require('./scoring');
+const {buildWordCloud} = require('./wordCloud');
+
+const buildWordCloudAnalytics = (question, answers, questionIndex) => ({
+    questionIndex, title: question.title, type: question.type,
+    ...buildWordCloud(answers), ungraded: true,
+    correctCount: 0, partialCount: 0, incorrectCount: 0, correctPercentage: 0,
+    difficulty: 'ungraded', needsReview: false
+});
 
 const classifyAnswer = (answer, question) => {
+    if (question.type === 'word-cloud') return 'ungraded';
     if (question.type === 'text') {
         return evaluateTextAnswer(answer, question.answers) ? 'correct' : 'incorrect';
     }
@@ -26,6 +35,10 @@ const generateQuestionAnalytics = (playerAnswers, questionHistory) => {
     return playerAnswers.map((questionAnswers, questionIndex) => {
         const totalResponses = Object.keys(questionAnswers).length;
         const question = questionHistory[questionIndex];
+
+        if (question?.type === 'word-cloud') {
+            return buildWordCloudAnalytics(question, Object.values(questionAnswers), questionIndex);
+        }
 
         if (!question) {
             return {
@@ -79,10 +92,12 @@ const generateStudentAnalytics = (players, playerAnswers, questionHistory) => {
         let correctAnswers = 0;
         let partialAnswers = 0;
         let incorrectAnswers = 0;
+        let gradedAnswered = 0;
 
         studentAnswers.forEach((answer, questionIndex) => {
             const question = questionHistory[questionIndex];
-            if (answer === undefined || !question) return;
+            if (answer === undefined || !question || question.type === 'word-cloud') return;
+            gradedAnswered++;
 
             const classification = classifyAnswer(answer, question);
             if (classification === 'correct') correctAnswers++;
@@ -101,10 +116,11 @@ const generateStudentAnalytics = (players, playerAnswers, questionHistory) => {
             partialAnswers,
             incorrectAnswers,
             totalAnswered,
-            accuracy: totalAnswered > 0
-                ? Math.round((correctAnswers / totalAnswered) * 100)
+            ungraded: questionHistory.length > 0 && questionHistory.every(question => question.type === 'word-cloud'),
+            accuracy: gradedAnswered > 0
+                ? Math.round((correctAnswers / gradedAnswered) * 100)
                 : 0,
-            needsAttention: correctAnswers < (totalAnswered * 0.6)
+            needsAttention: gradedAnswered > 0 && correctAnswers < (gradedAnswered * 0.6)
         };
     });
 };
@@ -116,6 +132,7 @@ const generateClassAnalytics = (studentAnalytics, questionAnalytics, totalPlayer
     return {
         totalStudents: totalPlayers,
         totalQuestions,
+        ungraded: questionAnalytics.length > 0 && questionAnalytics.every(question => question.ungraded),
         averageScore: totalPlayers > 0
             ? Math.round((totalPoints / totalPlayers) * 100) / 100
             : 0,
@@ -142,5 +159,6 @@ const generateAnalytics = ({ players, playerAnswers, questionHistory }) => {
 
 module.exports = {
     classifyAnswer,
+    buildWordCloudAnalytics,
     generateAnalytics
 };

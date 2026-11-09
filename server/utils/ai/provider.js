@@ -47,7 +47,7 @@ Rules:
 Respond with a JSON array where each element is a question object:
 {
   "title": "Question text here?",
-  "type": "multiple-choice|true-false|text|sequence|slider",
+  "type": "multiple-choice|true-false|text|sequence|slider|word-cloud",
   "imageQuery": "short English image search term",
   "answers": [...]
 }
@@ -63,6 +63,7 @@ For true-false answers: [{"type": "text", "content": "Wahr", "is_correct": true}
 For text answers: [{"content": "accepted answer"}, ...]
 For sequence answers: [{"content": "Item", "order": 1}, {"content": "Item", "order": 2}, ...]
 For slider answers: [{"correctValue": 1945, "min": 1912, "max": 1998, "step": 1, "answerMargin": "medium"}] (note: correctValue is off-center within [min, max], not in the middle)
+For word-cloud answers: []. This is an ungraded brainstorming prompt where each student submits one word or short phrase (up to 40 characters). Set "pointMultiplier": "none". Include this type only when brainstorming or reflection is requested; there are no correct answers.
 
 Generate between 5 and 15 questions depending on how broad the topic is. Use your judgment on the right amount.`;
     }

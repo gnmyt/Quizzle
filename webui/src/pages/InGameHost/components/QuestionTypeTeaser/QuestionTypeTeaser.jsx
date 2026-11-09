@@ -1,6 +1,7 @@
 import {motion} from "framer-motion";
 import {QUESTION_TYPES} from "@/common/constants/QuestionTypes.js";
 import "./styles.sass";
+import WordCloud from '@/common/components/WordCloud';
 
 const MC_TILES = [
     {color: "#E53B3B", shape: "triangle"},
@@ -178,6 +179,7 @@ const SliderTeaser = () => (
 );
 
 const TEASERS = {
+    [QUESTION_TYPES.WORD_CLOUD]: () => <WordCloud words={[{text: 'Wortwolke', count: 3}, {text: 'Eure Ideen', count: 1}]} totalResponses={4}/>,
     [QUESTION_TYPES.MULTIPLE_CHOICE]: MultipleChoiceTeaser,
     [QUESTION_TYPES.TRUE_FALSE]: TrueFalseTeaser,
     [QUESTION_TYPES.TEXT]: TextTeaser,

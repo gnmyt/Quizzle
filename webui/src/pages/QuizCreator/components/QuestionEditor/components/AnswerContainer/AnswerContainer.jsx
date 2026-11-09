@@ -5,6 +5,7 @@ import {TextAnswers} from "./components/TextAnswers";
 import SequenceAnswers from "./components/SequenceAnswers";
 import SliderAnswers from "./components/SliderAnswers";
 import {QUESTION_TYPES, DEFAULT_QUESTION_TYPE} from "@/common/constants/QuestionTypes.js";
+import WordCloud from '@/common/components/WordCloud';
 
 export const AnswerContainer = ({onChange, question}) => {
 
@@ -28,6 +29,16 @@ export const AnswerContainer = ({onChange, question}) => {
     }
 
     const questionType = question.type || DEFAULT_QUESTION_TYPE;
+
+    if (questionType === QUESTION_TYPES.WORD_CLOUD) {
+        return (
+            <div className="answer-container full-layout">
+                <p>Jeder Spieler sendet einen Begriff oder eine kurze Wortgruppe mit bis zu 40 Zeichen.
+                    Häufige Begriffe erscheinen größer, ähnliche Schreibweisen stehen nebeneinander. Diese Frage gibt keine Punkte.</p>
+                <WordCloud words={[{text: 'Ideen', count: 4}, {text: 'Kreativität', count: 2}, {text: 'Gemeinsam', count: 1}]} totalResponses={7}/>
+            </div>
+        );
+    }
 
     if (questionType === QUESTION_TYPES.TRUE_FALSE) {
         return (

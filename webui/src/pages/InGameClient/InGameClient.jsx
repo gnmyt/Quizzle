@@ -13,7 +13,8 @@ import SliderClient from "./components/SliderClient";
 import ClientAnswerReview from "./components/ClientAnswerReview";
 import {jsonRequest, postRequest} from "@/common/utils/RequestUtil.js";
 import {generateUuid} from "@/common/utils/UuidUtil.js";
-import {QUESTION_TYPES, SLIDER_MARGIN_CONFIG} from "@/common/constants/QuestionTypes.js";
+import {QUESTION_TYPES, SLIDER_MARGIN_CONFIG, WORD_CLOUD_MAX_LENGTH} from "@/common/constants/QuestionTypes.js";
+import WordCloud from '@/common/components/WordCloud';
 import {useSoundManager} from "@/common/utils/SoundManager.js";
 import toast from "react-hot-toast";
 
@@ -43,6 +44,7 @@ export const InGameClient = () => {
     const [lastQuestionType, setLastQuestionType] = useState(null);
     const [userSubmittedAnswer, setUserSubmittedAnswer] = useState(null);
     const [sliderAnswerData, setSliderAnswerData] = useState(null);
+    const [wordCloud, setWordCloud] = useState(null);
     const [isConnected, setIsConnected] = useState(socket.connected);
     const [isReconnecting, setIsReconnecting] = useState(false);
     const [answersReady, setAnswersReady] = useState(false);
@@ -82,6 +84,7 @@ export const InGameClient = () => {
         }
 
         const onQuestion = (question) => {
+            setWordCloud(null);
             setAnswers([]);
             setAnswerLabels([]);
             setSliderAnswerData(null);
@@ -122,7 +125,11 @@ export const InGameClient = () => {
         }
 
         const onAnswer = (answer) => {
-            if (answer?.correctValue !== undefined) {
+            if (answer?.type === QUESTION_TYPES.WORD_CLOUD) {
+                setWordCloud(answer);
+                setAnswers([]);
+                setSliderAnswerData(null);
+            } else if (answer?.correctValue !== undefined) {
                 setSliderAnswerData(answer);
                 setAnswers([]);
                 setAnswerLabels([]);
@@ -299,20 +306,8 @@ export const InGameClient = () => {
                 character: practiceUserData?.character || 'wizard'
             });
 
-            if (response.isLastQuestion) {
-                setShowingPracticeResult(true);
-                setPracticeQuestionResult({
-                    result: response.result,
-                    isLastQuestion: true,
-                    finalResults: response.finalResults
-                });
-            } else {
-                setPracticeQuestionResult({
-                    result: response.result,
-                    isLastQuestion: false
-                });
-                setShowingPracticeResult(true);
-            }
+            setPracticeQuestionResult(response);
+            setShowingPracticeResult(true);
         } catch (error) {
             console.error('Error submitting practice answer:', error);
             toast.error('Fehler beim Senden der Antwort.');
@@ -381,6 +376,15 @@ export const InGameClient = () => {
 
     const renderQuestionTypeContent = (question) => {
         switch (question.type) {
+            case QUESTION_TYPES.WORD_CLOUD:
+                return (
+                    <div className="ingame-content text-layout">
+                        <TextInputClient key={isPracticeMode ? currentQuestionIndex : question.title}
+                                         onSubmit={submitAnswer} maxLength={WORD_CLOUD_MAX_LENGTH}
+                                         placeholder="Ein Begriff oder eine kurze Wortgruppe..."/>
+                    </div>
+                );
+
             case QUESTION_TYPES.TRUE_FALSE:
                 return (
                     <div className="ingame-content true-false-layout">
@@ -488,7 +492,7 @@ export const InGameClient = () => {
         const questionForSubmit = getCurrentQuestion();
         const typeForSubmit = questionForSubmit?.type;
 
-        if (typeForSubmit === QUESTION_TYPES.TEXT) {
+        if (typeForSubmit === QUESTION_TYPES.TEXT || typeForSubmit === QUESTION_TYPES.WORD_CLOUD) {
             const textValue = Array.isArray(answers) ? (answers[0] || '') : answers;
             setUserSubmittedAnswer(textValue);
             setSelection([textValue]);
@@ -628,7 +632,7 @@ export const InGameClient = () => {
         if (isPracticeMode) {
             return showingPracticeResult;
         }
-        return currentQuestion === null && (answers.length > 0 || sliderAnswerData !== null);
+        return currentQuestion === null && (answers.length > 0 || sliderAnswerData !== null || wordCloud !== null);
     };
 
     return (
@@ -679,16 +683,30 @@ export const InGameClient = () => {
                 </div>
             )}
 
-            {!isPracticeMode && currentQuestion === null && answers.length === 0 && sliderAnswerData === null && (
-                <div className="loading-container">
-                    <div className="lds-hourglass"></div>
+            {!isPracticeMode && currentQuestion === null && answers.length === 0 && sliderAnswerData === null && wordCloud === null && (
+                <div className={`loading-container${lastQuestionType === QUESTION_TYPES.WORD_CLOUD && userSubmittedAnswer !== null ? ' word-cloud-waiting' : ''}`}>
+                    {lastQuestionType === QUESTION_TYPES.WORD_CLOUD && userSubmittedAnswer !== null
+                        ? <><h2>Dein Begriff wurde gesendet.</h2><p>{userSubmittedAnswer}</p><p>Die gemeinsame Wortwolke erscheint gleich.</p></>
+                        : <div className="lds-hourglass"></div>}
                 </div>
             )}
 
             {shouldShowAnswers() && (
-                <div className="ingame-answers">
+                <div className={`ingame-answers${wordCloud !== null || practiceQuestionResult?.result === 'ungraded' ? ' word-cloud-results' : ''}`}>
                     {isPracticeMode ? (
-                        practiceQuestionResult?.isLastQuestion ? (
+                        practiceQuestionResult?.result === 'ungraded' ? (
+                            <>
+                                <h2>Danke für deinen Beitrag!</h2>
+                                <WordCloud {...practiceQuestionResult.wordCloud}/>
+                                {practiceQuestionResult.isLastQuestion && <h2>Quiz abgeschlossen!</h2>}
+                                {practiceQuestionResult.isLastQuestion && practiceQuestionResult.finalResults.total > 0 && (
+                                    <p>{practiceQuestionResult.finalResults.score} / {practiceQuestionResult.finalResults.total} Punkte</p>
+                                )}
+                                <button className="practice-next-button" onClick={practiceQuestionResult.isLastQuestion ? () => navigate('/') : nextPracticeQuestion}>
+                                    {practiceQuestionResult.isLastQuestion ? 'Zurück zur Startseite' : 'Nächste Frage'}
+                                </button>
+                            </>
+                        ) : practiceQuestionResult?.isLastQuestion ? (
                             <>
                                 <FontAwesomeIcon icon={faCheck} className="ingame-icon-correct"/>
                                 <h2>Quiz abgeschlossen! 🎉</h2>
@@ -696,7 +714,7 @@ export const InGameClient = () => {
                                     <span className="score">{practiceQuestionResult.finalResults.score}</span>
                                     <span className="total">/ {practiceQuestionResult.finalResults.total}</span>
                                     <div className="percentage">
-                                        {Math.round((practiceQuestionResult.finalResults.score / practiceQuestionResult.finalResults.total) * 100)}%
+                                        {practiceQuestionResult.finalResults.total > 0 ? `${Math.round((practiceQuestionResult.finalResults.score / practiceQuestionResult.finalResults.total) * 100)}%` : 'Ohne Bewertung'}
                                     </div>
                                 </div>
                                 <button className="practice-next-button" onClick={() => navigate('/')}>
@@ -730,6 +748,8 @@ export const InGameClient = () => {
                                 </button>
                             </>
                         )
+                    ) : wordCloud !== null ? (
+                        <><h2>Unsere Wortwolke</h2><WordCloud {...wordCloud}/></>
                     ) : (
                         (() => {
                             const status = getCorrectStatus(selection, answers);

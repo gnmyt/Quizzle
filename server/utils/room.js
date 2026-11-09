@@ -1,4 +1,5 @@
 const { resolveQuestionType } = require('./quiz');
+const {WORD_CLOUD_MAX_LENGTH, buildWordCloud} = require('./wordCloud');
 
 const getActivePlayers = (room, io) => {
     const activePlayers = {};
@@ -15,7 +16,9 @@ const buildQuestionPayload = (question, room) => {
         title: question.title
     };
 
-    if (question.type === 'text') {
+    if (question.type === 'word-cloud') {
+        questionData.maxLength = WORD_CLOUD_MAX_LENGTH;
+    } else if (question.type === 'text') {
         questionData.maxLength = 200;
     } else if (question.type === 'sequence') {
         const historyEntry = room.questionHistory[room.questionHistory.length - 1];
@@ -37,6 +40,10 @@ const buildQuestionPayload = (question, room) => {
 };
 
 const generateAnswerData = (currentQuestion, currentAnswers, room) => {
+    if (currentQuestion.type === 'word-cloud') {
+        return {type: 'word-cloud', ...buildWordCloud(Object.values(currentAnswers))};
+    }
+
     if (currentQuestion.type === 'text') {
         return { answers: currentQuestion.answers.map(a => a.content) };
     }
@@ -104,7 +111,7 @@ const broadcastAnswerResults = (io, roomCode, answerData, room) => {
 
         io.to(player).emit("POINTS_RECEIVED", {
             points: p.points,
-            pointsEarned: p.lastRoundPoints || 0,
+            pointsEarned: room.currentQuestion.type === 'word-cloud' ? 0 : p.lastRoundPoints || 0,
             rank,
             totalPlayers: sorted.length,
             streak: p.streak || 0,

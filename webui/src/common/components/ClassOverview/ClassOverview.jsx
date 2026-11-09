@@ -16,7 +16,7 @@ const ClassOverview = ({analyticsData, isLiveQuiz}) => {
     const stats = [
         {label: 'Teilnehmer', value: classAnalytics.totalStudents},
         {label: 'Fragen', value: classAnalytics.totalQuestions},
-        {label: 'Ø Genauigkeit', value: `${classAnalytics.averageAccuracy}%`, accent: classAnalytics.averageAccuracy >= 80 ? 'green' : classAnalytics.averageAccuracy >= 60 ? 'orange' : 'red'},
+        classAnalytics.ungraded ? {label: 'Bewertung', value: 'Keine'} : {label: 'Ø Genauigkeit', value: `${classAnalytics.averageAccuracy}%`, accent: classAnalytics.averageAccuracy >= 80 ? 'green' : classAnalytics.averageAccuracy >= 60 ? 'orange' : 'red'},
         ...(isLiveQuiz ? [{label: 'Ø Punkte', value: classAnalytics.averageScore}] : [])
     ];
 
@@ -31,7 +31,7 @@ const ClassOverview = ({analyticsData, isLiveQuiz}) => {
                 ))}
             </div>
 
-            <div className="overview-card">
+            {!classAnalytics.ungraded && <div className="overview-card">
                 <h3>Schwierigkeitsverteilung</h3>
                 <div className="difficulty-bar">
                     {easy > 0 && <div className="difficulty-seg easy" style={{flex: easy}} title={`${easy} einfach`}/>}
@@ -43,7 +43,7 @@ const ClassOverview = ({analyticsData, isLiveQuiz}) => {
                     <span><span className="dot medium"/>Mittel · {medium}</span>
                     <span><span className="dot hard"/>Schwer · {hard}</span>
                 </div>
-            </div>
+            </div>}
         </div>
     );
 };

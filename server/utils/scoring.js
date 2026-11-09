@@ -119,6 +119,8 @@ const calculatePoints = (correctAnswers, startTime, pointMultiplier) => {
 };
 
 const calculateLiveScore = (question, playerAnswer) => {
+    if (question.type === 'word-cloud') return 0;
+
     if (question.type === 'slider') {
         return evaluateSliderAnswer(playerAnswer, question).score;
     }

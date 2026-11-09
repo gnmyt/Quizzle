@@ -11,6 +11,10 @@ import './styles.sass';
 const RecommendationsTab = ({analyticsData}) => {
     const {classAnalytics, questionAnalytics, studentAnalytics} = analyticsData;
 
+    if (classAnalytics.ungraded) {
+        return <p>Wortwolken sammeln Ideen und werden nicht bewertet.</p>;
+    }
+
     const recommendations = [];
 
     const strugglingStudents = studentAnalytics.filter(s => s.needsAttention);

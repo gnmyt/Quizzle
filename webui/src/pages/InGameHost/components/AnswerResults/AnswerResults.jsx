@@ -7,6 +7,7 @@ import {useEffect} from "react";
 import {QUESTION_TYPES} from "@/common/constants/QuestionTypes.js";
 import {getAnswerColor, getAnswerGradient} from "@/common/utils/AnswerColorUtil.js";
 import AnswerShape from "@/common/components/AnswerShape";
+import WordCloud from '@/common/components/WordCloud';
 
 export const AnswerResults = ({question, answerData, showScoreboard}) => {
     const soundManager = useSoundManager();
@@ -32,6 +33,18 @@ export const AnswerResults = ({question, answerData, showScoreboard}) => {
         } else {
             return "1em";
         }
+    }
+
+    if (question.type === QUESTION_TYPES.WORD_CLOUD) {
+        return (
+            <div className="answer-results">
+                <div className="top-area">
+                    <Button onClick={showScoreboard} text="Scoreboard anzeigen" padding="1rem 1.5rem" icon={faForward}/>
+                </div>
+                <h1>{question.title}</h1>
+                <WordCloud {...answerData}/>
+            </div>
+        );
     }
 
     if (question.type === QUESTION_TYPES.SLIDER) {

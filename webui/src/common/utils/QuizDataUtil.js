@@ -18,7 +18,10 @@ export const prepareQuizData = async (questions, title, includeImageData = false
             delete cleanQuestion.imageId;
         }
 
-        if (cleanQuestion.type === QUESTION_TYPES.TEXT) {
+        if (cleanQuestion.type === QUESTION_TYPES.WORD_CLOUD) {
+            cleanQuestion.answers = [];
+            cleanQuestion.pointMultiplier = 'none';
+        } else if (cleanQuestion.type === QUESTION_TYPES.TEXT) {
             cleanQuestion.answers = rest.answers.map(a => ({content: a.content.trim()}));
         } else if (cleanQuestion.type === QUESTION_TYPES.SLIDER) {
             cleanQuestion.answers = rest.answers.map(a => ({

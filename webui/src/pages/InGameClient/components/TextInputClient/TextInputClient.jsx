@@ -3,7 +3,7 @@ import {useState} from "react";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import {faPaperPlane} from "@fortawesome/free-solid-svg-icons";
 
-export const TextInputClient = ({onSubmit, maxLength = 200}) => {
+export const TextInputClient = ({onSubmit, maxLength = 200, placeholder = 'Geben Sie Ihre Antwort ein...'}) => {
     const [textAnswer, setTextAnswer] = useState("");
 
     const handleSubmit = () => {
@@ -26,7 +26,7 @@ export const TextInputClient = ({onSubmit, maxLength = 200}) => {
                     value={textAnswer}
                     onChange={(e) => setTextAnswer(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    placeholder="Geben Sie Ihre Antwort ein..."
+                    placeholder={placeholder}
                     maxLength={maxLength}
                     className="text-answer-input"
                     aria-label="Antwort eingeben"

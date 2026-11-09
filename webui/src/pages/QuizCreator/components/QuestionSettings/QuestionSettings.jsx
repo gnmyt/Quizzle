@@ -166,7 +166,9 @@ export const QuestionSettings = ({question, onChange, onCommit, defaultTimer = 6
                     <span>Punkteverteilung</span>
                 </div>
 
-                <SelectBox value={selectedPointMultiplier} onChange={handlePointMultiplierChange} options={pointMultiplierOptions} placeholder="Punkteverteilung auswählen..."/>
+                {question.type === QUESTION_TYPES.WORD_CLOUD
+                    ? <p>Keine Punkte – alle Ideen sind willkommen.</p>
+                    : <SelectBox value={selectedPointMultiplier} onChange={handlePointMultiplierChange} options={pointMultiplierOptions} placeholder="Punkteverteilung auswählen..."/>}
             </div>
 
             {isSliderType && (

@@ -7,7 +7,7 @@ import AnswerContainer from "@/pages/QuizCreator/components/QuestionEditor/compo
 import {motion, AnimatePresence} from "framer-motion";
 import {useState, useRef, useEffect} from "react";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
-import {QUESTION_TYPE_CONFIG, getQuestionTypeIcon, getQuestionTypeName, getDefaultAnswersForType, DEFAULT_QUESTION_TYPE} from "@/common/constants/QuestionTypes.js";
+import {QUESTION_TYPES, QUESTION_TYPE_CONFIG, getQuestionTypeIcon, getQuestionTypeName, getDefaultAnswersForType, DEFAULT_QUESTION_TYPE} from "@/common/constants/QuestionTypes.js";
 
 export const QuestionEditor = ({question, onChange, onCommit, deleteQuestion, duplicateQuestion}) => {
     const [showTypeSelector, setShowTypeSelector] = useState(false);
@@ -17,10 +17,16 @@ export const QuestionEditor = ({question, onChange, onCommit, deleteQuestion, du
     const updateType = (type) => {
         const commit = onCommit || onChange;
         const newAnswers = getDefaultAnswersForType(type);
+        if (type === QUESTION_TYPES.WORD_CLOUD) {
+            commit({...question, type, answers: [], pointMultiplier: 'none'});
+            setShowTypeSelector(false);
+            return;
+        }
+        const updatedQuestion = question.type === QUESTION_TYPES.WORD_CLOUD ? {...question, pointMultiplier: undefined} : question;
         if (newAnswers.length === 0) {
-            commit({...question, type: type});
+            commit({...updatedQuestion, type: type});
         } else {
-            commit({...question, type: type, answers: newAnswers});
+            commit({...updatedQuestion, type: type, answers: newAnswers});
         }
         setShowTypeSelector(false);
     };

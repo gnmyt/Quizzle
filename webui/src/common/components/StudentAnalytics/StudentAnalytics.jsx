@@ -29,18 +29,18 @@ const StudentAnalytics = ({analyticsData, isLiveQuiz}) => {
                             <div className="sa-character">{getCharacterEmoji(student.character)}</div>
                             <div className="sa-name">{student.name}</div>
 
-                            <div className="sa-bar-wrap">
+                            {student.ungraded ? <span>Ohne Bewertung</span> : <div className="sa-bar-wrap">
                                 <div className="sa-bar">
                                     <div className={`sa-bar-fill ${level}`} style={{width: `${student.accuracy}%`}}/>
                                 </div>
                                 <div className={`sa-accuracy ${level}`}>{student.accuracy}%</div>
-                            </div>
+                            </div>}
 
-                            <div className="sa-counts">
+                            {!student.ungraded && <div className="sa-counts">
                                 <span className="correct">{student.correctAnswers}</span>
                                 <span className="sep">/</span>
                                 <span className="incorrect">{student.incorrectAnswers}</span>
-                            </div>
+                            </div>}
 
                             {isLiveQuiz && (
                                 <div className="sa-points">{student.totalPoints?.toLocaleString?.() ?? student.totalPoints}</div>

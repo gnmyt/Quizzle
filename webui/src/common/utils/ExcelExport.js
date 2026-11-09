@@ -35,7 +35,7 @@ const exportAnalyticsToExcel = (analyticsData, quizData = null, isLiveQuiz = fal
         ['Gesamte Schüler', classAnalytics.totalStudents],
         ['Gesamte Fragen', classAnalytics.totalQuestions],
         ['Durchschnittliche Punktzahl', classAnalytics.averageScore],
-        ['Durchschnittliche Genauigkeit (%)', classAnalytics.averageAccuracy],
+        ['Durchschnittliche Genauigkeit (%)', classAnalytics.ungraded ? 'Ohne Bewertung' : classAnalytics.averageAccuracy],
         ['Fragen die Überprüfung benötigen', classAnalytics.questionsNeedingReview],
         ['Schüler die Aufmerksamkeit benötigen', classAnalytics.studentsNeedingAttention],
         ['Teilnahmerate (%)', classAnalytics.participationRate || 100]
@@ -71,7 +71,7 @@ const exportAnalyticsToExcel = (analyticsData, quizData = null, isLiveQuiz = fal
     const studentData = [studentHeaders];
 
     studentAnalytics.forEach(student => {
-        const performanceLevel = student.accuracy >= 80 ? 'Ausgezeichnet' :
+        const performanceLevel = student.ungraded ? 'Ohne Bewertung' : student.accuracy >= 80 ? 'Ausgezeichnet' :
             student.accuracy >= 60 ? 'Gut' : 'Verbesserung nötig';
 
         const row = [
@@ -82,7 +82,7 @@ const exportAnalyticsToExcel = (analyticsData, quizData = null, isLiveQuiz = fal
             student.partialAnswers || 0,
             student.incorrectAnswers,
             student.totalAnswered,
-            student.accuracy,
+            student.ungraded ? '' : student.accuracy,
             student.needsAttention ? 'Ja' : 'Nein',
             performanceLevel
         ];
@@ -116,17 +116,17 @@ const exportAnalyticsToExcel = (analyticsData, quizData = null, isLiveQuiz = fal
     questionAnalytics.forEach(question => {
         const difficultyGerman = question.difficulty === 'easy' ? 'Einfach' :
             question.difficulty === 'medium' ? 'Mittel' :
-                question.difficulty === 'hard' ? 'Schwer' : 'Unbekannt';
+                question.difficulty === 'hard' ? 'Schwer' : question.ungraded ? 'Ohne Bewertung' : 'Unbekannt';
 
         questionData.push([
             question.questionIndex + 1,
             question.title,
             question.type,
             question.totalResponses,
-            question.correctCount,
-            question.partialCount || 0,
-            question.incorrectCount,
-            question.correctPercentage,
+            question.ungraded ? '' : question.correctCount,
+            question.ungraded ? '' : question.partialCount || 0,
+            question.ungraded ? '' : question.incorrectCount,
+            question.ungraded ? '' : question.correctPercentage,
             difficultyGerman,
             question.needsReview ? 'Ja' : 'Nein'
         ]);
@@ -135,6 +135,16 @@ const exportAnalyticsToExcel = (analyticsData, quizData = null, isLiveQuiz = fal
     const questionSheet = XLSX.utils.aoa_to_sheet(questionData);
     autoSizeColumns(questionSheet, questionData);
     XLSX.utils.book_append_sheet(workbook, questionSheet, 'Fragen Analytics');
+
+    const cloudData = [['Frage Nr.', 'Frage Titel', 'Begriff', 'Anzahl']];
+    questionAnalytics.filter(question => question.type === 'word-cloud').forEach(question => {
+        (question.words || []).forEach(word => cloudData.push([question.questionIndex + 1, question.title, word.text, word.count]));
+    });
+    if (cloudData.length > 1) {
+        const cloudSheet = XLSX.utils.aoa_to_sheet(cloudData);
+        autoSizeColumns(cloudSheet, cloudData);
+        XLSX.utils.book_append_sheet(workbook, cloudSheet, 'Wortwolken');
+    }
 
     const summaryData = [
         ['Zusammenfassung Statistiken'],
@@ -145,9 +155,9 @@ const exportAnalyticsToExcel = (analyticsData, quizData = null, isLiveQuiz = fal
         ['Schwere Fragen', questionAnalytics.filter(q => q.difficulty === 'hard').length],
         [''],
         ['Schüler Leistungsverteilung'],
-        ['Ausgezeichnet (≥80%)', studentAnalytics.filter(s => s.accuracy >= 80).length],
-        ['Gut (60-79%)', studentAnalytics.filter(s => s.accuracy >= 60 && s.accuracy < 80).length],
-        ['Verbesserung nötig (<60%)', studentAnalytics.filter(s => s.accuracy < 60).length],
+        ['Ausgezeichnet (≥80%)', studentAnalytics.filter(s => !s.ungraded && s.accuracy >= 80).length],
+        ['Gut (60-79%)', studentAnalytics.filter(s => !s.ungraded && s.accuracy >= 60 && s.accuracy < 80).length],
+        ['Verbesserung nötig (<60%)', studentAnalytics.filter(s => !s.ungraded && s.accuracy < 60).length],
         [''],
         ['Top 5 Schüler'],
         ['Rang', 'Name', 'Punktzahl', 'Genauigkeit (%)']
@@ -162,7 +172,7 @@ const exportAnalyticsToExcel = (analyticsData, quizData = null, isLiveQuiz = fal
             index + 1,
             student.name,
             student.totalPoints,
-            student.accuracy
+            student.ungraded ? '' : student.accuracy
         ]);
     });
 

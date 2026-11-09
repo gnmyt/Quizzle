@@ -22,6 +22,7 @@ Ihr könnt Live-Quizze im Klassenraum durchführen oder Übungsquizze zur Vorber
 - **Übungsquizze** - Für die selbstständige Vorbereitung
 - **Self-hosted** - Läuft auf eurem Server, die Daten bleiben bei euch
 - **Kostenlos** - Open Source ohne Abo-Modell
+- **Wortwolken** - Begriffe live sammeln, häufige Antworten größer anzeigen und ähnliche Schreibweisen gruppieren, ohne Punkte
 - **Mobil nutzbar** - Funktioniert auf Smartphone, Tablet und Desktop
 
 ## Schnellstart mit Docker

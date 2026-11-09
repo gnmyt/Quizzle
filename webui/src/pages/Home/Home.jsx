@@ -5,7 +5,7 @@ import {motion} from "framer-motion";
 import Button from "@/common/components/Button";
 import {faShareFromSquare, faSwatchbook, faChartBar, faGear, faRightToBracket, faRightFromBracket} from "@fortawesome/free-solid-svg-icons";
 import {useNavigate, useOutletContext} from "react-router-dom";
-import {socket, ensureSocketConnection, joinRoomWithSession, addReconnectionCallback, removeReconnectionCallback} from "@/common/utils/SocketUtil.js";
+import {socket, ensureSocketConnection, joinRoomWithSession} from "@/common/utils/SocketUtil.js";
 import CodeInput from "@/pages/Home/components/CodeInput";
 import CharacterSelection from "@/pages/Home/components/CharacterSelection";
 import ResultsDialog from "@/pages/Home/components/ResultsDialog";
@@ -170,33 +170,6 @@ export const Home = () => {
         if (code && code !== null) {
             checkRoom(code.toString());
         }
-    }, []);
-
-    useEffect(() => {
-        const handleConnect = () => {
-        };
-
-        const handleDisconnect = () => {
-            console.log('Socket disconnected in Home');
-        };
-
-        const handleReconnection = (success, error) => {
-            if (success) {
-                console.log('Successfully reconnected from Home page');
-            } else if (error) {
-                console.warn('Reconnection failed in Home page:', error);
-            }
-        };
-
-        socket.on('connect', handleConnect);
-        socket.on('disconnect', handleDisconnect);
-        addReconnectionCallback(handleReconnection);
-
-        return () => {
-            socket.off('connect', handleConnect);
-            socket.off('disconnect', handleDisconnect);
-            removeReconnectionCallback(handleReconnection);
-        };
     }, []);
 
     return (

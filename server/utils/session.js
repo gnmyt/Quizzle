@@ -1,5 +1,4 @@
 const crypto = require('crypto');
-const socket = require('../socket');
 
 const sessions = new Map();
 const sessionsByRoom = new Map();
@@ -92,35 +91,6 @@ const cleanupRoomSessions = (roomCode) => {
     }
 };
 
-const cleanupExpiredSessions = () => {
-    const now = Date.now();
-    const sessionExpirationTime = 60 * 60 * 1000;
-    const disconnectedExpirationTime = 5 * 60 * 1000;
-    
-    const expiredSessions = [];
-    sessions.forEach((session, token) => {
-        let shouldExpire = false;
-        
-        if (session.status === 'disconnected') {
-            if (session.disconnectedAt && (now - session.disconnectedAt > disconnectedExpirationTime)) {
-                shouldExpire = true;
-            }
-        } else {
-            if (now - session.createdAt > sessionExpirationTime) {
-                shouldExpire = true;
-            }
-        }
-        
-        if (shouldExpire) {
-            expiredSessions.push({token, session});
-        }
-    });
-
-    expiredSessions.forEach(({token}) => {
-        invalidateSession(token);
-    });
-};
-
 const getSessionBySocketId = (socketId) => {
     for (const [token, session] of sessions) {
         if (session.socketId === socketId && session.isActive) {
@@ -141,8 +111,8 @@ const findSessionForPlayer = (roomCode, playerName) => {
     return null;
 };
 
-setInterval(cleanupExpiredSessions, 5 * 60 * 1000);
-
+// Sessions live as long as their room. Ending the game or removing a player
+// invalidates them, so closing a browser does not forfeit a student's place.
 const getAllSessionsForRoom = (roomCode) => {
     const roomSessions = [];
     if (sessionsByRoom.has(roomCode)) {
@@ -165,6 +135,5 @@ module.exports = {
     cleanupRoomSessions,
     getSessionBySocketId,
     findSessionForPlayer,
-    cleanupExpiredSessions,
     getAllSessionsForRoom
 };

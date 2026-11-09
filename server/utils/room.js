@@ -90,6 +90,34 @@ const generateAnswerData = (currentQuestion, currentAnswers, room) => {
     };
 };
 
+const buildPlayerGameState = (room, playerId, playerData) => {
+    const player = room.players[playerId];
+    const question = room.state === 'ingame' ? room.currentQuestion : null;
+    const currentAnswers = room.playerAnswers[room.playerAnswers.length - 1] || {};
+    const sortedPlayers = Object.entries(room.players)
+        .sort(([, a], [, b]) => b.points - a.points);
+    const rank = sortedPlayers.findIndex(([id]) => id === playerId) + 1;
+    const ahead = rank > 1 ? sortedPlayers[rank - 2][1] : null;
+
+    return {
+        roomState: room.state,
+        roomCode: room.code,
+        playerData,
+        currentQuestion: question ? buildQuestionPayload(question, room) : null,
+        questionCompleted: !!question?.isCompleted,
+        answersReady: !!question?.answersReady,
+        hasAnswered: Object.prototype.hasOwnProperty.call(currentAnswers, playerId),
+        submittedAnswer: currentAnswers[playerId],
+        answerData: question?.isCompleted ? generateAnswerData(question, currentAnswers, room) : null,
+        playerPoints: player.points,
+        pointsEarned: question?.isCompleted ? player.lastRoundPoints || 0 : 0,
+        streak: player.streak || 0,
+        rank,
+        totalPlayers: sortedPlayers.length,
+        ahead: ahead ? {name: ahead.name, gap: ahead.points - player.points} : null
+    };
+};
+
 const broadcastAnswerResults = (io, roomCode, answerData, room) => {
     io.to(roomCode.toString()).emit('ANSWER_RECEIVED', answerData);
 
@@ -116,6 +144,7 @@ const broadcastAnswerResults = (io, roomCode, answerData, room) => {
 module.exports = {
     getActivePlayers,
     buildQuestionPayload,
+    buildPlayerGameState,
     generateAnswerData,
     broadcastAnswerResults
 };

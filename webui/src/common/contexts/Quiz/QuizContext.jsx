@@ -1,7 +1,7 @@
 import {createContext, useEffect, useMemo, useState} from "react";
 import {request} from "@/common/utils/RequestUtil.js";
 import pako from "pako";
-import {socket, getSessionData, getSessionState} from "@/common/utils/SocketUtil.js";
+import {socket, addReconnectionCallback, removeReconnectionCallback} from "@/common/utils/SocketUtil.js";
 import {soundManager} from "@/common/utils/SoundManager.js";
 import {QuizValidationUtil} from "@/common/utils/QuizValidationUtil.js";
 import {DEFAULT_QUIZ_SETTINGS} from "@/common/constants/QuizSettings.js";
@@ -26,21 +26,16 @@ export const QuizProvider = ({children}) => {
     };
 
     useEffect(() => {
-        const sessionData = getSessionData();
-        if (sessionData && sessionData.sessionId && !roomCode && !username) {
-            console.log('Restoring session data in QuizContext', sessionData);
+        const handleRestored = (success, error, gameState) => {
+            if (success && gameState?.playerData) {
+                setRoomCode(gameState.roomCode);
+                setUsername(gameState.playerData.name);
+            }
+        };
 
-            getSessionState().then(sessionState => {
-                if (sessionState && sessionState.playerData) {
-                    setRoomCode(sessionState.roomCode);
-                    setUsername(sessionState.playerData.name);
-                    console.log('Restored session state:', sessionState);
-                }
-            }).catch(error => {
-                console.warn('Failed to restore session state:', error);
-            });
-        }
-    }, [roomCode, username]);
+        addReconnectionCallback(handleRestored);
+        return () => removeReconnectionCallback(handleRestored);
+    }, []);
 
     useEffect(() => {
         soundManager.setSoundEnabled(soundEnabled);

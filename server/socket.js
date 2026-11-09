@@ -18,6 +18,7 @@ const {generateAnalytics} = require("./utils/analytics");
 const {
     getActivePlayers,
     buildQuestionPayload,
+    buildPlayerGameState,
     generateAnswerData,
     broadcastAnswerResults
 } = require("./utils/room");
@@ -72,8 +73,10 @@ const emitActivePlayerCount = (io, room) => {
 const handleAllAnswered = (io, roomCode, room) => {
     const currentAnswers = room.playerAnswers[room.playerAnswers.length - 1];
     const activePlayers = getActivePlayers(room, io);
+    const activePlayerIds = Object.keys(activePlayers);
 
-    if (Object.keys(currentAnswers).length !== Object.keys(activePlayers).length) return false;
+    if (activePlayerIds.length === 0 || !activePlayerIds.every(id =>
+        Object.prototype.hasOwnProperty.call(currentAnswers, id))) return false;
 
     const answerData = generateAnswerData(room.currentQuestion, currentAnswers, room);
     room.currentQuestion.isCompleted = true;
@@ -285,7 +288,7 @@ module.exports = (io, socket) => {
     socket.on('RECONNECT_WITH_SESSION', (data, callback) => {
         if (!validateCallback(callback)) return;
         
-        const { sessionId } = data;
+        const sessionId = data?.sessionId;
         
         if (!sessionId) {
             return callback({success: false, error: 'Keine Session ID', sessionInvalid: true});
@@ -302,30 +305,22 @@ module.exports = (io, socket) => {
             return callback({success: false, error: 'Raum nicht mehr verfügbar', sessionInvalid: true});
         }
 
+        const existingPlayerId = session.socketId;
+        const existingPlayerData = room.players[existingPlayerId];
+        if (!existingPlayerData) {
+            invalidateSession(sessionId);
+            return callback({success: false, error: 'Spieler nicht mehr im Raum', sessionInvalid: true});
+        }
+
         if (updateSessionSocket(sessionId, socket.id)) {
             socket.join(session.roomCode.toString());
             currentRoomCode = session.roomCode;
-            
-            let existingPlayerId = null;
-            let existingPlayerData = null;
-            
-            for (const [playerId, player] of Object.entries(room.players)) {
-                if (player.name === session.playerData.name) {
-                    existingPlayerId = playerId;
-                    existingPlayerData = player;
-                    break;
-                }
-            }
 
-            if (existingPlayerId && existingPlayerData) {
+            // Socket.IO can recover the same ID. Only migrate answers when the
+            // connection actually changed, otherwise they would be deleted.
+            if (existingPlayerId !== socket.id) {
                 delete room.players[existingPlayerId];
-                room.players[socket.id] = {
-                    name: existingPlayerData.name,
-                    character: existingPlayerData.character,
-                    points: existingPlayerData.points,
-                    streak: existingPlayerData.streak || 0,
-                    lastRoundPoints: existingPlayerData.lastRoundPoints || 0
-                };
+                room.players[socket.id] = existingPlayerData;
 
                 if (room.playerAnswers?.length > 0) {
                     room.playerAnswers.forEach(questionAnswers => {
@@ -342,33 +337,13 @@ module.exports = (io, socket) => {
                     character: session.playerData.character,
                     oldId: existingPlayerId
                 });
-                
-                if (room.state === 'ingame' && room.currentQuestion && !room.currentQuestion.isCompleted) {
-                    emitActivePlayerCount(io, room);
-                }
-            } else {
-                room.players[socket.id] = {
-                    name: session.playerData.name,
-                    character: session.playerData.character,
-                    points: session.playerData.points || 0,
-                    streak: 0,
-                    lastRoundPoints: 0
-                };
-                
-                io.to(room.host).emit('PLAYER_JOINED', {
-                    id: socket.id,
-                    name: session.playerData.name,
-                    character: session.playerData.character
-                });
             }
 
-            const gameState = {
-                roomState: room.state,
-                currentQuestion: room.currentQuestion,
-                playerPoints: room.players[socket.id].points,
-                roomCode: session.roomCode,
-                playerData: session.playerData
-            };
+            if (room.state === 'ingame' && room.currentQuestion && !room.currentQuestion.isCompleted) {
+                emitActivePlayerCount(io, room);
+            }
+
+            const gameState = buildPlayerGameState(room, socket.id, session.playerData);
             
             if (room.state === 'ingame' && room.currentQuestion && !room.currentQuestion.isCompleted) {
                 const questionData = buildQuestionPayload(room.currentQuestion, room);
@@ -479,7 +454,7 @@ module.exports = (io, socket) => {
         }
 
         const playerAnswers = room.playerAnswers;
-        if (playerAnswers[playerAnswers.length - 1][socket.id]) {
+        if (Object.prototype.hasOwnProperty.call(playerAnswers[playerAnswers.length - 1], socket.id)) {
             return callback({success: false, error: 'Antwort bereits abgegeben'});
         }
 
@@ -503,7 +478,8 @@ module.exports = (io, socket) => {
             const currentAnswers = playerAnswers[playerAnswers.length - 1];
 
             io.to(room.host).emit('ANSWER_PROGRESS', {
-                answeredCount: Object.keys(currentAnswers).length,
+                answeredCount: Object.keys(activePlayers).filter(id =>
+                    Object.prototype.hasOwnProperty.call(currentAnswers, id)).length,
                 activePlayerCount: Object.keys(activePlayers).length,
                 totalPlayerCount: Object.keys(room.players).length
             });

@@ -4,12 +4,13 @@ class SessionManager {
     constructor() {
         this.sessionId = localStorage.getItem('quizzle_session_id');
         this.reconnectionAttempts = 0;
-        this.maxReconnectionAttempts = 5;
-        this.isReconnecting = false;
+        this.reconnectionRequest = null;
+        this.reconnectionTimer = null;
         this.reconnectionCallbacks = new Set();
     }
 
     setSessionId(sessionId) {
+        this.resetReconnection();
         this.sessionId = sessionId;
         localStorage.setItem('quizzle_session_id', sessionId);
     }
@@ -19,12 +20,20 @@ class SessionManager {
     }
 
     clearSession() {
+        this.resetReconnection();
         this.sessionId = null;
         localStorage.removeItem('quizzle_session_id');
     }
 
     hasValidSession() {
         return !!(this.getSessionId());
+    }
+
+    resetReconnection() {
+        clearTimeout(this.reconnectionTimer);
+        this.reconnectionTimer = null;
+        this.reconnectionRequest?.resolve(null);
+        this.reconnectionRequest = null;
     }
 
     addReconnectionCallback(callback) {
@@ -35,10 +44,10 @@ class SessionManager {
         this.reconnectionCallbacks.delete(callback);
     }
 
-    notifyReconnectionCallbacks(success, error = null) {
+    notifyReconnectionCallbacks(success, error = null, gameState = null) {
         this.reconnectionCallbacks.forEach(callback => {
             try {
-                callback(success, error);
+                callback(success, error, gameState);
             } catch (e) {
                 console.error('Error in reconnection callback:', e);
             }
@@ -54,57 +63,62 @@ export const socket = io("", {
     reconnection: true,
     reconnectionDelay: 1000,
     reconnectionDelayMax: 5000,
-    maxReconnectionAttempts: Infinity,
+    reconnectionAttempts: Infinity,
     timeout: 20000,
     forceNew: false
 });
 
 const handleReconnection = () => {
-    if (sessionManager.isReconnecting || !sessionManager.hasValidSession()) {
-        return;
+    if (!socket.connected || !sessionManager.hasValidSession()) {
+        return Promise.resolve(null);
     }
 
-    sessionManager.isReconnecting = true;
+    if (sessionManager.reconnectionRequest) {
+        return sessionManager.reconnectionRequest.promise;
+    }
+
+    clearTimeout(sessionManager.reconnectionTimer);
     const sessionId = sessionManager.getSessionId();
+    const request = {};
+    request.promise = new Promise(resolve => { request.resolve = resolve; });
+    sessionManager.reconnectionRequest = request;
 
-    socket.emit('RECONNECT_WITH_SESSION', { sessionId }, (response) => {
-        sessionManager.isReconnecting = false;
+    socket.timeout(10000).emit('RECONNECT_WITH_SESSION', {sessionId}, (error, response) => {
+        // Ignore acknowledgements from a connection or session we already left.
+        if (sessionManager.reconnectionRequest !== request) return;
+        sessionManager.reconnectionRequest = null;
 
-        if (response?.success) {
+        if (!error && response?.success) {
             sessionManager.reconnectionAttempts = 0;
-            sessionManager.notifyReconnectionCallbacks(true, response);
+            sessionManager.notifyReconnectionCallbacks(true, null, response.gameState);
+            request.resolve(response.gameState);
         } else {
             if (response?.shouldRedirect || response?.sessionInvalid) {
                 sessionManager.clearSession();
                 sessionManager.notifyReconnectionCallbacks(false, 'Session invalid - redirect required');
+                request.resolve(null);
                 return;
             }
-            
+
+            // A network timeout does not invalidate the saved student session.
             sessionManager.reconnectionAttempts++;
-            
-            if (sessionManager.reconnectionAttempts >= sessionManager.maxReconnectionAttempts) {
-                sessionManager.clearSession();
-                sessionManager.notifyReconnectionCallbacks(false, 'Max reconnection attempts reached');
-            } else {
-                const delay = Math.min(1000 * Math.pow(2, sessionManager.reconnectionAttempts), 10000);
-                setTimeout(() => {
-                    if (socket.connected) {
-                        handleReconnection();
-                    }
-                }, delay);
-            }
+            sessionManager.notifyReconnectionCallbacks(false, error || response?.error || 'Reconnection failed');
+            const delay = Math.min(1000 * Math.pow(2, sessionManager.reconnectionAttempts), 10000);
+            sessionManager.reconnectionTimer = setTimeout(handleReconnection, delay);
+            request.resolve(null);
         }
     });
+
+    return request.promise;
 };
 
 socket.on('connect', () => {
     sessionManager.reconnectionAttempts = 0;
-    if (sessionManager.hasValidSession() && !sessionManager.isReconnecting) {
-        setTimeout(handleReconnection, 100);
-    }
+    handleReconnection();
 });
 
 socket.on('disconnect', (reason) => {
+    sessionManager.resetReconnection();
     if (reason === 'io client disconnect' || reason === 'io server disconnect') {
         return;
     }
@@ -128,6 +142,10 @@ socket.on('HOST_DISCONNECTED', () => {
 socket.on('KICKED_FROM_ROOM', () => {
     sessionManager.clearSession();
     sessionManager.notifyReconnectionCallbacks(false, 'Kicked from room');
+});
+
+socket.on('GAME_ENDED', () => {
+    sessionManager.clearSession();
 });
 
 export const ensureSocketConnection = (timeout = 10000) => {
@@ -183,6 +201,14 @@ export const joinRoomWithSession = (roomCode, name, character) => {
 };
 
 export const getSessionManager = () => sessionManager;
+
+export const restoreSession = () => {
+    if (!sessionManager.hasValidSession()) return Promise.resolve(null);
+    return ensureSocketConnection().then(handleReconnection).catch(error => {
+        sessionManager.notifyReconnectionCallbacks(false, error);
+        return null;
+    });
+};
 
 export const addReconnectionCallback = (callback) => {
     sessionManager.addReconnectionCallback(callback);

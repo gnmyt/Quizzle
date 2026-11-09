@@ -15,6 +15,7 @@
     "concurrently": "^9.2.1"
   },
   "scripts": {
+    "test": "node --test webui/tests/*.test.js",
     "start": "bun server/index.js",
     "dev:server": "bun --watch --ignore=data/** server/index.js",
     "dev:client": "cd webui && bun run dev",

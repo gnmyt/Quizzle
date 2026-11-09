@@ -2,7 +2,7 @@ import "./styles.sass";
 import {QuizContext} from "@/common/contexts/Quiz";
 import {useContext, useEffect, useState} from "react";
 import {useNavigate, useParams} from "react-router-dom";
-import {socket, addReconnectionCallback, removeReconnectionCallback, clearCurrentSession, getSessionManager, getSessionState} from "@/common/utils/SocketUtil.js";
+import {socket, addReconnectionCallback, removeReconnectionCallback, clearCurrentSession, getSessionManager, restoreSession} from "@/common/utils/SocketUtil.js";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import {faCheck, faCheckCircle, faMinus, faPaperPlane, faX, faWifi, faExclamationTriangle, faFire} from "@fortawesome/free-solid-svg-icons";
 import AnswerShape from "@/common/components/AnswerShape";
@@ -19,7 +19,7 @@ import toast from "react-hot-toast";
 
 export const InGameClient = () => {
     const navigate = useNavigate();
-    const {username, roomCode, practiceUserData} = useContext(QuizContext);
+    const {username, practiceUserData} = useContext(QuizContext);
     const {practiceCode} = useParams();
     const soundManager = useSoundManager();
 
@@ -64,24 +64,16 @@ export const InGameClient = () => {
 
         const sessionManager = getSessionManager();
 
-        if (!roomCode && !sessionManager.hasValidSession()) {
+        if (!sessionManager.hasValidSession()) {
             navigate("/");
             return;
         }
-        
-        if (!roomCode && sessionManager.hasValidSession()) {
-            getSessionState().then(sessionState => {
-                if (sessionState && sessionState.roomCode) {
-                } else {
-                    sessionManager.clearSession();
-                    navigate("/");
-                }
-            }).catch(() => {
-                navigate("/");
-            });
-        }
+
+        let countdownInterval;
+        let notifyOnReconnect = !socket.connected;
 
         const onQuestion = (question) => {
+            clearInterval(countdownInterval);
             setAnswers([]);
             setAnswerLabels([]);
             setSliderAnswerData(null);
@@ -93,7 +85,7 @@ export const InGameClient = () => {
             setClientCountdown(5);
             setPointsEarned(0);
 
-            const countdownInterval = setInterval(() => {
+            countdownInterval = setInterval(() => {
                 setClientCountdown(prev => {
                     const newValue = prev - 1;
                     if (newValue <= 3 && newValue > 0) {
@@ -122,6 +114,7 @@ export const InGameClient = () => {
         }
 
         const onAnswer = (answer) => {
+            clearInterval(countdownInterval);
             if (answer?.correctValue !== undefined) {
                 setSliderAnswerData(answer);
                 setAnswers([]);
@@ -134,6 +127,8 @@ export const InGameClient = () => {
         }
 
         const onAnswersReady = () => {
+            clearInterval(countdownInterval);
+            setClientCountdown(0);
             setAnswersReady(true);
         }
 
@@ -169,11 +164,12 @@ export const InGameClient = () => {
 
         const handleConnect = () => {
             setIsConnected(true);
-            setIsReconnecting(false);
         };
 
         const handleDisconnect = (reason) => {
+            notifyOnReconnect = true;
             setIsConnected(false);
+            setIsReconnecting(true);
             if (reason === 'io server disconnect' || reason === 'io client disconnect') {
                 navigate("/");
             }
@@ -181,19 +177,35 @@ export const InGameClient = () => {
 
         const handleReconnection = (success, error, gameState) => {
             if (success) {
+                setIsConnected(socket.connected);
                 setIsReconnecting(false);
-                toast.success("Erfolgreich wieder verbunden!", { duration: 3000 });
+                if (notifyOnReconnect) {
+                    toast.success("Erfolgreich wieder verbunden!", {duration: 3000});
+                }
+                notifyOnReconnect = false;
                 
                 if (gameState) {
-                    if (gameState.playerPoints !== undefined) {
-                        setPoints(gameState.playerPoints);
+                    if (gameState.currentQuestion) {
+                        onQuestion(gameState.currentQuestion);
+                        if (gameState.answersReady) onAnswersReady();
+                        if (gameState.hasAnswered) {
+                            recordSubmittedAnswer(gameState.submittedAnswer, gameState.currentQuestion);
+                            setCurrentQuestion(null);
+                        }
+                        if (gameState.questionCompleted) onAnswer(gameState.answerData);
+                    } else {
+                        clearInterval(countdownInterval);
+                        setCurrentQuestion(null);
+                        setAnswers([]);
+                        setAnswerLabels([]);
+                        setSliderAnswerData(null);
                     }
+                    onPoints({...gameState, points: gameState.playerPoints});
                 }
             } else {
                 setIsReconnecting(true);
                 
                 if (error === 'Session expired' || 
-                    error === 'Max reconnection attempts reached' ||
                     error === 'Session invalid - redirect required' ||
                     error === 'Host disconnected' ||
                     error === 'Kicked from room') {
@@ -215,22 +227,6 @@ export const InGameClient = () => {
             }
         };
 
-        socket.on('GAME_STATE_RESTORED', (gameState) => {
-            if (gameState.playerPoints !== undefined) {
-                setPoints(gameState.playerPoints);
-            }
-        });
-
-        const handleSessionRestored = () => {
-            getSessionState().then(sessionState => {
-                if (!sessionState && !roomCode) {
-                    navigate("/");
-                }
-            });
-        };
-
-        handleSessionRestored();
-
         socket.on("QUESTION_RECEIVED", onQuestion);
         socket.on("POINTS_RECEIVED", onPoints);
         socket.on("ANSWER_RECEIVED", onAnswer);
@@ -242,7 +238,12 @@ export const InGameClient = () => {
         socket.on('connect', handleConnect);
         addReconnectionCallback(handleReconnection);
 
+        // Request a snapshot after listeners are mounted, including when the
+        // home page has already reconnected this student's socket.
+        restoreSession();
+
         return () => {
+            clearInterval(countdownInterval);
             socket.off("QUESTION_RECEIVED", onQuestion);
             socket.off("POINTS_RECEIVED", onPoints);
             socket.off("ANSWER_RECEIVED", onAnswer);
@@ -252,10 +253,9 @@ export const InGameClient = () => {
             socket.off("KICKED_FROM_ROOM", kickedFromRoom);
             socket.off("disconnect", handleDisconnect);
             socket.off('connect', handleConnect);
-            socket.off('GAME_STATE_RESTORED');
             removeReconnectionCallback(handleReconnection);
         }
-    }, [roomCode, practiceCode]);
+    }, [practiceCode, navigate]);
 
     const loadPracticeQuiz = async () => {
         try {
@@ -484,8 +484,7 @@ export const InGameClient = () => {
         }
     };
 
-    const submitAnswer = (answers) => {
-        const questionForSubmit = getCurrentQuestion();
+    const recordSubmittedAnswer = (answers, questionForSubmit) => {
         const typeForSubmit = questionForSubmit?.type;
 
         if (typeForSubmit === QUESTION_TYPES.TEXT) {
@@ -511,6 +510,10 @@ export const InGameClient = () => {
             setSelection(boolSelection);
         }
         if (typeForSubmit) setLastQuestionType(typeForSubmit);
+    };
+
+    const submitAnswer = (answers) => {
+        recordSubmittedAnswer(answers, getCurrentQuestion());
 
         if (isPracticeMode) {
             return submitPracticeAnswer(answers);
